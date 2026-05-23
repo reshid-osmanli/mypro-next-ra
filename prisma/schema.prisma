@@ -1,0 +1,151 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Product {
+  id           String       @id @default(cuid())
+  slug         String       @unique
+  title        String
+  excerpt      String
+  description  String
+  price        Int
+  compareAt    Int?
+  badge        String
+  grade        String
+  subject      String
+  category     String
+  format       String
+  pages        String
+  level        String
+  featured     Boolean      @default(false)
+  status       String       @default("published")
+  accentA      String       @default("#8a1538")
+  accentB      String       @default("#5f1029")
+  coverImage   String?
+  sortOrder    Int          @default(0)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  files        ProductFile[]
+  orderItems   OrderItem[]
+}
+
+model ProductFile {
+  id         String   @id @default(cuid())
+  productId  String
+  title      String
+  url        String
+  mimeType   String
+  size       Int
+  createdAt  DateTime @default(now())
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  downloadTokens DownloadToken[]
+}
+
+model ContentPage {
+  id         String   @id @default(cuid())
+  slug       String   @unique
+  grade      String
+  subject    String
+  title      String
+  intro      String
+  body       String
+  heroLabel  String   @default("صفحة مادة")
+  published  Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Grade {
+  id         String    @id @default(cuid())
+  name       String    @unique
+  sortOrder  Int       @default(0)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  subjects   Subject[]
+}
+
+model Subject {
+  id         String   @id @default(cuid())
+  gradeId    String
+  name       String
+  motionLogo String?
+  sortOrder  Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  grade Grade @relation(fields: [gradeId], references: [id], onDelete: Cascade)
+
+  @@unique([gradeId, name])
+}
+
+model SiteSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+
+model AdminUser {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  role         String   @default("admin")
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Order {
+  id                    String            @id @default(cuid())
+  customerName          String
+  email                 String
+  phone                 String?
+  notes                 String?
+  total                 Int
+  status                String            @default("pending")
+  paymentMethod         String
+  providerOrderId       String?           @unique
+  providerCaptureId     String?
+  downloadClaimHash     String?
+  downloadClaimExpiresAt DateTime?
+  downloadClaimUsedAt   DateTime?
+  downloadSessionHash   String?
+  downloadSessionExpiresAt DateTime?
+  downloadSessionUsedAt DateTime?
+  createdAt             DateTime          @default(now())
+  items                 OrderItem[]
+  downloadTokens        DownloadToken[]
+}
+
+model OrderItem {
+  id            String   @id @default(cuid())
+  orderId       String?
+  productId     String
+  productTitle  String
+  price         Int
+  quantity      Int
+
+  order   Order?   @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  product Product  @relation(fields: [productId], references: [id])
+}
+
+model DownloadToken {
+  id         String   @id @default(cuid())
+  orderId    String
+  fileId     String
+  tokenHash  String   @unique
+  expiresAt   DateTime
+  usedAt     DateTime?
+  createdAt  DateTime @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  file  ProductFile @relation(fields: [fileId], references: [id], onDelete: Cascade)
+}
