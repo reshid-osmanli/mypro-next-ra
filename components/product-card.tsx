@@ -7,7 +7,6 @@ import { AddToCartButton } from "./add-to-cart-button";
 import { currencyLabel } from "@/lib/utils";
 import { ProductVisual } from "./product-visual";
 import { useSitePreferences } from "./site-preferences";
-import { SubjectMotionLogo } from "./subject-motion-logo";
 
 export type ProductCardModel = {
   id: string;
@@ -54,35 +53,18 @@ function ProductCard({ product }: { product: ProductCardModel }) {
     >
       <div className="relative overflow-hidden bg-pearl-100">
         <div className="aspect-[1.35/1] sm:aspect-[1.45/1]">
-          {product.coverImage ? (
-            <img
-              src={product.coverImage}
-              alt={product.title}
-              className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
-            />
-          ) : (
-            <ProductVisual
-              title={product.title}
-              subject={product.subject}
-              category={product.category}
-              format={product.format}
-              badge={product.badge}
-              accentA={product.accentA}
-              accentB={product.accentB}
-              subjectMotionLogo={product.subjectMotionLogo}
-            />
-          )}
+          <ProductVisual
+            title={product.title}
+            subject={product.subject}
+            category={product.category}
+            format={product.format}
+            badge={product.badge}
+            accentA={product.accentA}
+            accentB={product.accentB}
+            coverImage={product.coverImage}
+            subjectMotionLogo={product.subjectMotionLogo}
+          />
         </div>
-        {product.coverImage ? <SubjectMotionLogo src={product.subjectMotionLogo} subject={product.subject} compact className="absolute left-4 top-4 z-20" /> : null}
-        {product.coverImage ? (
-          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent p-5 text-white">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="rounded-md bg-white/20 px-3 py-1 text-[11px] font-semibold backdrop-blur">{product.grade}</span>
-              <span className="rounded-md bg-white/20 px-3 py-1 text-[11px] font-semibold backdrop-blur">{product.badge}</span>
-            </div>
-            <p className="mt-4 text-lg font-black leading-8">{product.title}</p>
-          </div>
-        ) : null}
       </div>
 
       <div className="space-y-5 p-6 lg:p-7">

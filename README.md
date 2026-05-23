@@ -1,8 +1,8 @@
-# موقع كُتبي
+# Kutubi
 
-متجر عربي لبيع عروض PowerPoint وأوراق العمل وملفات PDF/DOCX، مع مكتبة مرتبة حسب الصف والمادة، لوحة إدارة محمية، ودفع PayPal.
+Arabic digital-products store built with Next.js, Prisma, PostgreSQL, PayPal, and a protected admin dashboard.
 
-## التشغيل المحلي
+## Local Setup
 
 ```bash
 npm install
@@ -12,33 +12,37 @@ npm run db:seed
 npm run dev
 ```
 
-افتح الموقع على:
+Open the app at:
 
 ```bash
 http://localhost:3000
 ```
 
-## لوحة الإدارة
+## Environment
 
-المسار:
+Use `.env.example` as the safe template. Put the real values in `.env` locally and in Vercel Environment Variables. Do not commit real secrets.
+
+## Database
+
+The project uses PostgreSQL through Prisma:
+
+```prisma
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+```
+
+## Admin
+
+Admin login path:
 
 ```bash
 /admin/login
 ```
 
-اضبط `ADMIN_EMAIL` و`ADMIN_PASSWORD` أو `ADMIN_PASSWORD_HASH` و`ADMIN_SESSION_SECRET` قبل التشغيل. في الإنتاج، لا تستخدم قيماً تجريبية.
+Set `ADMIN_EMAIL`, `ADMIN_PASSWORD`, and `ADMIN_SESSION_SECRET` before running the site.
 
-## الرفع والأمان
+## Deployment
 
-- الملفات المدفوعة تحفظ في `storage/uploads` ولا تُعرض مباشرة من `public`.
-- صور الأغلفة فقط تحفظ في `public/uploads`.
-- الرفع يقبل: PDF, PPT, PPTX, PPSX, DOC, DOCX, XLS, XLSX, PNG, JPG, WEBP.
-- يتم فحص الامتداد، نوع MIME، توقيع الملف، الحجم، والجلسة الإدارية.
-- روابط التحميل بعد الدفع مؤقتة وتُستهلك مرة واحدة.
-
-## PayPal وEmail 2FA
-
-- أضف `NEXT_PUBLIC_PAYPAL_CLIENT_ID` و`PAYPAL_CLIENT_SECRET`.
-- اترك `PAYPAL_ENV=sandbox` أثناء التجربة.
-- أضف `RESEND_API_KEY` و`RESEND_FROM_EMAIL` لتفعيل رمز تحقق البريد للوحة الإدارة.
-- اضبط `NEXT_PUBLIC_SITE_URL` على رابط الموقع الحقيقي قبل النشر.
+See `VERCEL_ENVIRONMENT.md` for the exact environment variable checklist and GitHub push steps.

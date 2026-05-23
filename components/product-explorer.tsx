@@ -7,7 +7,6 @@ import { ArrowLeft, CheckCircle2, LayoutGrid, ListFilter, Search, SlidersHorizon
 import { ProductCard, type ProductCardModel } from "./product-card";
 import { AddToCartButton } from "./add-to-cart-button";
 import { ProductVisual } from "./product-visual";
-import { SubjectMotionLogo } from "./subject-motion-logo";
 import { currencyLabel } from "@/lib/utils";
 import { useSitePreferences } from "./site-preferences";
 
@@ -40,21 +39,17 @@ function ListProductCard({ product }: { product: ProductCardModel }) {
   return (
     <article className="overflow-hidden rounded-lg border border-pearl-200 bg-white shadow-[0_18px_50px_rgba(60,32,18,0.05)] lg:grid lg:grid-cols-[0.88fr_1.12fr]">
       <div className="relative min-h-[18rem] bg-pearl-100">
-        {product.coverImage ? (
-          <img src={product.coverImage} alt={product.title} className="h-full w-full object-cover" />
-        ) : (
-          <ProductVisual
-            title={product.title}
-            subject={product.subject}
-            category={product.category}
-            format={product.format}
-            badge={product.badge}
-            accentA={product.accentA}
-            accentB={product.accentB}
-            subjectMotionLogo={product.subjectMotionLogo}
-          />
-        )}
-        {product.coverImage ? <SubjectMotionLogo src={product.subjectMotionLogo} subject={product.subject} compact className="absolute left-4 top-4 z-20" /> : null}
+        <ProductVisual
+          title={product.title}
+          subject={product.subject}
+          category={product.category}
+          format={product.format}
+          badge={product.badge}
+          accentA={product.accentA}
+          accentB={product.accentB}
+          coverImage={product.coverImage}
+          subjectMotionLogo={product.subjectMotionLogo}
+        />
       </div>
       <div className="space-y-4 p-5 lg:p-6">
         <div className="flex flex-wrap gap-2 text-xs">

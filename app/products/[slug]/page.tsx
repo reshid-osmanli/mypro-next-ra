@@ -3,7 +3,6 @@ import Link from "next/link";
 import { ArrowLeft, CheckCircle2, FileText } from "lucide-react";
 import { AddToCartButton } from "@/components/add-to-cart-button";
 import { ProductVisual } from "@/components/product-visual";
-import { SubjectMotionLogo } from "@/components/subject-motion-logo";
 import { LocalizedText } from "@/components/site-preferences";
 import { MotionShowcase } from "@/components/motion-showcase";
 import { getAllProducts, getProductBySlug } from "@/lib/catalog";
@@ -41,21 +40,17 @@ export default async function ProductDetailsPage({ params }: { params: Promise<{
       <div className="mt-6 overflow-hidden rounded-lg border border-pearl-200 bg-white shadow-[0_18px_50px_rgba(60,32,18,0.06)]">
         <div className="grid gap-0 lg:grid-cols-[0.98fr_1.02fr]">
           <div className="relative min-h-[26rem] bg-pearl-100">
-            {product.coverImage ? (
-              <img src={product.coverImage} alt={product.title} className="h-full w-full object-cover" />
-            ) : (
-              <ProductVisual
-                title={product.title}
-                subject={product.subject}
-                category={product.category}
-                format={product.format}
-                badge={product.badge}
-                accentA={product.accentA}
-                accentB={product.accentB}
-                subjectMotionLogo={product.subjectMotionLogo}
-              />
-            )}
-            {product.coverImage ? <SubjectMotionLogo src={product.subjectMotionLogo} subject={product.subject} className="absolute left-5 top-5 z-20" /> : null}
+            <ProductVisual
+              title={product.title}
+              subject={product.subject}
+              category={product.category}
+              format={product.format}
+              badge={product.badge}
+              accentA={product.accentA}
+              accentB={product.accentB}
+              coverImage={product.coverImage}
+              subjectMotionLogo={product.subjectMotionLogo}
+            />
           </div>
 
           <div className="p-6 md:p-10">

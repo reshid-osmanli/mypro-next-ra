@@ -1,13 +1,47 @@
-node_modules
-.next
-dist
-out
+# dependencies
+node_modules/
+
+# Next.js
+.next/
+out/
+dist/
+
+# environment
 .env
-.env.local
+.env.*
+!.env.example
+
+# logs and local caches
 *.log
+logs/
+.cache/
+.parcel-cache/
+.eslintcache
+.stylelintcache
+.npm/
+.pnpm-store/
+*.tsbuildinfo
+
+# local databases
 dev.db
 prisma/dev.db
+
+# generated and coverage output
+coverage/
+.nyc_output/
+build/Release/
+*.tgz
+
+# uploads
 public/uploads/*
 !public/uploads/.gitkeep
+!public/uploads/kutubi-popup-test.png
 storage/uploads/*
 !storage/uploads/.gitkeep
+
+# editor and test artifacts
+.vscode-test/
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
+.vite/

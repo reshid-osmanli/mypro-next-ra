@@ -13,6 +13,7 @@ type ProductVisualProps = {
   badge?: string;
   accentA?: string;
   accentB?: string;
+  coverImage?: string | null;
   subjectMotionLogo?: string | null;
   compact?: boolean;
 };
@@ -25,6 +26,7 @@ function ProductVisual({
   badge = "جاهز",
   accentA = "#8a1538",
   accentB = "#0f766e",
+  coverImage,
   subjectMotionLogo,
   compact = false
 }: ProductVisualProps) {
@@ -33,6 +35,44 @@ function ProductVisual({
     "--accent-a": accentA,
     "--accent-b": accentB
   } as CSSProperties;
+
+  if (coverImage) {
+    return (
+      <div className="relative h-full w-full overflow-hidden bg-[#f8f5ef] dark:bg-[#101826]" style={style}>
+        <div className="absolute inset-x-0 top-0 z-20 h-1.5 bg-[var(--accent-a)]" />
+        <div className="absolute inset-0 opacity-[0.18] [background-image:linear-gradient(135deg,rgba(15,23,42,0.12)_1px,transparent_1px),linear-gradient(45deg,rgba(138,21,56,0.08)_1px,transparent_1px)] [background-size:28px_28px]" />
+        <div className="absolute inset-x-0 bottom-0 h-28" style={{ background: `linear-gradient(0deg, ${accentB}18, transparent)` }} />
+
+        <div className="absolute inset-3 overflow-hidden border border-white/80 bg-white/95 shadow-[0_24px_60px_rgba(60,32,18,0.16)] sm:inset-5">
+          <img src={coverImage} alt={title} className="h-full w-full object-contain p-2 sm:p-3" />
+        </div>
+
+        <div className="absolute left-5 top-5 z-30">
+          <SubjectMotionLogo src={subjectMotionLogo} subject={subject} compact />
+        </div>
+
+        <div className="absolute right-5 top-5 z-30 inline-flex items-center gap-2 border border-white/80 bg-white/95 px-3 py-1.5 text-[11px] font-black text-zinc-800 shadow-[0_12px_28px_rgba(45,24,32,0.14)] backdrop-blur">
+          <Presentation size={14} className="text-[var(--accent-a)]" />
+          {category}
+        </div>
+
+        <div className="absolute inset-x-5 bottom-5 z-30 flex flex-wrap items-center justify-between gap-2">
+          <div className="max-w-[70%] border border-white/80 bg-white/95 px-3 py-2 shadow-[0_12px_28px_rgba(45,24,32,0.14)] backdrop-blur">
+            <h3 className="line-clamp-1 text-sm font-black text-zinc-950">{title}</h3>
+            <p className="mt-1 line-clamp-1 text-[11px] font-bold text-zinc-600">{subject}</p>
+          </div>
+          <div className="flex gap-2 text-[10px] font-black text-zinc-700">
+            <span className="border border-white/80 bg-white/95 px-2.5 py-1.5 shadow-sm">{format}</span>
+            <span className="border border-white/80 bg-white/95 px-2.5 py-1.5 shadow-sm">{badge}</span>
+          </div>
+        </div>
+
+        <div className="sweep-line absolute left-0 top-16 z-20 h-px w-2/3 bg-gradient-to-l from-transparent via-[var(--accent-b)] to-transparent" />
+      </div>
+    );
+  }
+
+  const contentOffsetClass = coverImage && subjectMotionLogo ? "pt-32 sm:pt-14" : coverImage ? "pt-28 sm:pt-0" : subjectMotionLogo ? "pt-14" : "";
 
   return (
     <div className="relative h-full w-full overflow-hidden bg-[#f8f5ef] dark:bg-[#101826]" style={style}>
@@ -45,10 +85,17 @@ function ProductVisual({
         ))}
       </div>
       <div className="sweep-line absolute left-0 top-16 h-px w-2/3 bg-gradient-to-l from-transparent via-[var(--accent-b)] to-transparent" />
-      <SubjectMotionLogo src={subjectMotionLogo} subject={subject} compact className="absolute left-4 top-4 z-20" />
+      <div className="absolute left-4 top-4 z-20 flex max-w-32 flex-col items-start gap-2">
+        <SubjectMotionLogo src={subjectMotionLogo} subject={subject} compact />
+        {coverImage ? (
+          <div className="overflow-hidden border border-white/75 bg-white/95 p-1 shadow-[0_16px_34px_rgba(45,24,32,0.18)] backdrop-blur sm:hidden">
+            <img src={coverImage} alt={title} className="h-16 w-24 object-cover" />
+          </div>
+        ) : null}
+      </div>
 
       <div className="relative grid h-full grid-cols-[1fr_0.82fr] gap-4 p-5 sm:p-6">
-        <div className="flex min-w-0 flex-col justify-between">
+        <div className={`flex min-w-0 flex-col justify-between ${contentOffsetClass}`}>
           <div>
             <div className="inline-flex items-center gap-2 rounded-md border border-pearl-200 bg-white px-3 py-1.5 text-[11px] font-bold text-zinc-700 shadow-sm">
               <Presentation size={14} className="text-[var(--accent-a)]" />
@@ -91,13 +138,25 @@ function ProductVisual({
 
               <div className="grid grid-cols-[0.9fr_1.1fr] gap-2">
                 <div className="relative overflow-hidden rounded-md bg-[var(--accent-a)]">
-                  <div className="absolute inset-x-2 top-3 h-1 bg-white/45" />
-                  <div className="absolute bottom-3 right-3 h-9 w-9 rounded-full border-4 border-white/70" />
-                  <div className="absolute left-3 top-6 flex h-8 items-end gap-1 text-white/75" aria-hidden="true">
-                    <span className="h-3 w-1.5 bg-current" />
-                    <span className="h-5 w-1.5 bg-current" />
-                    <span className="h-7 w-1.5 bg-current" />
-                  </div>
+                  {coverImage ? (
+                    <>
+                      <img src={coverImage} alt="" className="h-full w-full object-cover" aria-hidden="true" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-black/5 to-white/10" />
+                      <div className="absolute bottom-2 right-2 rounded-md bg-white/90 px-2 py-1 text-[9px] font-black text-zinc-800 shadow-sm">
+                        {format}
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="absolute inset-x-2 top-3 h-1 bg-white/45" />
+                      <div className="absolute bottom-3 right-3 h-9 w-9 rounded-full border-4 border-white/70" />
+                      <div className="absolute left-3 top-6 flex h-8 items-end gap-1 text-white/75" aria-hidden="true">
+                        <span className="h-3 w-1.5 bg-current" />
+                        <span className="h-5 w-1.5 bg-current" />
+                        <span className="h-7 w-1.5 bg-current" />
+                      </div>
+                    </>
+                  )}
                 </div>
                 <div className="space-y-2">
                   {[0, 1, 2].map((item) => (
