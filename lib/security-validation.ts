@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { MAX_UPLOAD_BYTES } from "./upload-policy";
+import { isSafeCloudinaryImageUrl, MAX_UPLOAD_BYTES } from "./upload-policy";
 
 export const MAX_CART_QUANTITY = 1;
 export const MAX_CHECKOUT_ITEMS = 20;
@@ -20,12 +20,14 @@ export const checkoutItemsSchema = z.array(checkoutItemSchema).min(1).max(MAX_CH
 
 export function isSafeCoverImageUrl(value?: string | null) {
   if (!value) return true;
-  return /^\/uploads\/[a-zA-Z0-9_.-]+\.(?:png|jpe?g|webp)$/i.test(value.trim());
+  const normalized = value.trim();
+  return /^\/uploads\/[a-zA-Z0-9_.-]+\.(?:png|jpe?g|webp)$/i.test(normalized) || isSafeCloudinaryImageUrl(normalized);
 }
 
 export function isSafePublicMotionLogoUrl(value?: string | null) {
   if (!value) return true;
-  return /^\/uploads\/[a-zA-Z0-9_.-]+\.(?:png|jpe?g|webp|gif)$/i.test(value.trim());
+  const normalized = value.trim();
+  return /^\/uploads\/[a-zA-Z0-9_.-]+\.(?:png|jpe?g|webp|gif)$/i.test(normalized) || isSafeCloudinaryImageUrl(normalized);
 }
 
 export function normalizeOptionalStoredUrl(value?: string | null) {

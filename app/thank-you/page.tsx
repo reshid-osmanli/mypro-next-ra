@@ -47,7 +47,7 @@ export default async function ThankYouPage({ searchParams }: { searchParams?: Pr
         <p className="mt-4 text-base leading-8 text-zinc-600">
           <LocalizedText
             value={order
-              ? { ar: "تم الدفع بنجاح. سيتم تجهيز روابط التحميل الآمنة الآن بشكل تلقائي.", en: "Payment succeeded. Secure download links are being prepared automatically." }
+              ? { ar: "تم الدفع بنجاح. سيتم تنزيل الملفات الآن تلقائياً من جلسة آمنة لمرة واحدة.", en: "Payment succeeded. Files will download automatically from a one-time secure session." }
               : expired
                 ? { ar: "انتهت صلاحية رابط التحميل أو تم استخدامه من قبل.", en: "The download link has expired or was already used." }
                 : { ar: "تم إنشاء الطلب بنجاح، وسيظهر المحتوى بعد اكتمال الدفع.", en: "The order was created successfully. Content appears after payment is completed." }}

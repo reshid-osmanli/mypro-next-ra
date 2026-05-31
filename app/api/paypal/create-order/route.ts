@@ -11,7 +11,8 @@ const schema = z.object({
   customerName: z.string().trim().min(2).max(120),
   email: z.string().trim().email().max(160),
   phone: z.string().trim().max(40).optional(),
-  notes: z.string().trim().max(1000).optional()
+  notes: z.string().trim().max(1000).optional(),
+  purchaseTrackingConsent: z.boolean().optional().default(false)
 });
 
 export async function POST(req: Request) {
@@ -63,6 +64,7 @@ export async function POST(req: Request) {
       email: parsed.data.email,
       phone: parsed.data.phone,
       notes: parsed.data.notes,
+      purchaseTrackingConsent: parsed.data.purchaseTrackingConsent,
       total,
       status: "pending",
       paymentMethod: "paypal",

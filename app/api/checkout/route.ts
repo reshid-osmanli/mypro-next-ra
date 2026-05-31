@@ -13,6 +13,7 @@ const schema = z.object({
   email: z.string().trim().email().max(160),
   phone: z.string().trim().max(40).optional(),
   notes: z.string().trim().max(1000).optional(),
+  purchaseTrackingConsent: z.boolean().optional().default(false),
   paymentMethod: z.literal("stripe")
 });
 
@@ -76,6 +77,7 @@ export async function POST(req: Request) {
       email: parsed.data.email,
       phone: parsed.data.phone,
       notes: parsed.data.notes,
+      purchaseTrackingConsent: parsed.data.purchaseTrackingConsent,
       total,
       paymentMethod: parsed.data.paymentMethod,
       items: {

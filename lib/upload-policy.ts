@@ -113,12 +113,59 @@ export function preferredUploadMimeType(policy: UploadPolicy, fileName: string, 
   return byExtension[extension] ?? policy.mimeTypes[0];
 }
 
+export function isSafeCloudinaryStoredUrl(url: string) {
+  try {
+    const parsed = new URL(url);
+    const pathParts = parsed.pathname.split("/").filter(Boolean);
+    const resourceType = pathParts[1];
+    const deliveryType = pathParts[2];
+
+    return (
+      parsed.protocol === "https:" &&
+      parsed.hostname === "res.cloudinary.com" &&
+      !parsed.username &&
+      !parsed.password &&
+      !parsed.search &&
+      !parsed.hash &&
+      pathParts.length >= 5 &&
+      ["image", "raw"].includes(resourceType) &&
+      deliveryType === "upload"
+    );
+  } catch {
+    return false;
+  }
+}
+
+export function isSafeCloudinaryImageUrl(url: string) {
+  if (!isSafeCloudinaryStoredUrl(url)) return false;
+
+  try {
+    const parsed = new URL(url);
+    const pathParts = parsed.pathname.split("/").filter(Boolean);
+    return pathParts[1] === "image";
+  } catch {
+    return false;
+  }
+}
+
+export function isSafeCloudinaryPrivateUploadUrl(url: string) {
+  if (!isSafeCloudinaryStoredUrl(url)) return false;
+
+  try {
+    const parsed = new URL(url);
+    const pathParts = parsed.pathname.split("/").filter(Boolean);
+    return pathParts[1] === "raw";
+  } catch {
+    return false;
+  }
+}
+
 export function isSafeStoredUploadUrl(url: string) {
-  return /^\/(?:uploads|private-uploads)\/[a-zA-Z0-9_.-]+$/.test(url);
+  return /^\/(?:uploads|private-uploads)\/[a-zA-Z0-9_.-]+$/.test(url) || isSafeCloudinaryStoredUrl(url);
 }
 
 export function isSafePrivateStoredUploadUrl(url: string) {
-  return /^\/private-uploads\/[a-zA-Z0-9_.-]+$/.test(url);
+  return /^\/private-uploads\/[a-zA-Z0-9_.-]+$/.test(url) || isSafeCloudinaryPrivateUploadUrl(url);
 }
 
 function startsWith(bytes: Uint8Array, signature: number[]) {

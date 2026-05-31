@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import {
   BadgeDollarSign,
+  BarChart3,
   BookText,
   FolderUp,
   Layers3,
@@ -58,11 +59,41 @@ type SiteSettings = {
   secondaryColor: string;
 };
 
+type AdminStats = {
+  totals: {
+    orders: number;
+    paidOrders: number;
+    failedOrders: number;
+    revenue: number;
+    consentedEmails: number;
+    driveConnections: number;
+  };
+  customers: Array<{
+    email: string;
+    orders: number;
+    total: number;
+    consented: boolean;
+  }>;
+  recentOrders: Array<{
+    id: string;
+    email: string;
+    customerName: string;
+    total: number;
+    status: string;
+    paymentMethod: string;
+    purchaseTrackingConsent: boolean;
+    driveSyncConsent: boolean;
+    createdAt: string;
+    items: Array<{ productTitle: string; quantity: number; price: number }>;
+  }>;
+};
+
 type Props = {
   products: Product[];
   pages: PageItem[];
   catalog: CatalogGrade[];
   settings: SiteSettings;
+  adminStats: AdminStats;
 };
 
 type ProductFormState = {
@@ -130,9 +161,10 @@ const tabs = [
   { id: "uploads", label: "رفع الملفات", icon: UploadCloud },
   { id: "pricing", label: "التسعير السريع", icon: BadgeDollarSign },
   { id: "settings", label: "الإعدادات", icon: Settings2 }
+  , { id: "orders", label: "المشتريات", icon: BarChart3 }
 ] as const;
 
-function AdminDashboard({ products, pages, catalog, settings }: Props) {
+function AdminDashboard({ products, pages, catalog, settings, adminStats }: Props) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [tab, setTab] = useState<(typeof tabs)[number]["id"]>("products");
@@ -633,6 +665,79 @@ function AdminDashboard({ products, pages, catalog, settings }: Props) {
         <div className="panel p-6 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
           <div className="flex flex-wrap items-center justify-between gap-4"><div><h3 className="text-2xl font-black text-zinc-950">التسعير السريع</h3><p className="mt-2 text-sm leading-7 text-zinc-600">عدل الأسعار واحفظ المنتجات المميزة ورتب ظهورها دون الدخول في كل منتج على حدة.</p></div><div className="rounded-full bg-qatar-50 px-4 py-2 text-xs font-bold text-qatar-800">إجمالي المنتجات: {products.length}</div></div>
           <div className="mt-5 space-y-4">{products.map((product) => { const draft = priceDrafts[product.id] ?? { price: String(product.price), compareAt: product.compareAt ? String(product.compareAt) : "", featured: product.featured, status: product.status, sortOrder: String(product.sortOrder ?? 0) }; return <div key={product.id} className="grid gap-3 rounded-[1.5rem] border border-qatar-100 p-4 lg:grid-cols-[1fr_120px_120px_120px_120px_auto] lg:items-center"><div><p className="font-bold text-zinc-950">{product.title}</p><p className="text-sm text-zinc-500">{product.grade} · {product.subject}</p></div><input className="input" type="number" value={draft.price} onChange={(e) => setPriceDrafts((c) => ({ ...c, [product.id]: { ...draft, price: e.target.value } }))} /><input className="input" type="number" value={draft.compareAt} onChange={(e) => setPriceDrafts((c) => ({ ...c, [product.id]: { ...draft, compareAt: e.target.value } }))} placeholder="السعر السابق" /><input className="input" value={draft.sortOrder} onChange={(e) => setPriceDrafts((c) => ({ ...c, [product.id]: { ...draft, sortOrder: e.target.value } }))} placeholder="الترتيب" /><button type="button" onClick={() => setPriceDrafts((c) => ({ ...c, [product.id]: { ...draft, featured: !draft.featured } }))} className={`chip justify-center ${draft.featured ? "border-qatar-300 bg-qatar-50 text-qatar-800" : ""}`}>{draft.featured ? "مميز" : "عادي"}</button><button type="button" disabled={busy} onClick={() => savePrice(product.id)} className="btn-primary h-11 justify-center disabled:opacity-60">حفظ</button></div>; })}</div>
+        </div>
+      ) : null}
+
+      {tab === "orders" ? (
+        <div className="space-y-6">
+          <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-6">
+            {[
+              { label: "كل الطلبات", value: adminStats.totals.orders },
+              { label: "الطلبات المدفوعة", value: adminStats.totals.paidOrders },
+              { label: "الطلبات الفاشلة", value: adminStats.totals.failedOrders },
+              { label: "الإيراد", value: currencyLabel(adminStats.totals.revenue) },
+              { label: "إيميلات وافقت", value: adminStats.totals.consentedEmails },
+              { label: "روابط Drive", value: adminStats.totals.driveConnections }
+            ].map((item) => (
+              <div key={item.label} className="rounded-lg border border-qatar-100 bg-white p-4 shadow-[0_12px_30px_rgba(15,23,42,0.04)]">
+                <p className="text-xs font-bold text-zinc-500">{item.label}</p>
+                <p className="mt-2 text-2xl font-black text-qatar-800">{item.value}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="grid gap-6 xl:grid-cols-[0.85fr_1.15fr]">
+            <div className="panel p-6 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
+              <h3 className="text-2xl font-black text-zinc-950">الإيميلات والعملاء</h3>
+              <div className="mt-5 space-y-3">
+                {adminStats.customers.map((customer) => (
+                  <div key={customer.email} className="rounded-lg border border-qatar-100 bg-white px-4 py-3">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <p className="font-bold text-zinc-950">{customer.email}</p>
+                        <p className="text-xs text-zinc-500">{customer.orders} طلب · {currencyLabel(customer.total)}</p>
+                      </div>
+                      <span className={`rounded-full px-3 py-1 text-xs font-black ${customer.consented ? "bg-emerald-50 text-emerald-700" : "bg-zinc-100 text-zinc-500"}`}>
+                        {customer.consented ? "وافق على الحفظ" : "بدون موافقة"}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="panel p-6 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
+              <h3 className="text-2xl font-black text-zinc-950">آخر عمليات الشراء</h3>
+              <div className="mt-5 space-y-3">
+                {adminStats.recentOrders.map((order) => (
+                  <div key={order.id} className="rounded-lg border border-qatar-100 bg-white p-4">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="text-xs font-bold uppercase tracking-[0.16em] text-qatar-700">{new Date(order.createdAt).toLocaleDateString("ar-QA")}</p>
+                        <h4 className="mt-1 font-black text-zinc-950">{order.customerName}</h4>
+                        <p className="text-sm text-zinc-500">{order.email}</p>
+                      </div>
+                      <div className="text-left">
+                        <p className="font-black text-qatar-800">{currencyLabel(order.total)}</p>
+                        <p className="text-xs text-zinc-500">{order.paymentMethod} · {order.status}</p>
+                      </div>
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {order.items.map((item) => (
+                        <span key={`${order.id}-${item.productTitle}`} className="rounded-full bg-zinc-50 px-3 py-1 text-xs font-semibold text-zinc-600">
+                          {item.productTitle} × {item.quantity}
+                        </span>
+                      ))}
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                      <span className={`rounded-full px-3 py-1 font-bold ${order.purchaseTrackingConsent ? "bg-emerald-50 text-emerald-700" : "bg-zinc-100 text-zinc-500"}`}>{order.purchaseTrackingConsent ? "حفظ مشتريات" : "لم يوافق على الحفظ"}</span>
+                      <span className={`rounded-full px-3 py-1 font-bold ${order.driveSyncConsent ? "bg-sky-50 text-sky-700" : "bg-zinc-100 text-zinc-500"}`}>{order.driveSyncConsent ? "Drive مفعل" : "Drive غير مفعل"}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       ) : null}
 

@@ -25,7 +25,8 @@ function buildCheckoutPayload(form: HTMLFormElement, items: CartItem[]) {
     customerName: String(data.get("customerName") ?? "").trim(),
     email: String(data.get("email") ?? "").trim(),
     phone: String(data.get("phone") ?? "").trim(),
-    notes: String(data.get("notes") ?? "").trim()
+    notes: String(data.get("notes") ?? "").trim(),
+    purchaseTrackingConsent: data.get("purchaseTrackingConsent") === "on"
   };
 }
 

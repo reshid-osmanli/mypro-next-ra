@@ -20,6 +20,12 @@ PAYPAL_ENV
 NEXT_PUBLIC_PAYPAL_CLIENT_ID
 PAYPAL_CLIENT_SECRET
 NEXT_PUBLIC_PAYPAL_CURRENCY
+CLOUDINARY_CLOUD_NAME
+CLOUDINARY_API_KEY
+CLOUDINARY_API_SECRET
+GOOGLE_CLIENT_ID
+GOOGLE_CLIENT_SECRET
+GOOGLE_TOKEN_ENCRYPTION_KEY
 ```
 
 ## Current Intended Values
@@ -35,6 +41,18 @@ NEXT_PUBLIC_PAYPAL_CURRENCY
 - `NEXT_PUBLIC_PAYPAL_CLIENT_ID`: PayPal public client id.
 - `PAYPAL_CLIENT_SECRET`: PayPal private secret.
 - `NEXT_PUBLIC_PAYPAL_CURRENCY`: `USD`.
+- `CLOUDINARY_CLOUD_NAME`: Cloudinary product environment cloud name from Console API Keys.
+- `CLOUDINARY_API_KEY`: Cloudinary API key.
+- `CLOUDINARY_API_SECRET`: Cloudinary API secret. Keep server-side only.
+- `GOOGLE_CLIENT_ID`: Google OAuth client id for optional Drive sync.
+- `GOOGLE_CLIENT_SECRET`: Google OAuth client secret for optional Drive sync.
+- `GOOGLE_TOKEN_ENCRYPTION_KEY`: long random secret used to encrypt stored Google refresh tokens.
+
+For Google Drive OAuth, add this authorized redirect URI in Google Cloud Console:
+
+```text
+https://your-vercel-domain.vercel.app/api/purchases/drive/callback
+```
 
 ## Build Settings
 
@@ -46,6 +64,11 @@ npm run build
 ```
 
 The build command already runs Prisma Client generation through `package.json`.
+Run migrations after deployment setup or from the project folder:
+
+```bash
+npx prisma migrate deploy
+```
 
 ## GitHub Push Steps
 

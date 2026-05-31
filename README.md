@@ -1,13 +1,13 @@
 # Kutubi
 
-Arabic digital-products store built with Next.js, Prisma, PostgreSQL, PayPal, and a protected admin dashboard.
+Arabic digital-products store built with Next.js, Prisma, PostgreSQL, PayPal/Stripe, Cloudinary uploads, optional Google Drive purchase sync, and a protected admin dashboard.
 
 ## Local Setup
 
 ```bash
 npm install
 copy .env.example .env
-npx prisma db push
+npx prisma migrate deploy
 npm run db:seed
 npm run dev
 ```
@@ -21,6 +21,8 @@ http://localhost:3000
 ## Environment
 
 Use `.env.example` as the safe template. Put the real values in `.env` locally and in Vercel Environment Variables. Do not commit real secrets.
+
+Cloudinary is used for product files and cover images in hosted deployments. Google Drive sync is optional and requires `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and the callback URL shown in `VERCEL_ENVIRONMENT.md`.
 
 ## Database
 

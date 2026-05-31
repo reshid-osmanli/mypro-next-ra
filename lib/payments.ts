@@ -9,7 +9,7 @@ const stripeCurrency = (process.env.STRIPE_CURRENCY ?? process.env.NEXT_PUBLIC_S
 
 function getStripeClient() {
   if (!stripeSecretKey) {
-    throw new Error("بيانات Stripe غير مضبوطة");
+    throw new Error("Stripe is not configured");
   }
 
   return new Stripe(stripeSecretKey);
@@ -79,9 +79,24 @@ export function expectedStripeCurrency() {
   return stripeCurrency.toUpperCase();
 }
 
+async function paypalErrorMessage(res: Response, fallback: string) {
+  const debugId = res.headers.get("paypal-debug-id");
+  const raw = await res.text().catch(() => "");
+  let details = raw;
+
+  try {
+    const parsed = JSON.parse(raw) as { message?: string; name?: string; details?: Array<{ issue?: string; description?: string }> };
+    details = parsed.details?.map((item) => item.description || item.issue).filter(Boolean).join("; ") || parsed.message || parsed.name || raw;
+  } catch {
+    details = raw;
+  }
+
+  return [fallback, `status ${res.status}`, debugId ? `debug ${debugId}` : "", details ? details.slice(0, 400) : ""].filter(Boolean).join(" - ");
+}
+
 async function getPaypalAccessToken() {
   if (!paypalClientId || !paypalClientSecret) {
-    throw new Error("بيانات PayPal غير مضبوطة");
+    throw new Error("PayPal is not configured");
   }
 
   const auth = Buffer.from(`${paypalClientId}:${paypalClientSecret}`).toString("base64");
@@ -94,9 +109,7 @@ async function getPaypalAccessToken() {
     body: new URLSearchParams({ grant_type: "client_credentials" })
   });
 
-  if (!res.ok) {
-    throw new Error("تعذر الحصول على رمز PayPal");
-  }
+  if (!res.ok) throw new Error(await paypalErrorMessage(res, "Unable to get a PayPal access token"));
 
   const data = (await res.json()) as { access_token: string };
   return data.access_token;
@@ -112,8 +125,9 @@ export type PaypalOrderInput = {
 
 export async function createPaypalOrder(input: PaypalOrderInput) {
   const accessToken = await getPaypalAccessToken();
-  const currency = input.currency ?? process.env.NEXT_PUBLIC_PAYPAL_CURRENCY ?? "USD";
+  const currency = (input.currency ?? process.env.NEXT_PUBLIC_PAYPAL_CURRENCY ?? "USD").toUpperCase();
   const total = input.amount.toFixed(2);
+  const description = (input.customer?.notes || "Order from Kutubi").slice(0, 127);
 
   const res = await fetch(`${paypalBaseUrl}/v2/checkout/orders`, {
     method: "POST",
@@ -128,7 +142,7 @@ export async function createPaypalOrder(input: PaypalOrderInput) {
         {
           reference_id: input.orderReference,
           custom_id: input.orderReference,
-          description: input.customer?.notes || "Order from Kutubi",
+          description,
           amount: {
             currency_code: currency,
             value: total,
@@ -140,7 +154,7 @@ export async function createPaypalOrder(input: PaypalOrderInput) {
             }
           },
           items: input.items.map((item) => ({
-            name: item.title,
+            name: item.title.slice(0, 127),
             quantity: String(item.quantity),
             unit_amount: {
               currency_code: currency,
@@ -152,9 +166,7 @@ export async function createPaypalOrder(input: PaypalOrderInput) {
     })
   });
 
-  if (!res.ok) {
-    throw new Error("تعذر إنشاء طلب PayPal");
-  }
+  if (!res.ok) throw new Error(await paypalErrorMessage(res, "Unable to create the PayPal order"));
 
   return (await res.json()) as { id: string };
 }
@@ -167,13 +179,11 @@ export async function capturePaypalOrder(orderId: string, requestId?: string) {
     headers: {
       Authorization: `Bearer ${accessToken}`,
       "Content-Type": "application/json",
-      ...(requestId ? { "PayPal-Request-Id": requestId } : {})
+      ...(requestId ? { "PayPal-Request-Id": requestId.replace(/[^a-zA-Z0-9_-]/g, "-").slice(0, 108) } : {})
     }
   });
 
-  if (!res.ok) {
-    throw new Error("تعذر إتمام عملية الدفع في PayPal");
-  }
+  if (!res.ok) throw new Error(await paypalErrorMessage(res, "Unable to capture the PayPal order"));
 
   return res.json() as Promise<{
     id: string;

@@ -114,6 +114,8 @@ model Order {
   paymentMethod         String
   providerOrderId       String?           @unique
   providerCaptureId     String?
+  purchaseTrackingConsent Boolean          @default(false)
+  driveSyncConsent      Boolean           @default(false)
   downloadClaimHash     String?
   downloadClaimExpiresAt DateTime?
   downloadClaimUsedAt   DateTime?
@@ -123,6 +125,10 @@ model Order {
   createdAt             DateTime          @default(now())
   items                 OrderItem[]
   downloadTokens        DownloadToken[]
+
+  @@index([email])
+  @@index([status])
+  @@index([purchaseTrackingConsent])
 }
 
 model OrderItem {
@@ -148,4 +154,37 @@ model DownloadToken {
 
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
   file  ProductFile @relation(fields: [fileId], references: [id], onDelete: Cascade)
+}
+
+model PurchaseAccessToken {
+  id        String    @id @default(cuid())
+  email     String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([email])
+  @@index([expiresAt])
+}
+
+model GoogleDriveConnection {
+  id                    String    @id @default(cuid())
+  email                 String    @unique
+  refreshTokenEncrypted String
+  connectedAt           DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  lastSyncedAt          DateTime?
+}
+
+model DriveFileSync {
+  id          String   @id @default(cuid())
+  email       String
+  orderId     String
+  fileId      String
+  driveFileId String
+  syncedAt    DateTime @default(now())
+
+  @@unique([email, orderId, fileId])
+  @@index([email])
 }

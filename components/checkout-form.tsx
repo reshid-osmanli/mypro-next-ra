@@ -52,6 +52,7 @@ export function CheckoutForm() {
           email: String(formData.get("email") ?? ""),
           phone: String(formData.get("phone") ?? ""),
           notes: String(formData.get("notes") ?? ""),
+          purchaseTrackingConsent: formData.get("purchaseTrackingConsent") === "on",
           paymentMethod: "stripe"
         })
       });
@@ -114,6 +115,16 @@ export function CheckoutForm() {
       <label className="block space-y-2">
         <span className="text-sm font-semibold text-zinc-700">{text({ ar: "ملاحظات", en: "Notes" })}</span>
         <textarea name="notes" className="textarea" placeholder={text({ ar: "أي تفاصيل إضافية للطلب...", en: "Any extra order details..." })} />
+      </label>
+
+      <label className="flex items-start gap-3 rounded-lg border border-qatar-100 bg-white px-4 py-3 text-sm leading-7 text-zinc-700">
+        <input name="purchaseTrackingConsent" type="checkbox" className="mt-1 h-4 w-4 rounded border-qatar-300 text-qatar-700" />
+        <span>
+          {text({
+            ar: "أوافق على حفظ مشترياتي على بريدي الإلكتروني حتى أستطيع عرضها لاحقاً وربطها اختيارياً بحساب Google Drive.",
+            en: "I agree to save my purchases under my email so I can view them later and optionally connect Google Drive."
+          })}
+        </span>
       </label>
 
       <div className="space-y-3">

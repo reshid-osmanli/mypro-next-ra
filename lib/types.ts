@@ -18,6 +18,7 @@ export type CheckoutPayload = {
   email: string;
   phone?: string;
   notes?: string;
+  purchaseTrackingConsent?: boolean;
   paymentMethod: "stripe";
 };
 

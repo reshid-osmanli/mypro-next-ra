@@ -1,37 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { mkdir, writeFile } from "fs/promises";
-import path from "path";
-import { randomUUID } from "crypto";
 import { requireAdminRequest } from "@/lib/admin-auth";
 import { getRequestIp, isRateLimited } from "@/lib/rate-limit";
+import { uploadToCloudinary } from "@/lib/cloudinary";
 import { describeAllowedUploads, findUploadPolicy, hasValidUploadSignature, MAX_UPLOAD_BYTES, preferredUploadMimeType } from "@/lib/upload-policy";
 
 export const runtime = "nodejs";
-
-function safeStoredName(originalName: string) {
-  const extension = path.extname(originalName).toLowerCase();
-  const stem =
-    path
-      .basename(originalName, extension)
-      .normalize("NFKD")
-      .replace(/[^a-zA-Z0-9_.-]+/g, "-")
-      .replace(/-+/g, "-")
-      .replace(/^-|-$/g, "")
-      .slice(0, 72) || "kutubi-file";
-
-  return `${Date.now()}-${randomUUID()}-${stem}${extension}`;
-}
-
-function resolveInside(baseDir: string, filename: string) {
-  const root = path.resolve(baseDir);
-  const filepath = path.resolve(root, path.basename(filename));
-
-  if (!filepath.startsWith(`${root}${path.sep}`)) {
-    throw new Error("Unsafe upload path");
-  }
-
-  return filepath;
-}
 
 export async function POST(req: NextRequest) {
   const authError = await requireAdminRequest(req);
@@ -63,20 +36,28 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "توقيع الملف لا يطابق نوعه. تأكد من أن الملف أصلي وغير معطوب" }, { status: 400 });
   }
 
-  const filename = safeStoredName(file.name);
-  const uploadDir = policy.private ? path.join(process.cwd(), "storage", "uploads") : path.join(process.cwd(), "public", "uploads");
-
-  await mkdir(uploadDir, { recursive: true });
-  const filepath = resolveInside(uploadDir, filename);
-  await writeFile(filepath, buffer);
+  const mimeType = preferredUploadMimeType(policy, file.name, file.type);
+  let upload;
+  try {
+    upload = await uploadToCloudinary({
+      bytes: buffer,
+      fileName: file.name,
+      mimeType,
+      policy
+    });
+  } catch (error) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Cloudinary upload failed" }, { status: 500 });
+  }
 
   return NextResponse.json({
-    url: policy.private ? `/private-uploads/${filename}` : `/uploads/${filename}`,
+    url: upload.secureUrl,
     title: file.name,
-    mimeType: preferredUploadMimeType(policy, file.name, file.type),
-    size: file.size,
+    mimeType,
+    size: upload.bytes || file.size,
     private: policy.private,
     kind: policy.kind,
-    label: policy.label
+    label: policy.label,
+    storage: "cloudinary",
+    publicId: upload.publicId
   });
 }

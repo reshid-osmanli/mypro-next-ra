@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Home, Languages, LibraryBig, Moon, Search, ShieldCheck, Sun, UserRoundCog } from "lucide-react";
+import { Home, Languages, LibraryBig, Moon, ReceiptText, Search, ShieldCheck, Sun, UserRoundCog } from "lucide-react";
 import { CartButton } from "./cart-button";
 import { useSitePreferences, type LocalizedTextValue } from "./site-preferences";
 import { KutubiLogoMotion } from "./kutubi-logo-motion";
@@ -11,6 +11,7 @@ const navItems = [
   { href: "/products", label: { ar: "المتجر", en: "Store" }, icon: Search },
   { href: "/library", label: { ar: "المكتبة", en: "Library" }, icon: LibraryBig },
   { href: "/checkout", label: { ar: "الدفع", en: "Checkout" }, icon: ShieldCheck }
+  , { href: "/purchases", label: { ar: "مشترياتي", en: "Purchases" }, icon: ReceiptText }
 ];
 
 type SiteHeaderProps = {
@@ -80,7 +81,7 @@ export function SiteHeader({ brandName = "موقع كُتبي" }: SiteHeaderProp
         </div>
       </div>
 
-      <div className="mx-auto grid max-w-7xl grid-cols-4 gap-1 border-t border-pearl-100 px-4 py-2 lg:hidden">
+      <div className="mx-auto grid max-w-7xl grid-cols-5 gap-1 border-t border-pearl-100 px-4 py-2 lg:hidden">
         {navItems.map((item) => (
           <Link key={item.href} href={item.href} className="inline-flex items-center justify-center gap-1 rounded-[10px] px-2 py-2 text-xs font-bold text-zinc-700 hover:bg-pearl-100 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-qatar-100">
             <item.icon size={14} />
