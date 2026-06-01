@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
-import { Cloud, HardDrive, Loader2, Mail, RefreshCw, ShieldCheck } from "lucide-react";
+import { Cloud, HardDrive, Loader2, LogIn, RefreshCw, ShieldCheck } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { currencyLabel, formatBytes } from "@/lib/utils";
 import { useSitePreferences } from "./site-preferences";
@@ -42,7 +43,6 @@ function statusFromSearch(value: string | null) {
 export function PurchasesClient({ initialLibrary }: Props) {
   const { text } = useSitePreferences();
   const searchParams = useSearchParams();
-  const [email, setEmail] = useState(initialLibrary?.email ?? "");
   const [library, setLibrary] = useState(initialLibrary);
   const [message, setMessage] = useState(() => {
     const driveMessage = statusFromSearch(searchParams.get("drive"));
@@ -59,25 +59,6 @@ export function PurchasesClient({ initialLibrary }: Props) {
       total: orders.reduce((sum, order) => sum + order.total, 0)
     };
   }, [library]);
-
-  async function requestLink() {
-    setBusy(true);
-    setMessage("");
-    try {
-      const res = await fetch("/api/purchases/request-link", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email })
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data?.error || text({ ar: "تعذر إرسال رابط التحقق", en: "Unable to send the verification link" }));
-      setMessage(text({ ar: "إذا كان لهذا البريد مشتريات محفوظة فسيصل رابط التحقق الآن.", en: "If this email has saved purchases, a verification link has been sent." }));
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : text({ ar: "حدث خطأ غير متوقع", en: "An unexpected error occurred" }));
-    } finally {
-      setBusy(false);
-    }
-  }
 
   async function syncDrive() {
     setBusy(true);
@@ -101,24 +82,20 @@ export function PurchasesClient({ initialLibrary }: Props) {
       <div className="mx-auto max-w-xl">
         <div className="panel space-y-5 p-6 text-right">
           <div className="inline-flex items-center gap-2 rounded-full bg-qatar-50 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-qatar-800">
-            <ShieldCheck size={14} /> {text({ ar: "تحقق بالبريد", en: "Email verification" })}
+            <ShieldCheck size={14} /> {text({ ar: "جلسة آمنة", en: "Secure session" })}
           </div>
-          <h1 className="text-3xl font-black text-zinc-950">{text({ ar: "تتبع مشترياتي", en: "My purchases" })}</h1>
+          <h1 className="text-3xl font-black text-zinc-950">{text({ ar: "سجل الدخول لعرض مشترياتك", en: "Sign in to view purchases" })}</h1>
           <p className="leading-8 text-zinc-600">
             {text({
-              ar: "أدخل البريد الذي وافقت على حفظ مشترياتك عليه وقت الدفع. لن تظهر أي مشتريات بدون رابط تحقق يصل إلى نفس البريد.",
-              en: "Enter the email you consented to save purchases under during checkout. Purchases are shown only through a verification link sent to that email."
+              ar: "صفحة المشتريات مرتبطة ببريد حساب Google الذي سجلت الدخول به، ولن تطلب رابط تحقق منفصل.",
+              en: "Purchases are tied to the Google email you sign in with, without a separate verification link."
             })}
           </p>
-          <label className="block space-y-2">
-            <span className="text-sm font-semibold text-zinc-700">{text({ ar: "البريد الإلكتروني", en: "Email address" })}</span>
-            <input className="input" type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="name@example.com" />
-          </label>
           {message ? <div className="rounded-lg border border-qatar-100 bg-qatar-50 px-4 py-3 text-sm text-qatar-800">{message}</div> : null}
-          <button type="button" onClick={requestLink} disabled={busy || !email.trim()} className="btn-primary w-full disabled:cursor-not-allowed disabled:opacity-60">
-            {busy ? <Loader2 size={16} className="animate-spin" /> : <Mail size={16} />}
-            {text({ ar: "إرسال رابط التحقق", en: "Send verification link" })}
-          </button>
+          <Link href="/login?callbackUrl=/purchases" className="btn-primary w-full">
+            <LogIn size={16} />
+            {text({ ar: "تسجيل الدخول", en: "Sign in" })}
+          </Link>
         </div>
       </div>
     );

@@ -1,15 +1,20 @@
-import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { Suspense } from "react";
+import { auth } from "@/auth";
 import { PurchasesClient } from "@/components/purchases-client";
 import { getPurchaseLibrary } from "@/lib/purchases";
-import { PURCHASE_SESSION_COOKIE, verifyPurchaseSession } from "@/lib/purchase-access";
 
 export const dynamic = "force-dynamic";
 
 export default async function PurchasesPage() {
-  const cookieStore = await cookies();
-  const email = verifyPurchaseSession(cookieStore.get(PURCHASE_SESSION_COOKIE)?.value);
-  const library = email ? await getPurchaseLibrary(email) : null;
+  const session = await auth();
+  const email = session?.user?.email?.trim().toLowerCase();
+
+  if (!email) {
+    redirect("/login?callbackUrl=/purchases");
+  }
+
+  const library = await getPurchaseLibrary(email);
 
   return (
     <section className="py-12">

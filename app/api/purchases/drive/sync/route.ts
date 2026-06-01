@@ -1,8 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { decryptRefreshToken, ensureKutubiDriveFolder, refreshGoogleAccessToken, uploadBufferToDrive } from "@/lib/google-drive";
 import { getRequestIp, isRateLimited } from "@/lib/rate-limit";
-import { PURCHASE_SESSION_COOKIE, verifyPurchaseSession } from "@/lib/purchase-access";
 import { readStoredFile } from "@/lib/stored-files";
 import { rejectUntrustedOrigin } from "@/lib/request-security";
 
@@ -16,9 +16,11 @@ export async function POST(req: NextRequest) {
   const originError = rejectUntrustedOrigin(req);
   if (originError) return originError;
 
-  const email = verifyPurchaseSession(req.cookies.get(PURCHASE_SESSION_COOKIE)?.value);
+  const session = await auth();
+  const email = session?.user?.email?.trim().toLowerCase();
+
   if (!email) {
-    return NextResponse.json({ error: "Purchase session is expired." }, { status: 401 });
+    return NextResponse.json({ error: "Sign in to sync your purchases." }, { status: 401 });
   }
 
   const ip = getRequestIp(req);

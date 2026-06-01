@@ -1,7 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import { encryptRefreshToken, exchangeGoogleCode, verifyGoogleOAuthState } from "@/lib/google-drive";
-import { PURCHASE_SESSION_COOKIE, PURCHASE_SESSION_TTL_SECONDS, signPurchaseSession } from "@/lib/purchase-access";
 
 export const runtime = "nodejs";
 
@@ -35,15 +34,7 @@ export async function GET(req: NextRequest) {
       data: { driveSyncConsent: true }
     });
 
-    const response = NextResponse.redirect(new URL("/purchases?drive=connected", req.url));
-    response.cookies.set(PURCHASE_SESSION_COOKIE, signPurchaseSession(email), {
-      httpOnly: true,
-      sameSite: "strict",
-      secure: process.env.NODE_ENV === "production",
-      path: "/",
-      maxAge: PURCHASE_SESSION_TTL_SECONDS
-    });
-    return response;
+    return NextResponse.redirect(new URL("/purchases?drive=connected", req.url));
   } catch {
     return NextResponse.redirect(new URL("/purchases?drive=failed", req.url));
   }

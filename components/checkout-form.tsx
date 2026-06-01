@@ -1,8 +1,9 @@
 ﻿"use client";
 
-import { type FormEvent, useMemo, useRef, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { CreditCard, Mail, Phone, ShieldCheck, User2 } from "lucide-react";
+import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Script from "next/script";
 import { useCart } from "./cart-provider";
@@ -29,6 +30,7 @@ const providers = [
 export function CheckoutForm() {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
+  const { data: session } = useSession();
   const { items, clearCart } = useCart();
   const { text } = useSitePreferences();
   const total = useMemo(() => subtotal(items), [items]);
@@ -37,6 +39,14 @@ export function CheckoutForm() {
   const [loading, setLoading] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<(typeof providers)[number]["id"]>(paypalEnabled ? "paypal" : "stripe");
   const [message, setMessage] = useState("");
+  const [customerName, setCustomerName] = useState("");
+  const [customerEmail, setCustomerEmail] = useState("");
+  const signedInEmail = session?.user?.email?.trim() ?? "";
+
+  useEffect(() => {
+    if (session?.user?.name && !customerName) setCustomerName(session.user.name);
+    if (signedInEmail) setCustomerEmail(signedInEmail);
+  }, [customerName, session?.user?.name, signedInEmail]);
 
   async function submitStripe(formData: FormData) {
     if (!items.length) return;
@@ -91,7 +101,7 @@ export function CheckoutForm() {
           <span className="text-sm font-semibold text-zinc-700">{text({ ar: "الاسم الكامل", en: "Full name" })}</span>
           <div className="relative">
             <User2 size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400" />
-            <input name="customerName" className="input pr-12" placeholder={text({ ar: "اسم العميل", en: "Customer name" })} required />
+            <input name="customerName" className="input pr-12" placeholder={text({ ar: "اسم العميل", en: "Customer name" })} value={customerName} onChange={(event) => setCustomerName(event.target.value)} required />
           </div>
         </label>
 
@@ -99,7 +109,7 @@ export function CheckoutForm() {
           <span className="text-sm font-semibold text-zinc-700">{text({ ar: "البريد الإلكتروني", en: "Email address" })}</span>
           <div className="relative">
             <Mail size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400" />
-            <input name="email" type="email" className="input pr-12" placeholder="name@example.com" required />
+            <input name="email" type="email" className="input pr-12" placeholder="name@example.com" value={customerEmail} onChange={(event) => setCustomerEmail(event.target.value)} readOnly={Boolean(signedInEmail)} required />
           </div>
         </label>
       </div>
