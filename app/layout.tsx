@@ -3,6 +3,7 @@ import "./globals.css";
 import { CartProvider } from "@/components/cart-provider";
 import { SiteShell } from "@/components/site-shell";
 import { SitePreferenceProvider } from "@/components/site-preferences";
+import { AuthSessionProvider } from "@/components/auth-session-provider";
 import { getSiteSettings } from "@/lib/site-settings";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -28,9 +29,11 @@ export default async function RootLayout({
     <html lang="ar" dir="rtl" suppressHydrationWarning>
       <body className="min-h-screen antialiased">
         <SitePreferenceProvider>
-          <CartProvider>
-            <SiteShell brandName={settings.brandName}>{children}</SiteShell>
-          </CartProvider>
+          <AuthSessionProvider>
+            <CartProvider>
+              <SiteShell brandName={settings.brandName}>{children}</SiteShell>
+            </CartProvider>
+          </AuthSessionProvider>
         </SitePreferenceProvider>
       </body>
     </html>

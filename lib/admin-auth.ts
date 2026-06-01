@@ -1,5 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createHash, createHmac, randomInt, timingSafeEqual } from "crypto";
+import { auth } from "@/auth";
+import { prisma } from "@/lib/db";
 import { rejectUntrustedOrigin } from "@/lib/request-security";
 
 export const ADMIN_COOKIE_NAME = "kutubi-admin";
@@ -161,6 +163,7 @@ export function clearAdminLoginChallengeCookie(res: NextResponse) {
 }
 
 export async function isAdminRequest(req: NextRequest) {
+  if (await isCurrentAuthAdmin()) return true;
   return verifyAdminSession(req.cookies.get(ADMIN_COOKIE_NAME)?.value);
 }
 
@@ -168,7 +171,51 @@ export async function requireAdminRequest(req: NextRequest) {
   const originError = rejectUntrustedOrigin(req);
   if (originError) return originError;
 
-  const ok = await verifyAdminSession(req.cookies.get(ADMIN_COOKIE_NAME)?.value);
+  const ok = (await isCurrentAuthAdmin()) || (await verifyAdminSession(req.cookies.get(ADMIN_COOKIE_NAME)?.value));
   if (ok) return null;
   return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+}
+
+function normalizeEmail(email?: string | null) {
+  return email?.trim().toLowerCase() || null;
+}
+
+function configuredAdminEmails() {
+  const values = [process.env.ADMIN_EMAIL, process.env.ADMIN_EMAILS]
+    .filter(Boolean)
+    .flatMap((value) => String(value).split(","))
+    .map((value) => normalizeEmail(value))
+    .filter(Boolean) as string[];
+
+  return new Set(values);
+}
+
+export async function getCurrentAuthEmail() {
+  const session = await auth();
+  return normalizeEmail(session?.user?.email);
+}
+
+export async function isAdminEmail(email?: string | null) {
+  const normalizedEmail = normalizeEmail(email);
+  if (!normalizedEmail) return false;
+
+  if (configuredAdminEmails().has(normalizedEmail)) return true;
+
+  const admin = await prisma.adminUser.findUnique({
+    where: { email: normalizedEmail },
+    select: { active: true }
+  });
+
+  return Boolean(admin?.active);
+}
+
+export async function isCurrentAuthAdmin() {
+  const email = await getCurrentAuthEmail();
+  return isAdminEmail(email);
+}
+
+export async function requireAdminSession() {
+  const email = await getCurrentAuthEmail();
+  if (!email || !(await isAdminEmail(email))) return null;
+  return { email };
 }

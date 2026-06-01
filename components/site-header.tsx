@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { Home, Languages, LibraryBig, Moon, ReceiptText, Search, ShieldCheck, Sun, UserRoundCog } from "lucide-react";
+import { Home, Languages, LibraryBig, LogIn, LogOut, Moon, ReceiptText, Search, ShieldCheck, Sun, UserRound } from "lucide-react";
+import { signOut, useSession } from "next-auth/react";
 import { CartButton } from "./cart-button";
 import { useSitePreferences, type LocalizedTextValue } from "./site-preferences";
 import { KutubiLogoMotion } from "./kutubi-logo-motion";
@@ -21,13 +22,16 @@ type SiteHeaderProps = {
 const copy: Record<string, LocalizedTextValue> = {
   subtitle: { ar: "متجر ملفات تعليمية رقمية", en: "Ready digital teaching files" },
   browse: { ar: "تصفح المنتجات", en: "Browse products" },
-  admin: { ar: "لوحة الإدارة", en: "Admin panel" },
+  login: { ar: "تسجيل الدخول", en: "Sign in" },
+  logout: { ar: "تسجيل الخروج", en: "Sign out" },
   theme: { ar: "تبديل الوضع الليلي", en: "Toggle dark mode" },
   language: { ar: "تغيير اللغة", en: "Change language" }
 };
 
 export function SiteHeader({ brandName = "موقع كُتبي" }: SiteHeaderProps) {
   const { language, theme, text, toggleLanguage, toggleTheme } = useSitePreferences();
+  const { data: session, status } = useSession();
+  const isAuthenticated = status === "authenticated" && Boolean(session?.user?.email);
 
   return (
     <header className="sticky top-0 z-50 border-b border-pearl-200 bg-white/95 backdrop-blur-xl">
@@ -55,6 +59,12 @@ export function SiteHeader({ brandName = "موقع كُتبي" }: SiteHeaderProp
             <Search size={15} />
             {text(copy.browse)}
           </Link>
+          {isAuthenticated ? (
+            <div className="hidden h-10 max-w-[180px] items-center gap-2 rounded-md border border-pearl-200 bg-white px-3 text-sm font-bold text-zinc-700 sm:flex">
+              <UserRound size={15} className="shrink-0 text-qatar-700" />
+              <span className="truncate">{session?.user?.name || session?.user?.email}</span>
+            </div>
+          ) : null}
           <button
             type="button"
             onClick={toggleTheme}
@@ -74,9 +84,17 @@ export function SiteHeader({ brandName = "موقع كُتبي" }: SiteHeaderProp
             <Languages size={16} />
             <span className="text-xs font-black">{language === "ar" ? "EN" : "ع"}</span>
           </button>
-          <Link href="/admin/login" className="btn-secondary hidden h-10 px-3 py-0 sm:flex" aria-label={text(copy.admin)}>
-            <UserRoundCog size={16} />
-          </Link>
+          {isAuthenticated ? (
+            <button type="button" onClick={() => signOut({ callbackUrl: "/" })} className="btn-secondary h-10 px-3 py-0" aria-label={text(copy.logout)} title={text(copy.logout)}>
+              <LogOut size={16} />
+              <span className="hidden text-xs font-black md:inline">{text(copy.logout)}</span>
+            </button>
+          ) : (
+            <Link href="/login" className="btn-secondary h-10 px-3 py-0" aria-label={text(copy.login)}>
+              <LogIn size={16} />
+              <span className="hidden text-xs font-black md:inline">{text(copy.login)}</span>
+            </Link>
+          )}
           <CartButton />
         </div>
       </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { signOut } from "next-auth/react";
 import { usePathname } from "next/navigation";
 import { BookOpenText, Home, LayoutDashboard, LogOut, Shield } from "lucide-react";
 
@@ -64,10 +65,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             </p>
             <button
               type="button"
-              onClick={async () => {
-                await fetch("/api/admin/logout", { method: "POST" });
-                window.location.replace("/admin/login");
-              }}
+              onClick={() => signOut({ callbackUrl: "/login" })}
               className="btn-secondary mt-4 w-full"
             >
               <LogOut size={16} />
