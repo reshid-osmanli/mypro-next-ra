@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { signIn, useSession } from "next-auth/react";
+import { getProviders, signIn, useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, Loader2, ShieldCheck } from "lucide-react";
 
@@ -16,7 +16,11 @@ export function AuthCard({ mode }: AuthCardProps) {
   const { status } = useSession();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const callbackUrl = useMemo(() => searchParams.get("callbackUrl") || "/purchases", [searchParams]);
+  const [googleReady, setGoogleReady] = useState<boolean | null>(null);
+  const callbackUrl = useMemo(() => {
+    const value = searchParams.get("callbackUrl");
+    return value?.startsWith("/") && !value.startsWith("//") ? value : "/purchases";
+  }, [searchParams]);
   const isSignup = mode === "signup";
 
   useEffect(() => {
@@ -24,11 +28,38 @@ export function AuthCard({ mode }: AuthCardProps) {
   }, [callbackUrl, router, status]);
 
   useEffect(() => {
+    let active = true;
+    getProviders()
+      .then((providers) => {
+        if (!active) return;
+        const hasGoogle = Boolean(providers?.google);
+        setGoogleReady(hasGoogle);
+        if (!hasGoogle) {
+          setError("تسجيل الدخول عبر Google غير مهيأ بعد. أضف AUTH_GOOGLE_ID و AUTH_GOOGLE_SECRET ثم أعد تشغيل الخادم.");
+        }
+      })
+      .catch(() => {
+        if (!active) return;
+        setGoogleReady(false);
+        setError("تعذر قراءة إعدادات تسجيل الدخول. حاول مرة أخرى بعد إعادة تشغيل الخادم.");
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
     const errorCode = searchParams.get("error");
     if (errorCode) setError("تعذر إكمال تسجيل الدخول. حاول مرة أخرى.");
   }, [searchParams]);
 
   async function continueWithGoogle() {
+    if (!googleReady) {
+      setError("تسجيل الدخول عبر Google غير مهيأ بعد. أضف AUTH_GOOGLE_ID و AUTH_GOOGLE_SECRET ثم أعد تشغيل الخادم.");
+      return;
+    }
+
     setLoading(true);
     setError("");
     try {
@@ -58,8 +89,8 @@ export function AuthCard({ mode }: AuthCardProps) {
         <div className="space-y-5 p-8">
           {error ? <div className="rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div> : null}
 
-          <button type="button" onClick={continueWithGoogle} disabled={loading || status === "loading"} className="btn-primary w-full disabled:opacity-60">
-            {loading || status === "loading" ? <Loader2 size={16} className="animate-spin" /> : <ShieldCheck size={16} />}
+          <button type="button" onClick={continueWithGoogle} disabled={loading || status === "loading" || googleReady === null} className="btn-primary w-full disabled:opacity-60">
+            {loading || status === "loading" || googleReady === null ? <Loader2 size={16} className="animate-spin" /> : <ShieldCheck size={16} />}
             {isSignup ? "المتابعة وإنشاء الحساب عبر Google" : "المتابعة عبر Google"}
             <ArrowLeft size={16} />
           </button>

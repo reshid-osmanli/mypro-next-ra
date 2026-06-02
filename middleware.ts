@@ -62,12 +62,11 @@ function loginRedirect(req: NextRequest) {
 }
 
 function isProtectedPage(pathname: string) {
-  return pathname.startsWith("/admin") || pathname.startsWith("/purchases") || pathname.startsWith("/library");
+  return pathname.startsWith("/purchases") || pathname.startsWith("/library");
 }
 
 function isProtectedApi(pathname: string) {
   return (
-    pathname.startsWith("/api/admin") ||
     pathname === "/api/purchases" ||
     pathname === "/api/purchases/drive/start" ||
     pathname === "/api/purchases/drive/sync"

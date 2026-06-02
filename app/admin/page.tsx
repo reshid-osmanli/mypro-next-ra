@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
   if (!(await requireAdminSession())) {
-    redirect("/login?callbackUrl=/admin");
+    redirect("/admin/login");
   }
 
   const [products, pages, catalog, settings, adminStats] = await Promise.all([

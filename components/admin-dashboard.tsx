@@ -205,7 +205,7 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
   const groupedProducts = useMemo(() => catalog.map((item) => ({ grade: item.grade, items: products.filter((product) => product.grade === item.grade) })).filter((group) => group.items.length > 0), [products, catalog]);
   const selectedGrade = useMemo(() => catalog.find((item) => item.id === subjectForm.gradeId) ?? catalog[0], [catalog, subjectForm.gradeId]);
 
-  function resetProductForm() { setProductForm(productDefaults); setEditingProductId(null); }
+  function resetProductForm() { setProductForm(productDefaults); setEditingProductId(null); setUploadedFiles([]); }
   function resetPageForm() { setPageForm(pageDefaults); setEditingPageId(null); }
   function resetGradeForm() { setGradeForm({ name: "", sortOrder: 0 }); setEditingGradeId(null); }
   function resetSubjectForm() { setSubjectForm({ gradeId: catalog[0]?.id ?? "", name: "", motionLogo: "", sortOrder: 0 }); setEditingSubjectId(null); }
@@ -250,6 +250,7 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
   function startEditProduct(product: Product) {
     setEditingProductId(product.id);
     setProductForm({ title: product.title, excerpt: product.excerpt, description: product.description, price: product.price, compareAt: product.compareAt ?? 0, badge: product.badge, grade: product.grade, subject: product.subject, category: product.category, format: product.format, pages: product.pages, level: product.level, featured: product.featured, status: product.status, accentA: product.accentA, accentB: product.accentB, coverImage: product.coverImage ?? "", sortOrder: product.sortOrder ?? 0 });
+    setUploadedFiles([]);
     setTab("products");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }

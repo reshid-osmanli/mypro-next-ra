@@ -41,12 +41,17 @@ export function CheckoutForm() {
   const [message, setMessage] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
+  const [purchaseTrackingConsent, setPurchaseTrackingConsent] = useState(false);
   const signedInEmail = session?.user?.email?.trim() ?? "";
 
   useEffect(() => {
     if (session?.user?.name && !customerName) setCustomerName(session.user.name);
     if (signedInEmail) setCustomerEmail(signedInEmail);
   }, [customerName, session?.user?.name, signedInEmail]);
+
+  useEffect(() => {
+    if (signedInEmail) setPurchaseTrackingConsent(true);
+  }, [signedInEmail]);
 
   async function submitStripe(formData: FormData) {
     if (!items.length) return;
@@ -128,7 +133,13 @@ export function CheckoutForm() {
       </label>
 
       <label className="flex items-start gap-3 rounded-lg border border-qatar-100 bg-white px-4 py-3 text-sm leading-7 text-zinc-700">
-        <input name="purchaseTrackingConsent" type="checkbox" className="mt-1 h-4 w-4 rounded border-qatar-300 text-qatar-700" />
+        <input
+          name="purchaseTrackingConsent"
+          type="checkbox"
+          className="mt-1 h-4 w-4 rounded border-qatar-300 text-qatar-700"
+          checked={purchaseTrackingConsent}
+          onChange={(event) => setPurchaseTrackingConsent(event.target.checked)}
+        />
         <span>
           {text({
             ar: "أوافق على حفظ مشترياتي على بريدي الإلكتروني حتى أستطيع عرضها لاحقاً وربطها اختيارياً بحساب Google Drive.",

@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { cookies } from "next/headers";
 import { createHash, createHmac, randomInt, timingSafeEqual } from "crypto";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
@@ -99,7 +100,7 @@ export function signAdminSession(email: string, ttlSeconds = DEFAULT_TTL_SECONDS
   return `${payload}.${signature}`;
 }
 
-export async function verifyAdminSession(token?: string | null) {
+export function readAdminSession(token?: string | null) {
   if (!token) return false;
   const parts = token.split(".");
   if (parts.length < 3) return false;
@@ -116,10 +117,15 @@ export async function verifyAdminSession(token?: string | null) {
     const a = Buffer.from(signature, "hex");
     const b = Buffer.from(expected, "hex");
     if (a.length !== b.length) return false;
-    return timingSafeEqual(a, b);
+    if (!timingSafeEqual(a, b)) return false;
+    return { email, expiresAt };
   } catch {
     return false;
   }
+}
+
+export async function verifyAdminSession(token?: string | null) {
+  return Boolean(readAdminSession(token));
 }
 
 export async function setAdminCookie(res: NextResponse, email: string) {
@@ -164,14 +170,16 @@ export function clearAdminLoginChallengeCookie(res: NextResponse) {
 
 export async function isAdminRequest(req: NextRequest) {
   if (await isCurrentAuthAdmin()) return true;
-  return verifyAdminSession(req.cookies.get(ADMIN_COOKIE_NAME)?.value);
+  const adminSession = readAdminSession(req.cookies.get(ADMIN_COOKIE_NAME)?.value);
+  return Boolean(adminSession && (await isAdminEmail(adminSession.email)));
 }
 
 export async function requireAdminRequest(req: NextRequest) {
   const originError = rejectUntrustedOrigin(req);
   if (originError) return originError;
 
-  const ok = (await isCurrentAuthAdmin()) || (await verifyAdminSession(req.cookies.get(ADMIN_COOKIE_NAME)?.value));
+  const adminSession = readAdminSession(req.cookies.get(ADMIN_COOKIE_NAME)?.value);
+  const ok = (await isCurrentAuthAdmin()) || Boolean(adminSession && (await isAdminEmail(adminSession.email)));
   if (ok) return null;
   return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 }
@@ -216,6 +224,11 @@ export async function isCurrentAuthAdmin() {
 
 export async function requireAdminSession() {
   const email = await getCurrentAuthEmail();
-  if (!email || !(await isAdminEmail(email))) return null;
-  return { email };
+  if (email && (await isAdminEmail(email))) return { email };
+
+  const cookieStore = await cookies();
+  const adminSession = readAdminSession(cookieStore.get(ADMIN_COOKIE_NAME)?.value);
+  if (!adminSession || !(await isAdminEmail(adminSession.email))) return null;
+
+  return { email: adminSession.email };
 }

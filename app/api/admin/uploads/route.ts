@@ -1,7 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { requireAdminRequest } from "@/lib/admin-auth";
 import { getRequestIp, isRateLimited } from "@/lib/rate-limit";
-import { uploadToCloudinary } from "@/lib/cloudinary";
+import { getCloudinaryConfig, uploadToCloudinary } from "@/lib/cloudinary";
+import { saveUploadToLocalStorage } from "@/lib/local-uploads";
 import { describeAllowedUploads, findUploadPolicy, hasValidUploadSignature, MAX_UPLOAD_BYTES, preferredUploadMimeType } from "@/lib/upload-policy";
 
 export const runtime = "nodejs";
@@ -38,15 +39,25 @@ export async function POST(req: NextRequest) {
 
   const mimeType = preferredUploadMimeType(policy, file.name, file.type);
   let upload;
+  let storage = "local";
   try {
-    upload = await uploadToCloudinary({
-      bytes: buffer,
-      fileName: file.name,
-      mimeType,
-      policy
-    });
+    if (getCloudinaryConfig()) {
+      upload = await uploadToCloudinary({
+        bytes: buffer,
+        fileName: file.name,
+        mimeType,
+        policy
+      });
+      storage = "cloudinary";
+    } else {
+      upload = await saveUploadToLocalStorage({
+        bytes: buffer,
+        fileName: file.name,
+        policy
+      });
+    }
   } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Cloudinary upload failed" }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Upload failed" }, { status: 500 });
   }
 
   return NextResponse.json({
@@ -57,7 +68,7 @@ export async function POST(req: NextRequest) {
     private: policy.private,
     kind: policy.kind,
     label: policy.label,
-    storage: "cloudinary",
+    storage,
     publicId: upload.publicId
   });
 }

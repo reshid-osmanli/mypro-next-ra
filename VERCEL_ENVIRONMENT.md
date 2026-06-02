@@ -14,6 +14,9 @@ NEXT_PUBLIC_SITE_URL
 ADMIN_EMAIL
 ADMIN_PASSWORD
 ADMIN_SESSION_SECRET
+AUTH_SECRET
+AUTH_GOOGLE_ID
+AUTH_GOOGLE_SECRET
 RESEND_API_KEY
 RESEND_FROM_EMAIL
 PAYPAL_ENV
@@ -35,6 +38,9 @@ GOOGLE_TOKEN_ENCRYPTION_KEY
 - `ADMIN_EMAIL`: admin email address.
 - `ADMIN_PASSWORD`: admin password.
 - `ADMIN_SESSION_SECRET`: long private session secret.
+- `AUTH_SECRET`: long private Auth.js secret.
+- `AUTH_GOOGLE_ID`: Google OAuth client id used by `/login` and `/signup`.
+- `AUTH_GOOGLE_SECRET`: Google OAuth client secret used by `/login` and `/signup`.
 - `RESEND_API_KEY`: Resend API key.
 - `RESEND_FROM_EMAIL`: sender email configured in Resend.
 - `PAYPAL_ENV`: `sandbox` while testing.
@@ -47,6 +53,12 @@ GOOGLE_TOKEN_ENCRYPTION_KEY
 - `GOOGLE_CLIENT_ID`: Google OAuth client id for optional Drive sync.
 - `GOOGLE_CLIENT_SECRET`: Google OAuth client secret for optional Drive sync.
 - `GOOGLE_TOKEN_ENCRYPTION_KEY`: long random secret used to encrypt stored Google refresh tokens.
+
+For Auth.js Google login, add this authorized redirect URI in Google Cloud Console:
+
+```text
+https://your-vercel-domain.vercel.app/api/auth/callback/google
+```
 
 For Google Drive OAuth, add this authorized redirect URI in Google Cloud Console:
 

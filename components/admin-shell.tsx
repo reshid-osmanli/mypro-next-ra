@@ -9,6 +9,12 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isLogin = pathname === "/admin/login";
 
+  async function logout() {
+    await fetch("/api/admin/logout", { method: "POST" }).catch(() => null);
+    await signOut({ redirect: false }).catch(() => null);
+    window.location.assign("/admin/login");
+  }
+
   if (isLogin) {
     return (
       <div className="min-h-screen bg-[linear-gradient(180deg,#f7f8f5,#ffffff)] px-4 py-10">
@@ -65,7 +71,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             </p>
             <button
               type="button"
-              onClick={() => signOut({ callbackUrl: "/login" })}
+              onClick={logout}
               className="btn-secondary mt-4 w-full"
             >
               <LogOut size={16} />

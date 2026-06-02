@@ -146,6 +146,15 @@ export function PurchasesClient({ initialLibrary }: Props) {
       </div>
 
       <div className="space-y-4">
+        {library.orders.length === 0 ? (
+          <div className="panel p-6 text-sm leading-7 text-zinc-600">
+            {text({
+              ar: "لا توجد مشتريات محفوظة لهذا البريد بعد. لاختبار الميزة، سجّل الدخول قبل الدفع واترك خيار حفظ المشتريات مفعّلًا في صفحة الدفع.",
+              en: "No saved purchases were found for this email yet. To test this feature, sign in before checkout and keep purchase tracking enabled."
+            })}
+          </div>
+        ) : null}
+
         {library.orders.map((order) => (
           <div key={order.id} className="panel p-5">
             <div className="flex flex-wrap items-start justify-between gap-3">

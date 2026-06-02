@@ -1,11 +1,28 @@
 import NextAuth from "next-auth";
+import { PrismaAdapter } from "@auth/prisma-adapter";
 import Google from "next-auth/providers/google";
+import { prisma } from "@/lib/db";
 
 const authSecret = process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET ?? process.env.ADMIN_SESSION_SECRET;
 const googleClientId = process.env.AUTH_GOOGLE_ID ?? process.env.GOOGLE_CLIENT_ID;
 const googleClientSecret = process.env.AUTH_GOOGLE_SECRET ?? process.env.GOOGLE_CLIENT_SECRET;
+const providers = googleClientId && googleClientSecret
+  ? [
+      Google({
+        clientId: googleClientId,
+        clientSecret: googleClientSecret,
+        authorization: {
+          params: {
+            prompt: "select_account",
+            response_type: "code"
+          }
+        }
+      })
+    ]
+  : [];
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  adapter: PrismaAdapter(prisma),
   trustHost: true,
   secret: authSecret,
   session: {
@@ -16,18 +33,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     signIn: "/login",
     error: "/login"
   },
-  providers: [
-    Google({
-      clientId: googleClientId,
-      clientSecret: googleClientSecret,
-      authorization: {
-        params: {
-          prompt: "select_account",
-          response_type: "code"
-        }
-      }
-    })
-  ],
+  providers,
   callbacks: {
     authorized() {
       return true;

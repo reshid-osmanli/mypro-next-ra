@@ -24,6 +24,10 @@ Use `.env.example` as the safe template. Put the real values in `.env` locally a
 
 Cloudinary is used for product files and cover images in hosted deployments. Google Drive sync is optional and requires `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and the callback URL shown in `VERCEL_ENVIRONMENT.md`.
 
+Customer login uses Auth.js / NextAuth at `/login` and `/signup`. Configure `AUTH_SECRET`, `AUTH_GOOGLE_ID`, and `AUTH_GOOGLE_SECRET`, then add `/api/auth/callback/google` as an authorized Google OAuth redirect URI.
+
+Admin login is separate from customer login and uses `/admin/login`. Product uploads work locally with filesystem storage when Cloudinary is not configured; for persistent hosted uploads, configure `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and `CLOUDINARY_API_SECRET`.
+
 ## Database
 
 The project uses PostgreSQL through Prisma:
