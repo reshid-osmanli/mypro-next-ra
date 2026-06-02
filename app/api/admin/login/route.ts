@@ -52,12 +52,23 @@ export async function POST(req: Request) {
   }
 
   const challenge = issueAdminLoginChallenge(admin.email);
-  await sendSecurityEmail({
-    to: admin.email,
-    ...buildAdminOtpEmail({ code: challenge.code, expiresMinutes: 10 })
-  });
+  let emailResult: Awaited<ReturnType<typeof sendSecurityEmail>>;
+  try {
+    emailResult = await sendSecurityEmail({
+      to: admin.email,
+      ...buildAdminOtpEmail({ code: challenge.code, expiresMinutes: 10 })
+    });
+  } catch (error) {
+    console.error("[admin/login:send-code]", error);
+    return NextResponse.json({ error: "تعذر إرسال رمز التحقق. تحقق من إعداد RESEND_API_KEY و RESEND_FROM_EMAIL." }, { status: 500 });
+  }
 
-  const res = NextResponse.json({ ok: true, requiresVerification: true, email: admin.email });
+  const res = NextResponse.json({
+    ok: true,
+    requiresVerification: true,
+    email: admin.email,
+    ...("dev" in emailResult && emailResult.dev ? { devCode: challenge.code } : {})
+  });
   clearAdminLoginChallengeCookie(res);
   setAdminLoginChallengeCookie(res, challenge.token);
   return res;

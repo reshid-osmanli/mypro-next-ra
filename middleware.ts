@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { auth } from "@/auth";
+import NextAuth from "next-auth";
+import authConfig from "@/auth.config";
+
+const { auth: authMiddleware } = NextAuth(authConfig);
 
 function applySecurityHeaders(res: NextResponse, pathname = "") {
   res.headers.set("X-Content-Type-Options", "nosniff");
@@ -73,7 +76,7 @@ function isProtectedApi(pathname: string) {
   );
 }
 
-export default auth((req) => {
+export default authMiddleware((req) => {
   const { pathname } = req.nextUrl;
 
   if (isStaticAsset(pathname)) return applySecurityHeaders(NextResponse.next(), pathname);

@@ -62,8 +62,9 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
   });
   const parsed = patchSchema.safeParse(body);
   if (!parsed.success) {
-    logProductError("update:validation", parsed.error.flatten(), { id });
-    return NextResponse.json({ error: "البيانات غير صالحة. تحقق من الحقول المطلوبة وصورة الغلاف والمرفقات." }, { status: 400 });
+    const details = parsed.error.flatten();
+    logProductError("update:validation", details, { id });
+    return NextResponse.json({ error: "البيانات غير صالحة. تحقق من الحقول المطلوبة وصورة الغلاف والمرفقات.", details: details.fieldErrors }, { status: 400 });
   }
 
   const data = parsed.data;

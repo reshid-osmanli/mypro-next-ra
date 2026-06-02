@@ -11,6 +11,7 @@ export function AdminLoginForm() {
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState<"credentials" | "code">("credentials");
   const [verifiedEmail, setVerifiedEmail] = useState("");
+  const [devCode, setDevCode] = useState("");
 
   const canSubmitCode = useMemo(() => code.trim().length === 8, [code]);
 
@@ -33,6 +34,7 @@ export function AdminLoginForm() {
         setVerifiedEmail(String(data.email || email));
         setMode("code");
         setCode("");
+        setDevCode(typeof data.devCode === "string" ? data.devCode : "");
         setError("");
       } else {
         window.location.replace("/admin");
@@ -77,6 +79,7 @@ export function AdminLoginForm() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || "تعذر إعادة الإرسال");
+      setDevCode(typeof data.devCode === "string" ? data.devCode : "");
     } catch (err) {
       setError(err instanceof Error ? err.message : "تعذر إعادة الإرسال");
     } finally {
@@ -143,6 +146,12 @@ export function AdminLoginForm() {
           <div className="rounded-md border border-qatar-100 bg-qatar-50 px-4 py-3 text-sm text-zinc-700">
             تم إرسال رمز تحقق إلى <strong>{verifiedEmail || email}</strong>. أدخل الرمز المكوّن من 8 أرقام.
           </div>
+
+          {devCode ? (
+            <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-800">
+              رمز التطوير: {devCode}
+            </div>
+          ) : null}
 
           <label className="block space-y-2">
             <span className="text-sm font-bold text-zinc-700">رمز التحقق</span>

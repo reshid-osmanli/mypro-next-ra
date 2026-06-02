@@ -72,8 +72,9 @@ export async function POST(req: NextRequest) {
 
   const parsed = createSchema.safeParse(body);
   if (!parsed.success) {
-    logProductError("create:validation", parsed.error.flatten());
-    return NextResponse.json({ error: "البيانات غير صالحة. تحقق من الحقول المطلوبة وصورة الغلاف والمرفقات." }, { status: 400 });
+    const details = parsed.error.flatten();
+    logProductError("create:validation", details);
+    return NextResponse.json({ error: "البيانات غير صالحة. تحقق من الحقول المطلوبة وصورة الغلاف والمرفقات.", details: details.fieldErrors }, { status: 400 });
   }
 
   const data = parsed.data;

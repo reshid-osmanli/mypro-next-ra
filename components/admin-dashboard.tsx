@@ -123,6 +123,17 @@ type GradeFormState = { name: string; sortOrder: number };
 type SubjectFormState = { gradeId: string; name: string; motionLogo: string; sortOrder: number };
 
 const PUBLIC_IMAGE_ACCEPT = ".png,.jpg,.jpeg,.webp,.gif";
+const COVER_IMAGE_MIME_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
+const PUBLIC_IMAGE_MIME_TYPES = new Set([...COVER_IMAGE_MIME_TYPES, "image/gif"]);
+
+function hasAllowedImageExtension(fileName: string, allowGif: boolean) {
+  return allowGif ? /\.(?:png|jpe?g|webp|gif)$/i.test(fileName) : /\.(?:png|jpe?g|webp)$/i.test(fileName);
+}
+
+function isAllowedImageFile(file: File, allowGif: boolean) {
+  const mimeOk = allowGif ? PUBLIC_IMAGE_MIME_TYPES.has(file.type) : COVER_IMAGE_MIME_TYPES.has(file.type);
+  return mimeOk || hasAllowedImageExtension(file.name, allowGif);
+}
 
 const productDefaults: ProductFormState = {
   title: "",
@@ -211,6 +222,14 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
   function resetSubjectForm() { setSubjectForm({ gradeId: catalog[0]?.id ?? "", name: "", motionLogo: "", sortOrder: 0 }); setEditingSubjectId(null); }
   function clearMessage() { setMessage(""); setMessageKind("info"); }
   function showMessage(text: string, kind: "info" | "success" | "error" = "info") { setMessage(text); setMessageKind(kind); }
+  function requireUploadData(data: unknown, fallback: string) {
+    if (!data || typeof data !== "object") throw new Error(fallback);
+    const upload = data as { url?: unknown; mimeType?: unknown; private?: unknown; kind?: unknown; size?: unknown; error?: unknown };
+    if (typeof upload.error === "string") throw new Error(upload.error);
+    if (typeof upload.url !== "string" || !upload.url) throw new Error(fallback);
+    if (typeof upload.mimeType !== "string" || !upload.mimeType) throw new Error(fallback);
+    return upload as { url: string; mimeType: string; private?: boolean; kind?: string; size?: number };
+  }
 
   async function saveProduct() {
     if (!productForm.title.trim() || !productForm.excerpt.trim() || !productForm.description.trim()) {
@@ -388,41 +407,51 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
     if (!fileList?.length) return;
     const tooLarge = Array.from(fileList).find((file) => file.size > MAX_UPLOAD_BYTES);
     if (tooLarge) {
-      setMessage(`حجم ${tooLarge.name} يتجاوز الحد الأقصى ${formatBytes(MAX_UPLOAD_BYTES)}`);
+      showMessage(`حجم ${tooLarge.name} يتجاوز الحد الأقصى ${formatBytes(MAX_UPLOAD_BYTES)}`, "error");
       return;
     }
-    setBusy(true); setMessage("");
+    setBusy(true); clearMessage();
     try {
       const results: typeof uploadedFiles = [];
       for (const file of Array.from(fileList)) {
         const formData = new FormData();
         formData.append("file", file);
         const res = await fetch("/api/admin/uploads", { method: "POST", body: formData });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "فشل الرفع");
-        if (!data.private) throw new Error("مرفقات المنتج يجب أن تحفظ في التخزين الخاص");
-        results.push({ title: file.name, url: data.url as string, mimeType: data.mimeType as string, size: file.size });
+        const data = await res.json().catch(() => ({}));
+        const upload = requireUploadData(data, "فشل الرفع");
+        if (!res.ok) throw new Error("فشل الرفع");
+        if (!upload.private) throw new Error("مرفقات المنتج يجب أن تحفظ في التخزين الخاص");
+        results.push({ title: file.name, url: upload.url, mimeType: upload.mimeType, size: typeof upload.size === "number" ? upload.size : file.size });
       }
       setUploadedFiles((current) => [...current, ...results]);
-      setMessage("تم رفع الملفات وربطها مؤقتًا بالمنتج القادم");
-    } catch (error) { setMessage(error instanceof Error ? error.message : "حدث خطأ أثناء الرفع"); }
-    finally { setBusy(false); }
+      showMessage("تم رفع الملفات وربطها مؤقتًا بالمنتج القادم", "success");
+    } catch (error) {
+      showMessage(error instanceof Error ? error.message : "حدث خطأ أثناء الرفع", "error");
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      setBusy(false);
+    }
   }
   async function uploadCoverImage(file: File | null) {
     if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      setMessage("يرجى اختيار صورة فقط لصورة الغلاف");
+    if (!isAllowedImageFile(file, false)) {
+      showMessage("يرجى اختيار صورة غلاف بصيغة PNG أو JPG أو WEBP", "error");
       return;
     }
-    setBusy(true); setMessage("");
+    if (file.size <= 0 || file.size > MAX_UPLOAD_BYTES) {
+      showMessage(`حجم صورة الغلاف يجب ألا يتجاوز ${formatBytes(MAX_UPLOAD_BYTES)}`, "error");
+      return;
+    }
+    setBusy(true); clearMessage();
     try {
       const formData = new FormData();
       formData.append("file", file);
       const res = await fetch("/api/admin/uploads", { method: "POST", body: formData });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || "فشل رفع صورة الغلاف");
-      if (data.private) throw new Error("صورة الغلاف يجب أن تكون صورة عامة قابلة للعرض");
-      setProductForm((current) => ({ ...current, coverImage: data.url as string }));
+      const upload = requireUploadData(data, "فشل رفع صورة الغلاف");
+      if (!res.ok) throw new Error("فشل رفع صورة الغلاف");
+      if (upload.private || upload.kind !== "image") throw new Error("صورة الغلاف يجب أن تكون صورة عامة قابلة للعرض");
+      setProductForm((current) => ({ ...current, coverImage: upload.url }));
       showMessage("تم رفع صورة الغلاف بنجاح", "success");
     } catch (error) {
       showMessage(error instanceof Error ? error.message : "حدث خطأ أثناء رفع صورة الغلاف", "error");
@@ -433,22 +462,27 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
 
   async function uploadSubjectMotionLogo(file: File | null) {
     if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      setMessage("يرجى اختيار صورة أو شعار متحرك بصيغة صورة فقط");
+    if (!isAllowedImageFile(file, true)) {
+      showMessage("يرجى اختيار صورة أو شعار متحرك بصيغة صورة فقط", "error");
       return;
     }
-    setBusy(true); setMessage("");
+    if (file.size <= 0 || file.size > MAX_UPLOAD_BYTES) {
+      showMessage(`حجم شعار المادة يجب ألا يتجاوز ${formatBytes(MAX_UPLOAD_BYTES)}`, "error");
+      return;
+    }
+    setBusy(true); clearMessage();
     try {
       const formData = new FormData();
       formData.append("file", file);
       const res = await fetch("/api/admin/uploads", { method: "POST", body: formData });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "فشل رفع شعار المادة");
-      if (data.private) throw new Error("شعار المادة يجب أن يكون صورة عامة قابلة للعرض");
-      setSubjectForm((current) => ({ ...current, motionLogo: data.url as string }));
-      setMessage("تم رفع شعار المادة المتحرك بنجاح");
+      const data = await res.json().catch(() => ({}));
+      const upload = requireUploadData(data, "فشل رفع شعار المادة");
+      if (!res.ok) throw new Error("فشل رفع شعار المادة");
+      if (upload.private || upload.kind !== "image") throw new Error("شعار المادة يجب أن يكون صورة عامة قابلة للعرض");
+      setSubjectForm((current) => ({ ...current, motionLogo: upload.url }));
+      showMessage("تم رفع شعار المادة المتحرك بنجاح", "success");
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "حدث خطأ أثناء رفع شعار المادة");
+      showMessage(error instanceof Error ? error.message : "حدث خطأ أثناء رفع شعار المادة", "error");
     } finally {
       setBusy(false);
     }

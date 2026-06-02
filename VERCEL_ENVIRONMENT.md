@@ -11,6 +11,7 @@ Add these variables in Vercel under:
 ```env
 DATABASE_URL
 NEXT_PUBLIC_SITE_URL
+AUTH_URL
 ADMIN_EMAIL
 ADMIN_PASSWORD
 ADMIN_SESSION_SECRET
@@ -35,6 +36,7 @@ GOOGLE_TOKEN_ENCRYPTION_KEY
 
 - `DATABASE_URL`: Neon PostgreSQL connection string with SSL required.
 - `NEXT_PUBLIC_SITE_URL`: Vercel production URL.
+- `AUTH_URL`: the same production origin used by Auth.js, for example `https://your-vercel-domain.vercel.app`.
 - `ADMIN_EMAIL`: admin email address.
 - `ADMIN_PASSWORD`: admin password.
 - `ADMIN_SESSION_SECRET`: long private session secret.
@@ -59,6 +61,8 @@ For Auth.js Google login, add this authorized redirect URI in Google Cloud Conso
 ```text
 https://your-vercel-domain.vercel.app/api/auth/callback/google
 ```
+
+On Vercel, product files and cover images must use Cloudinary. Local folders such as `public/uploads` and `storage/uploads` are only for development and are not durable on serverless hosting.
 
 For Google Drive OAuth, add this authorized redirect URI in Google Cloud Console:
 

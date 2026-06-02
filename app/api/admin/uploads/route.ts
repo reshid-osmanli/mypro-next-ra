@@ -7,6 +7,10 @@ import { describeAllowedUploads, findUploadPolicy, hasValidUploadSignature, MAX_
 
 export const runtime = "nodejs";
 
+function requiresPersistentStorage() {
+  return process.env.NODE_ENV === "production" || process.env.VERCEL === "1";
+}
+
 export async function POST(req: NextRequest) {
   const authError = await requireAdminRequest(req);
   if (authError) return authError;
@@ -16,7 +20,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "محاولات كثيرة. حاول بعد قليل" }, { status: 429 });
   }
 
-  const formData = await req.formData();
+  let formData: FormData;
+  try {
+    formData = await req.formData();
+  } catch (error) {
+    console.error("[admin/uploads:form-data]", error);
+    return NextResponse.json({ error: "تعذر قراءة الملف المرفوع. تأكد من أن الطلب يرسل multipart/form-data وأن حجم الملف مناسب." }, { status: 400 });
+  }
+
   const file = formData.get("file");
 
   if (!(file instanceof File)) {
@@ -38,10 +49,18 @@ export async function POST(req: NextRequest) {
   }
 
   const mimeType = preferredUploadMimeType(policy, file.name, file.type);
+  const cloudinaryConfig = getCloudinaryConfig();
+  if (!cloudinaryConfig && requiresPersistentStorage()) {
+    return NextResponse.json(
+      { error: "رفع الملفات على الاستضافة يحتاج ضبط Cloudinary: CLOUDINARY_CLOUD_NAME و CLOUDINARY_API_KEY و CLOUDINARY_API_SECRET." },
+      { status: 500 }
+    );
+  }
+
   let upload;
   let storage = "local";
   try {
-    if (getCloudinaryConfig()) {
+    if (cloudinaryConfig) {
       upload = await uploadToCloudinary({
         bytes: buffer,
         fileName: file.name,
