@@ -15,7 +15,8 @@ import {
   Settings2,
   Trash2,
   UploadCloud,
-  PackageSearch
+  PackageSearch,
+  Loader2
 } from "lucide-react";
 import { currencyLabel, formatBytes } from "@/lib/utils";
 import { describeAllowedPrivateUploads, MAX_UPLOAD_BYTES, PRIVATE_UPLOAD_ACCEPT } from "@/lib/upload-policy";
@@ -169,7 +170,9 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [tab, setTab] = useState<(typeof tabs)[number]["id"]>("products");
   const [message, setMessage] = useState("");
+  const [messageKind, setMessageKind] = useState<"info" | "success" | "error">("info");
   const [busy, setBusy] = useState(false);
+  const [productSaving, setProductSaving] = useState(false);
 
   const [productForm, setProductForm] = useState<ProductFormState>(productDefaults);
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
@@ -206,26 +209,28 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
   function resetPageForm() { setPageForm(pageDefaults); setEditingPageId(null); }
   function resetGradeForm() { setGradeForm({ name: "", sortOrder: 0 }); setEditingGradeId(null); }
   function resetSubjectForm() { setSubjectForm({ gradeId: catalog[0]?.id ?? "", name: "", motionLogo: "", sortOrder: 0 }); setEditingSubjectId(null); }
+  function clearMessage() { setMessage(""); setMessageKind("info"); }
+  function showMessage(text: string, kind: "info" | "success" | "error" = "info") { setMessage(text); setMessageKind(kind); }
 
   async function saveProduct() {
     if (!productForm.title.trim() || !productForm.excerpt.trim() || !productForm.description.trim()) {
-      setMessage("املأ العنوان والملخص والوصف قبل الحفظ");
+      showMessage("املأ العنوان والملخص والوصف قبل الحفظ", "error");
       return;
     }
-    setBusy(true); setMessage("");
+    setBusy(true); setProductSaving(true); clearMessage();
     try {
       const res = await fetch(editingProductId ? `/api/admin/products/${editingProductId}` : "/api/admin/products", {
         method: editingProductId ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...productForm, files: uploadedFiles })
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || "تعذر حفظ المنتج");
-      setMessage(editingProductId ? "تم تحديث المنتج" : "تم حفظ المنتج بنجاح");
+      showMessage(editingProductId ? "تم تحديث المنتج" : "تم حفظ المنتج بنجاح", "success");
       resetProductForm(); setUploadedFiles([]);
       setTimeout(() => router.refresh(), 700);
-    } catch (error) { setMessage(error instanceof Error ? error.message : "حدث خطأ غير متوقع"); }
-    finally { setBusy(false); }
+    } catch (error) { showMessage(error instanceof Error ? error.message : "حدث خطأ غير متوقع", "error"); }
+    finally { setBusy(false); setProductSaving(false); }
   }
 
   async function deleteProduct(id: string) {
@@ -413,12 +418,13 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
       const formData = new FormData();
       formData.append("file", file);
       const res = await fetch("/api/admin/uploads", { method: "POST", body: formData });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || "فشل رفع صورة الغلاف");
+      if (data.private) throw new Error("صورة الغلاف يجب أن تكون صورة عامة قابلة للعرض");
       setProductForm((current) => ({ ...current, coverImage: data.url as string }));
-      setMessage("تم رفع صورة الغلاف بنجاح");
+      showMessage("تم رفع صورة الغلاف بنجاح", "success");
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "حدث خطأ أثناء رفع صورة الغلاف");
+      showMessage(error instanceof Error ? error.message : "حدث خطأ أثناء رفع صورة الغلاف", "error");
     } finally {
       setBusy(false);
     }
@@ -465,6 +471,13 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
     finally { setBusy(false); }
   }
 
+  const messageClassName =
+    messageKind === "error"
+      ? "rounded-[1.4rem] border border-rose-200 bg-rose-50 px-5 py-4 text-sm font-semibold text-rose-700 shadow-[0_12px_30px_rgba(15,23,42,0.04)]"
+      : messageKind === "success"
+        ? "rounded-[1.4rem] border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-semibold text-emerald-700 shadow-[0_12px_30px_rgba(15,23,42,0.04)]"
+        : "rounded-[1.4rem] border border-qatar-100 bg-white px-5 py-4 text-sm text-zinc-700 shadow-[0_12px_30px_rgba(15,23,42,0.04)]";
+
   return (
     <div className="space-y-6">
       <div className="relative overflow-hidden rounded-lg border border-zinc-200 bg-[linear-gradient(135deg,#fff,#f7f8f5_60%,#fff)] p-6 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
@@ -508,7 +521,8 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
         })}
       </div>
 
-      {message ? <div className="rounded-[1.4rem] border border-qatar-100 bg-white px-5 py-4 text-sm text-zinc-700 shadow-[0_12px_30px_rgba(15,23,42,0.04)]">{message}</div> : null}
+      {busy ? <div className="rounded-[1.4rem] border border-sky-200 bg-sky-50 px-5 py-4 text-sm font-semibold text-sky-800 shadow-[0_12px_30px_rgba(15,23,42,0.04)]">جارٍ تنفيذ العملية...</div> : null}
+      {message ? <div className={messageClassName}>{message}</div> : null}
 
       {tab === "products" ? (
         <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
@@ -561,7 +575,7 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
               </label>
             </div>
             <div className="flex flex-wrap gap-3">
-              <button type="button" disabled={busy} onClick={saveProduct} className="btn-primary disabled:opacity-60"><PlusCircle size={16} />{editingProductId ? "حفظ التعديلات" : "حفظ المنتج"}</button>
+              <button type="button" disabled={busy} onClick={saveProduct} className="btn-primary disabled:opacity-60">{productSaving ? <Loader2 size={16} className="animate-spin" /> : <PlusCircle size={16} />}{productSaving ? "جارٍ الحفظ..." : editingProductId ? "حفظ التعديلات" : "حفظ المنتج"}</button>
               <button type="button" onClick={resetProductForm} className="btn-secondary">إعادة ضبط</button>
             </div>
             <div className="rounded-[1.5rem] border border-dashed border-qatar-200 bg-qatar-50/60 p-4 text-sm text-zinc-700">

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { createPaypalOrder } from "@/lib/payments";
 import { rejectUntrustedOrigin } from "@/lib/request-security";
@@ -36,6 +37,18 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "البيانات غير صالحة" }, { status: 400 });
   }
 
+  const session = await auth();
+  const sessionEmail = session?.user?.email?.trim().toLowerCase();
+  const submittedEmail = parsed.data.email.trim().toLowerCase();
+  const orderEmail = sessionEmail || submittedEmail;
+
+  if (sessionEmail && sessionEmail !== submittedEmail) {
+    console.warn("[paypal/create-order] Ignoring submitted email because an authenticated Google email is present", {
+      sessionEmail,
+      submittedEmail
+    });
+  }
+
   const productIds = [...new Set(parsed.data.items.map((item) => item.id))];
   const products = await prisma.product.findMany({
     where: { id: { in: productIds }, status: "published" },
@@ -61,7 +74,7 @@ export async function POST(req: Request) {
   const localOrder = await prisma.order.create({
     data: {
       customerName: parsed.data.customerName,
-      email: parsed.data.email,
+      email: orderEmail,
       phone: parsed.data.phone,
       notes: parsed.data.notes,
       purchaseTrackingConsent: parsed.data.purchaseTrackingConsent,
@@ -86,7 +99,7 @@ export async function POST(req: Request) {
       items: normalizedItems,
       customer: {
         name: parsed.data.customerName,
-        email: parsed.data.email,
+        email: orderEmail,
         phone: parsed.data.phone,
         notes: parsed.data.notes
       }

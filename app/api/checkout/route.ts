@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { createStripeSession } from "@/lib/payments";
 import type { CheckoutPayload } from "@/lib/types";
@@ -39,6 +40,18 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "البيانات غير صالحة" }, { status: 400 });
   }
 
+  const session = await auth();
+  const sessionEmail = session?.user?.email?.trim().toLowerCase();
+  const submittedEmail = parsed.data.email.trim().toLowerCase();
+  const orderEmail = sessionEmail || submittedEmail;
+
+  if (sessionEmail && sessionEmail !== submittedEmail) {
+    console.warn("[checkout] Ignoring submitted email because an authenticated Google email is present", {
+      sessionEmail,
+      submittedEmail
+    });
+  }
+
   const productIds = [...new Set(parsed.data.items.map((item) => item.id))];
   const products = await prisma.product.findMany({
     where: { id: { in: productIds }, status: "published" },
@@ -74,7 +87,7 @@ export async function POST(req: Request) {
   const order = await prisma.order.create({
     data: {
       customerName: parsed.data.customerName,
-      email: parsed.data.email,
+      email: orderEmail,
       phone: parsed.data.phone,
       notes: parsed.data.notes,
       purchaseTrackingConsent: parsed.data.purchaseTrackingConsent,
@@ -95,7 +108,7 @@ export async function POST(req: Request) {
       items: normalizedItems.map((item) => ({ title: item.productTitle, price: item.price, quantity: item.quantity })),
       successUrl,
       cancelUrl,
-      customerEmail: parsed.data.email
+      customerEmail: orderEmail
     });
     await prisma.order.update({ where: { id: order.id }, data: { providerOrderId: session.id } });
     return NextResponse.json({ url: session.url, orderId: order.id });
