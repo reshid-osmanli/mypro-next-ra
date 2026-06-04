@@ -52,7 +52,7 @@ export async function GET(req: Request) {
   const response = NextResponse.redirect(new URL("/thank-you", req.url));
   response.cookies.set("kutubi-download-session", sessionToken, {
     httpOnly: true,
-    sameSite: "strict",
+    sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/",
     maxAge: DOWNLOAD_SESSION_TTL_MS / 1000

@@ -192,6 +192,41 @@ export async function capturePaypalOrder(orderId: string, requestId?: string) {
   }>;
 }
 
+export async function retrievePaypalOrder(orderId: string) {
+  const accessToken = await getPaypalAccessToken();
+
+  const res = await fetch(`${paypalBaseUrl}/v2/checkout/orders/${orderId}`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json"
+    },
+    cache: "no-store"
+  });
+
+  if (!res.ok) throw new Error(await paypalErrorMessage(res, "Unable to retrieve the PayPal order"));
+
+  return res.json() as Promise<{
+    id: string;
+    status: string;
+    purchase_units?: Array<{
+      reference_id?: string;
+      custom_id?: string;
+      payments?: {
+        captures?: Array<{
+          id?: string;
+          status?: string;
+          amount?: {
+            currency_code?: string;
+            value?: string;
+          };
+          custom_id?: string;
+        }>;
+      };
+    }>;
+  }>;
+}
+
 export function paypalClientIdOrEmpty() {
   return paypalClientId;
 }

@@ -134,7 +134,7 @@ export async function POST(req: NextRequest) {
 
   response.cookies.set(DOWNLOAD_SESSION_COOKIE, "", {
     httpOnly: true,
-    sameSite: "strict",
+    sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/",
     maxAge: 0

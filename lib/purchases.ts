@@ -8,8 +8,7 @@ export async function getPurchaseLibrary(email: string) {
     prisma.order.findMany({
       where: {
         email: normalizedEmail,
-        status: "paid",
-        purchaseTrackingConsent: true
+        status: "paid"
       },
       orderBy: { createdAt: "desc" },
       include: {

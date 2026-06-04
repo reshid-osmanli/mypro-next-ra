@@ -4,10 +4,10 @@ import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { CreditCard, Mail, Phone, ShieldCheck, User2 } from "lucide-react";
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import Script from "next/script";
 import { useCart } from "./cart-provider";
 import { PayPalCheckoutButton } from "./paypal-checkout-button";
+import { paypalSdkScriptUrl } from "@/lib/paypal-client";
 import { subtotal } from "@/lib/site-math";
 import { currencyLabel } from "@/lib/utils";
 import { useSitePreferences } from "./site-preferences";
@@ -28,7 +28,6 @@ const providers = [
 ];
 
 export function CheckoutForm() {
-  const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const { data: session } = useSession();
   const { items, clearCart } = useCart();
@@ -97,7 +96,7 @@ export function CheckoutForm() {
         <Script
           id="paypal-js-sdk"
           strategy="afterInteractive"
-          src={`https://www.paypal.com/sdk/js?client-id=${encodeURIComponent(paypalClientId)}&currency=${encodeURIComponent(process.env.NEXT_PUBLIC_PAYPAL_CURRENCY ?? "USD")}&intent=capture&components=buttons&disable-funding=card,credit,paylater`}
+          src={paypalSdkScriptUrl(paypalClientId, process.env.NEXT_PUBLIC_PAYPAL_CURRENCY ?? "USD")}
         />
       ) : null}
 
@@ -204,7 +203,7 @@ export function CheckoutForm() {
               onStatus={setMessage}
               onCompleted={({ orderId }) => {
                 clearCart();
-                router.push(`/thank-you?order=${encodeURIComponent(orderId)}`);
+                window.location.assign(`/thank-you?order=${encodeURIComponent(orderId)}`);
               }}
             />
           ) : (

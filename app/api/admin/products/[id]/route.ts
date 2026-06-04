@@ -108,6 +108,17 @@ export async function DELETE(req: NextRequest, { params }: RouteContext) {
   if (authError) return authError;
 
   const { id } = await params;
+
+  const linkedOrders = await prisma.orderItem.count({ where: { productId: id } });
+  if (linkedOrders > 0) {
+    return NextResponse.json(
+      {
+        error: "لا يمكن حذف منتج مرتبط بطلبات سابقة. غيّر حالته إلى مسودة أو ألغِ نشره بدلاً من الحذف."
+      },
+      { status: 409 }
+    );
+  }
+
   try {
     await prisma.product.delete({ where: { id } });
     return NextResponse.json({ ok: true });
@@ -115,6 +126,12 @@ export async function DELETE(req: NextRequest, { params }: RouteContext) {
     logProductError("delete:prisma", error, { id });
     if (getErrorCode(error) === "P2025") {
       return NextResponse.json({ error: "المنتج غير موجود" }, { status: 404 });
+    }
+    if (getErrorCode(error) === "P2003") {
+      return NextResponse.json(
+        { error: "لا يمكن حذف المنتج لأنه مرتبط بسجلات أخرى في قاعدة البيانات." },
+        { status: 409 }
+      );
     }
     return NextResponse.json({ error: "تعذر حذف المنتج من قاعدة البيانات. راجع سجل الخادم لمعرفة السبب." }, { status: 500 });
   }

@@ -89,7 +89,7 @@ export async function GET(req: NextRequest) {
     const response = redirect(req, `/thank-you?order=${encodeURIComponent(order.id)}`);
     response.cookies.set(DOWNLOAD_SESSION_COOKIE, sessionToken, {
       httpOnly: true,
-      sameSite: "strict",
+      sameSite: "lax",
       secure: process.env.NODE_ENV === "production",
       path: "/",
       maxAge: DOWNLOAD_SESSION_TTL_MS / 1000

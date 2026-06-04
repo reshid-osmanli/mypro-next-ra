@@ -23,9 +23,46 @@ const providers =
 
 export const isGoogleAuthConfigured = providers.length > 0;
 
+const useSecureCookies = process.env.NODE_ENV === "production";
+
 const authConfig = {
   trustHost: true,
   secret: authSecret,
+  cookies: {
+    pkceCodeVerifier: {
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: useSecureCookies,
+        maxAge: 60 * 15
+      }
+    },
+    sessionToken: {
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: useSecureCookies
+      }
+    },
+    callbackUrl: {
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: useSecureCookies
+      }
+    },
+    state: {
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: useSecureCookies
+      }
+    }
+  },
   session: {
     strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60

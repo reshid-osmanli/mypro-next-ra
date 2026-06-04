@@ -21,6 +21,7 @@ AUTH_GOOGLE_SECRET
 RESEND_API_KEY
 RESEND_FROM_EMAIL
 PAYPAL_ENV
+NEXT_PUBLIC_PAYPAL_ENV
 NEXT_PUBLIC_PAYPAL_CLIENT_ID
 PAYPAL_CLIENT_SECRET
 NEXT_PUBLIC_PAYPAL_CURRENCY
@@ -36,7 +37,7 @@ GOOGLE_TOKEN_ENCRYPTION_KEY
 
 - `DATABASE_URL`: Neon PostgreSQL connection string with SSL required.
 - `NEXT_PUBLIC_SITE_URL`: Vercel production URL.
-- `AUTH_URL`: the same production origin used by Auth.js, for example `https://your-vercel-domain.vercel.app`.
+- `AUTH_URL`: must exactly match your live site origin (no trailing slash), for example `https://your-vercel-domain.vercel.app`. If this differs from the real domain, Google login fails with `pkceCodeVerifier` errors.
 - `ADMIN_EMAIL`: admin email address.
 - `ADMIN_PASSWORD`: admin password.
 - `ADMIN_SESSION_SECRET`: long private session secret.
@@ -46,6 +47,7 @@ GOOGLE_TOKEN_ENCRYPTION_KEY
 - `RESEND_API_KEY`: Resend API key.
 - `RESEND_FROM_EMAIL`: sender email configured in Resend.
 - `PAYPAL_ENV`: `sandbox` while testing.
+- `NEXT_PUBLIC_PAYPAL_ENV`: `sandbox` while testing, `live` in production. Must match `PAYPAL_ENV` so the PayPal JS SDK and server API use the same environment.
 - `NEXT_PUBLIC_PAYPAL_CLIENT_ID`: PayPal public client id.
 - `PAYPAL_CLIENT_SECRET`: PayPal private secret.
 - `NEXT_PUBLIC_PAYPAL_CURRENCY`: `USD`.

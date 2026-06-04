@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
-import { capturePaypalOrder } from "@/lib/payments";
+import { capturePaypalOrder, retrievePaypalOrder } from "@/lib/payments";
 import { DOWNLOAD_SESSION_COOKIE, DOWNLOAD_SESSION_TTL_MS, createSecureToken, hashToken } from "@/lib/order-access";
 import { rejectUntrustedOrigin } from "@/lib/request-security";
 import { getRequestIp, isRateLimited } from "@/lib/rate-limit";
@@ -24,13 +24,20 @@ type PaypalCapture = {
           currency_code?: string;
           value?: string;
         };
+        custom_id?: string;
       }>;
     };
   }>;
 };
 
 function expectedMoneyValue(amount: number) {
-  return amount.toFixed(2);
+  return Number(amount).toFixed(2);
+}
+
+function amountsMatch(expected: number, captured?: string) {
+  const capturedValue = Number(captured);
+  if (!Number.isFinite(capturedValue)) return false;
+  return capturedValue.toFixed(2) === expectedMoneyValue(expected);
 }
 
 function getCompletedCapture(capture: PaypalCapture) {
@@ -42,18 +49,67 @@ function getCompletedCapture(capture: PaypalCapture) {
 function validatePaypalCapture(capture: PaypalCapture, localOrderId: string, total: number) {
   const { purchaseUnit, paymentCapture } = getCompletedCapture(capture);
   const expectedCurrency = (process.env.NEXT_PUBLIC_PAYPAL_CURRENCY ?? "USD").toUpperCase();
-  const referenceMatches = purchaseUnit?.reference_id === localOrderId && purchaseUnit?.custom_id === localOrderId;
+  const referenceMatches = !purchaseUnit?.reference_id || purchaseUnit.reference_id === localOrderId;
+  const customId = purchaseUnit?.custom_id ?? paymentCapture?.custom_id;
+  const customMatches = !customId || customId === localOrderId;
   const amount = paymentCapture?.amount;
-  const capturedValue = Number(amount?.value);
   const amountMatches =
-    amount?.currency_code?.toUpperCase() === expectedCurrency &&
-    Number.isFinite(capturedValue) &&
-    capturedValue.toFixed(2) === expectedMoneyValue(total);
+    amount?.currency_code?.toUpperCase() === expectedCurrency && amountsMatch(total, amount?.value);
 
   return {
-    ok: Boolean(paymentCapture?.id && referenceMatches && amountMatches),
+    ok: Boolean(paymentCapture?.id && referenceMatches && customMatches && amountMatches),
     captureId: paymentCapture?.id
   };
+}
+
+async function getPaypalCaptureResult(paypalOrderId: string, localOrderId: string) {
+  try {
+    return (await capturePaypalOrder(paypalOrderId, `${localOrderId}:capture`)) as PaypalCapture;
+  } catch (error) {
+    console.warn("[paypal/capture-order] Capture failed; checking whether PayPal already completed the order.", {
+      paypalOrderId,
+      localOrderId,
+      error: error instanceof Error ? error.message : String(error)
+    });
+    return (await retrievePaypalOrder(paypalOrderId)) as PaypalCapture;
+  }
+}
+
+async function issuePaidDownloadSession(localOrderId: string, captureId?: string | null) {
+  const sessionToken = createSecureToken();
+
+  const order = await prisma.order.update({
+    where: { id: localOrderId },
+    data: {
+      status: "paid",
+      ...(captureId ? { providerCaptureId: captureId } : {}),
+      paymentMethod: "paypal",
+      downloadClaimHash: null,
+      downloadClaimExpiresAt: null,
+      downloadClaimUsedAt: null,
+      downloadSessionHash: hashToken(sessionToken),
+      downloadSessionExpiresAt: new Date(Date.now() + DOWNLOAD_SESSION_TTL_MS),
+      downloadSessionUsedAt: null
+    },
+    select: { id: true, providerCaptureId: true }
+  });
+
+  const response = NextResponse.json({
+    ok: true,
+    orderId: order.id,
+    captureId: captureId ?? order.providerCaptureId,
+    claimToken: null
+  });
+
+  response.cookies.set(DOWNLOAD_SESSION_COOKIE, sessionToken, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: DOWNLOAD_SESSION_TTL_MS / 1000
+  });
+
+  return response;
 }
 
 export async function POST(req: Request) {
@@ -87,56 +143,41 @@ export async function POST(req: Request) {
   }
 
   if (localOrder.status === "paid" && localOrder.providerCaptureId) {
-    return NextResponse.json({
-      ok: true,
-      orderId: localOrder.id,
-      alreadyCaptured: true
-    });
+    return issuePaidDownloadSession(localOrder.id, localOrder.providerCaptureId);
   }
 
   if (localOrder.status !== "pending") {
     return NextResponse.json({ error: "لا يمكن إتمام الدفع لهذا الطلب" }, { status: 409 });
   }
 
-  const capture = (await capturePaypalOrder(parsed.data.orderId, `${localOrder.id}:capture`)) as PaypalCapture;
+  let capture: PaypalCapture;
+  try {
+    capture = await getPaypalCaptureResult(parsed.data.orderId, localOrder.id);
+  } catch (error) {
+    console.error("[paypal/capture-order] Unable to verify PayPal capture.", {
+      paypalOrderId: parsed.data.orderId,
+      localOrderId: localOrder.id,
+      error: error instanceof Error ? error.message : String(error)
+    });
+    return NextResponse.json({ error: "Unable to verify PayPal payment." }, { status: 502 });
+  }
+
   const captureStatus = String(capture?.status ?? "").toUpperCase();
   const validation = validatePaypalCapture(capture, localOrder.id, localOrder.total);
 
   if (captureStatus !== "COMPLETED" || !validation.ok || !validation.captureId) {
+    console.error("[paypal/capture-order] PayPal capture validation failed.", {
+      paypalOrderId: parsed.data.orderId,
+      localOrderId: localOrder.id,
+      captureStatus,
+      validation,
+      referenceId: capture.purchase_units?.[0]?.reference_id,
+      customId: capture.purchase_units?.[0]?.custom_id ?? capture.purchase_units?.[0]?.payments?.captures?.[0]?.custom_id,
+      expectedTotal: expectedMoneyValue(localOrder.total),
+      capturedAmount: capture.purchase_units?.[0]?.payments?.captures?.[0]?.amount
+    });
     return NextResponse.json({ error: "لم يتم التحقق من مبلغ PayPal أو مرجع الطلب" }, { status: 400 });
   }
 
-  const sessionToken = createSecureToken();
-
-  await prisma.order.update({
-    where: { id: localOrder.id },
-    data: {
-      status: "paid",
-      providerCaptureId: validation.captureId,
-      paymentMethod: "paypal",
-      downloadClaimHash: null,
-      downloadClaimExpiresAt: null,
-      downloadClaimUsedAt: null,
-      downloadSessionHash: hashToken(sessionToken),
-      downloadSessionExpiresAt: new Date(Date.now() + DOWNLOAD_SESSION_TTL_MS),
-      downloadSessionUsedAt: null
-    }
-  });
-
-  const response = NextResponse.json({
-    ok: true,
-    orderId: localOrder.id,
-    captureId: validation.captureId,
-    claimToken: null
-  });
-
-  response.cookies.set(DOWNLOAD_SESSION_COOKIE, sessionToken, {
-    httpOnly: true,
-    sameSite: "strict",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: DOWNLOAD_SESSION_TTL_MS / 1000
-  });
-
-  return response;
+  return issuePaidDownloadSession(localOrder.id, validation.captureId);
 }

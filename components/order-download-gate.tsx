@@ -36,6 +36,7 @@ export function OrderDownloadGate() {
       try {
         const res = await fetch("/api/order/download-package", {
           method: "POST",
+          credentials: "include",
           headers: { "Content-Type": "application/json" }
         });
 

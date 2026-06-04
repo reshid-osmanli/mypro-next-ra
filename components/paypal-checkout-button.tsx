@@ -75,6 +75,7 @@ export function PayPalCheckoutButton({ items, formRef, onCompleted, onStatus, di
           statusRef.current?.(text({ ar: "جارٍ إنشاء طلب PayPal...", en: "Creating PayPal order..." }));
           const response = await fetch("/api/paypal/create-order", {
             method: "POST",
+            credentials: "include",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload)
           });
@@ -86,6 +87,7 @@ export function PayPalCheckoutButton({ items, formRef, onCompleted, onStatus, di
           statusRef.current?.(text({ ar: "جارٍ إتمام الدفع...", en: "Completing payment..." }));
           const response = await fetch("/api/paypal/capture-order", {
             method: "POST",
+            credentials: "include",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ orderId: data.orderID })
           });

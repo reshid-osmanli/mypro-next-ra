@@ -44,6 +44,7 @@ export async function POST(req: Request) {
   const sessionEmail = session?.user?.email?.trim().toLowerCase();
   const submittedEmail = parsed.data.email.trim().toLowerCase();
   const orderEmail = sessionEmail || submittedEmail;
+  const purchaseTrackingConsent = Boolean(sessionEmail || parsed.data.purchaseTrackingConsent);
 
   if (sessionEmail && sessionEmail !== submittedEmail) {
     console.warn("[checkout] Ignoring submitted email because an authenticated Google email is present", {
@@ -90,7 +91,7 @@ export async function POST(req: Request) {
       email: orderEmail,
       phone: parsed.data.phone,
       notes: parsed.data.notes,
-      purchaseTrackingConsent: parsed.data.purchaseTrackingConsent,
+      purchaseTrackingConsent,
       total,
       paymentMethod: parsed.data.paymentMethod,
       items: {
