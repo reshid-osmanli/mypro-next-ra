@@ -4,6 +4,7 @@ import { getRequestIp, isRateLimited } from "@/lib/rate-limit";
 import { getCloudinaryConfig, uploadToCloudinary } from "@/lib/cloudinary";
 import { saveUploadToLocalStorage } from "@/lib/local-uploads";
 import { describeAllowedUploads, findUploadPolicy, hasValidUploadSignature, MAX_UPLOAD_BYTES, preferredUploadMimeType } from "@/lib/upload-policy";
+import { reportApiFailure, reportCaughtError, routeContext } from "@/lib/report-caught-error";
 
 export const runtime = "nodejs";
 
@@ -51,6 +52,7 @@ export async function POST(req: NextRequest) {
   const mimeType = preferredUploadMimeType(policy, file.name, file.type);
   const cloudinaryConfig = getCloudinaryConfig();
   if (!cloudinaryConfig && requiresPersistentStorage()) {
+    await reportApiFailure(req, "رفع الملفات على الاستضافة يحتاج ضبط Cloudinary", { statusCode: 500, area: "admin" });
     return NextResponse.json(
       { error: "رفع الملفات على الاستضافة يحتاج ضبط Cloudinary: CLOUDINARY_CLOUD_NAME و CLOUDINARY_API_KEY و CLOUDINARY_API_SECRET." },
       { status: 500 }
@@ -76,6 +78,7 @@ export async function POST(req: NextRequest) {
       });
     }
   } catch (error) {
+    await reportCaughtError(error, { ...routeContext(req, "admin"), statusCode: 500 });
     return NextResponse.json({ error: error instanceof Error ? error.message : "Upload failed" }, { status: 500 });
   }
 

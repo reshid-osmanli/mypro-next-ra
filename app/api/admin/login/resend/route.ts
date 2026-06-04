@@ -3,6 +3,7 @@ import { ADMIN_LOGIN_CHALLENGE_COOKIE, issueAdminLoginChallenge, readAdminLoginC
 import { buildAdminOtpEmail, sendSecurityEmail } from "@/lib/mailer";
 import { getRequestIp, isRateLimited } from "@/lib/rate-limit";
 import { rejectUntrustedOrigin } from "@/lib/request-security";
+import { reportCaughtError, routeContext } from "@/lib/report-caught-error";
 
 export async function POST(req: NextRequest) {
   const originError = rejectUntrustedOrigin(req);
@@ -31,6 +32,7 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     console.error("[admin/login/resend:send-code]", error);
+    await reportCaughtError(error, { ...routeContext(req, "admin"), statusCode: 500 });
     return NextResponse.json({ error: "تعذر إعادة إرسال رمز التحقق. تحقق من إعداد RESEND_API_KEY و RESEND_FROM_EMAIL." }, { status: 500 });
   }
 

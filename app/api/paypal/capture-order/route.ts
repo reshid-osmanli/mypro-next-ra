@@ -11,6 +11,7 @@ import {
 } from "@/lib/order-access";
 import { rejectUntrustedOrigin } from "@/lib/request-security";
 import { getRequestIp, isRateLimited } from "@/lib/rate-limit";
+import { reportApiFailure, reportCaughtError, routeContext } from "@/lib/report-caught-error";
 
 const schema = z.object({
   orderId: z.string().trim().min(1).max(128)
@@ -167,6 +168,7 @@ export async function POST(req: Request) {
       localOrderId: localOrder.id,
       error: error instanceof Error ? error.message : String(error)
     });
+    await reportCaughtError(error, { ...routeContext(req, "payments"), statusCode: 502 });
     return NextResponse.json({ error: "Unable to verify PayPal payment." }, { status: 502 });
   }
 

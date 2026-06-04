@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { requireAdminRequest } from "@/lib/admin-auth";
 import { isKnownPrivateUploadMimeType, isSafePrivateStoredUploadUrl } from "@/lib/upload-policy";
 import { coverImageSchema, hexColorSchema, moneyAmountSchema, normalizeOptionalStoredUrl, storedFileSizeSchema } from "@/lib/security-validation";
+import { reportCaughtError, routeContext } from "@/lib/report-caught-error";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -99,6 +100,7 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
     if (getErrorCode(error) === "P2025") {
       return NextResponse.json({ error: "المنتج غير موجود" }, { status: 404 });
     }
+    await reportCaughtError(error, { ...routeContext(req, "admin"), statusCode: 500 });
     return NextResponse.json({ error: "تعذر تحديث المنتج في قاعدة البيانات. راجع سجل الخادم لمعرفة السبب." }, { status: 500 });
   }
 }
@@ -115,6 +117,7 @@ export async function DELETE(req: NextRequest, { params }: RouteContext) {
     linkedOrders = await prisma.orderItem.count({ where: { productId: id } });
   } catch (error) {
     logProductError("delete:count-orders", error, { id });
+    await reportCaughtError(error, { ...routeContext(req, "admin"), statusCode: 503 });
     return NextResponse.json(
       { error: "تعذر الاتصال بقاعدة البيانات. تحقق من DATABASE_URL في Vercel ثم أعد النشر." },
       { status: 503 }
@@ -140,6 +143,7 @@ export async function DELETE(req: NextRequest, { params }: RouteContext) {
         if (getErrorCode(error) === "P2025") {
           return NextResponse.json({ error: "المنتج غير موجود" }, { status: 404 });
         }
+        await reportCaughtError(error, { ...routeContext(req, "admin"), statusCode: 500 });
         return NextResponse.json({ error: "تعذر تحويل المنتج إلى مسودة." }, { status: 500 });
       }
     }
@@ -168,6 +172,7 @@ export async function DELETE(req: NextRequest, { params }: RouteContext) {
         { status: 409 }
       );
     }
+    await reportCaughtError(error, { ...routeContext(req, "admin"), statusCode: 500 });
     return NextResponse.json({ error: "تعذر حذف المنتج من قاعدة البيانات. راجع سجل الخادم لمعرفة السبب." }, { status: 500 });
   }
 }

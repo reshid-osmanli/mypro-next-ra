@@ -7,6 +7,7 @@ import { rejectUntrustedOrigin } from "@/lib/request-security";
 import { getRequestIp, isRateLimited } from "@/lib/rate-limit";
 import { validateCheckoutReadiness } from "@/lib/checkout-readiness";
 import { checkoutItemsSchema } from "@/lib/security-validation";
+import { reportCaughtError, routeContext } from "@/lib/report-caught-error";
 
 const schema = z.object({
   items: checkoutItemsSchema,
@@ -111,6 +112,7 @@ export async function POST(req: Request) {
     await prisma.order.update({ where: { id: localOrder.id }, data: { providerOrderId: paypalOrder.id } });
     return NextResponse.json({ orderId: paypalOrder.id, localOrderId: localOrder.id });
   } catch (error) {
+    await reportCaughtError(error, { ...routeContext(req, "payments"), statusCode: 500 });
     await prisma.order.update({ where: { id: localOrder.id }, data: { status: "failed" } }).catch(() => null);
     return NextResponse.json({ error: error instanceof Error ? error.message : "تعذر إنشاء الطلب" }, { status: 500 });
   }

@@ -5,6 +5,7 @@ import { rejectUntrustedOrigin } from "@/lib/request-security";
 import { getRequestIp, isRateLimited } from "@/lib/rate-limit";
 import { sendSecurityEmail, buildAdminOtpEmail } from "@/lib/mailer";
 import { z } from "zod";
+import { reportCaughtError, routeContext } from "@/lib/report-caught-error";
 
 const schema = z.object({
   email: z.string().trim().email(),
@@ -59,6 +60,7 @@ export async function POST(req: Request) {
     });
   } catch (error) {
     console.error("[admin/login:send-code]", error);
+    await reportCaughtError(error, { ...routeContext(req, "admin"), statusCode: 500 });
     return NextResponse.json({ error: "تعذر إرسال رمز التحقق. تحقق من إعداد RESEND_API_KEY و RESEND_FROM_EMAIL." }, { status: 500 });
   }
 

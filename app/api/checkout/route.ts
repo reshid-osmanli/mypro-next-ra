@@ -9,6 +9,7 @@ import { getRequestIp, isRateLimited } from "@/lib/rate-limit";
 import { validateCheckoutReadiness } from "@/lib/checkout-readiness";
 import { resolveSiteUrl } from "@/lib/site-url";
 import { checkoutItemsSchema } from "@/lib/security-validation";
+import { reportApiFailure, reportCaughtError, routeContext } from "@/lib/report-caught-error";
 
 const schema = z.object({
   items: checkoutItemsSchema,
@@ -82,6 +83,7 @@ export async function POST(req: Request) {
 
   const effectiveSiteUrl = resolveSiteUrl();
   if (!effectiveSiteUrl) {
+    await reportApiFailure(req, "AUTH_URL أو NEXT_PUBLIC_SITE_URL مطلوب على Vercel", { statusCode: 500, area: "payments" });
     return NextResponse.json({ error: "AUTH_URL أو NEXT_PUBLIC_SITE_URL مطلوب على Vercel" }, { status: 500 });
   }
 
@@ -114,6 +116,7 @@ export async function POST(req: Request) {
     await prisma.order.update({ where: { id: order.id }, data: { providerOrderId: session.id } });
     return NextResponse.json({ url: session.url, orderId: order.id });
   } catch (error) {
+    await reportCaughtError(error, { ...routeContext(req, "payments"), statusCode: 500 });
     await prisma.order.update({ where: { id: order.id }, data: { status: "failed" } }).catch(() => null);
     return NextResponse.json({ error: error instanceof Error ? error.message : "تعذر إنشاء جلسة Stripe" }, { status: 500 });
   }

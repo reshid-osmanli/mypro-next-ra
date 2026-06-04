@@ -5,6 +5,7 @@ import { requireAdminRequest } from "@/lib/admin-auth";
 import { slugify } from "@/lib/utils";
 import { isKnownPrivateUploadMimeType, isSafePrivateStoredUploadUrl } from "@/lib/upload-policy";
 import { coverImageSchema, hexColorSchema, moneyAmountSchema, normalizeOptionalStoredUrl, storedFileSizeSchema } from "@/lib/security-validation";
+import { reportCaughtError, routeContext } from "@/lib/report-caught-error";
 
 const fileSchema = z.object({
   title: z.string().trim().min(1).max(120),
@@ -126,6 +127,7 @@ export async function POST(req: NextRequest) {
     if (code === "P2002") {
       return NextResponse.json({ error: "يوجد منتج بنفس الرابط المختصر. غيّر العنوان أو حاول مرة أخرى." }, { status: 409 });
     }
+    await reportCaughtError(error, { ...routeContext(req, "admin"), statusCode: 500 });
     return NextResponse.json({ error: "تعذر حفظ المنتج في قاعدة البيانات. راجع سجل الخادم لمعرفة السبب." }, { status: 500 });
   }
 }
