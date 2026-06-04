@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
 import { clearAdminLoginChallengeCookie, issueAdminLoginChallenge, setAdminLoginChallengeCookie } from "@/lib/admin-auth";
-import { verifyPassword } from "@/lib/password";
+import { findActiveAdminByEmail, verifyAdminPassword } from "@/lib/admin-credentials";
 import { rejectUntrustedOrigin } from "@/lib/request-security";
 import { getRequestIp, isRateLimited } from "@/lib/rate-limit";
 import { sendSecurityEmail, buildAdminOtpEmail } from "@/lib/mailer";
@@ -41,12 +40,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "محاولات كثيرة. حاول بعد قليل" }, { status: 429 });
   }
 
-  const admin = await prisma.adminUser.findUnique({ where: { email } });
+  const admin = await findActiveAdminByEmail(email);
   if (!admin || !admin.active) {
     return NextResponse.json({ error: "بيانات الدخول غير صحيحة" }, { status: 401 });
   }
 
-  const ok = verifyPassword(password, admin.passwordHash);
+  const ok = verifyAdminPassword(password, admin);
   if (!ok) {
     return NextResponse.json({ error: "بيانات الدخول غير صحيحة" }, { status: 401 });
   }

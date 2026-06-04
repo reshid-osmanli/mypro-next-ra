@@ -108,12 +108,47 @@ export async function DELETE(req: NextRequest, { params }: RouteContext) {
   if (authError) return authError;
 
   const { id } = await params;
+  const archiveInstead = req.nextUrl.searchParams.get("archive") === "1";
 
-  const linkedOrders = await prisma.orderItem.count({ where: { productId: id } });
+  let linkedOrders = 0;
+  try {
+    linkedOrders = await prisma.orderItem.count({ where: { productId: id } });
+  } catch (error) {
+    logProductError("delete:count-orders", error, { id });
+    return NextResponse.json(
+      { error: "تعذر الاتصال بقاعدة البيانات. تحقق من DATABASE_URL في Vercel ثم أعد النشر." },
+      { status: 503 }
+    );
+  }
+
   if (linkedOrders > 0) {
+    if (archiveInstead) {
+      try {
+        const product = await prisma.product.update({
+          where: { id },
+          data: { status: "draft", featured: false },
+          include: { files: true }
+        });
+        return NextResponse.json({
+          ok: true,
+          archived: true,
+          product,
+          message: "تم إخفاء المنتج من المتجر بتحويله إلى مسودة. سجلات الطلبات السابقة بقيت كما هي."
+        });
+      } catch (error) {
+        logProductError("delete:archive", error, { id });
+        if (getErrorCode(error) === "P2025") {
+          return NextResponse.json({ error: "المنتج غير موجود" }, { status: 404 });
+        }
+        return NextResponse.json({ error: "تعذر تحويل المنتج إلى مسودة." }, { status: 500 });
+      }
+    }
+
     return NextResponse.json(
       {
-        error: "لا يمكن حذف منتج مرتبط بطلبات سابقة. غيّر حالته إلى مسودة أو ألغِ نشره بدلاً من الحذف."
+        error: "لا يمكن حذف منتج مرتبط بطلبات سابقة. يمكنك إخفاؤه بتحويله إلى مسودة بدلاً من الحذف.",
+        suggestArchive: true,
+        linkedOrders
       },
       { status: 409 }
     );

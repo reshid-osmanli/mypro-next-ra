@@ -13,12 +13,18 @@ export const gradeCatalog = [
 ] as const;
 
 async function getDbGradeMap(): Promise<GradeCatalogItem[]> {
-  const grades = await prisma.grade.findMany({
-    orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-    include: {
-      subjects: { orderBy: [{ sortOrder: "asc" }, { name: "asc" }] }
-    }
-  });
+  let grades;
+  try {
+    grades = await prisma.grade.findMany({
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+      include: {
+        subjects: { orderBy: [{ sortOrder: "asc" }, { name: "asc" }] }
+      }
+    });
+  } catch (error) {
+    console.warn("[catalog] Database unavailable for grades", error);
+    return [];
+  }
 
   return grades.map((grade) => ({
     id: grade.id,
@@ -68,25 +74,35 @@ async function withSubjectMotionLogos<T extends { grade: string; subject: string
 }
 
 export async function getProducts(where?: { grade?: string; subject?: string; featured?: boolean }) {
-  const products = await prisma.product.findMany({
-    where: {
-      status: "published",
-      ...(where?.grade ? { grade: where.grade } : {}),
-      ...(where?.subject ? { subject: where.subject } : {}),
-      ...(typeof where?.featured === "boolean" ? { featured: where.featured } : {})
-    },
-    include: { files: true },
-    orderBy: [{ featured: "desc" }, { sortOrder: "desc" }, { createdAt: "desc" }]
-  });
-  return withSubjectMotionLogos(products);
+  try {
+    const products = await prisma.product.findMany({
+      where: {
+        status: "published",
+        ...(where?.grade ? { grade: where.grade } : {}),
+        ...(where?.subject ? { subject: where.subject } : {}),
+        ...(typeof where?.featured === "boolean" ? { featured: where.featured } : {})
+      },
+      include: { files: true },
+      orderBy: [{ featured: "desc" }, { sortOrder: "desc" }, { createdAt: "desc" }]
+    });
+    return withSubjectMotionLogos(products);
+  } catch (error) {
+    console.warn("[catalog] Database unavailable for products", error);
+    return [];
+  }
 }
 
 export async function getAllProducts() {
-  const products = await prisma.product.findMany({
-    include: { files: true },
-    orderBy: [{ featured: "desc" }, { sortOrder: "desc" }, { createdAt: "desc" }]
-  });
-  return withSubjectMotionLogos(products);
+  try {
+    const products = await prisma.product.findMany({
+      include: { files: true },
+      orderBy: [{ featured: "desc" }, { sortOrder: "desc" }, { createdAt: "desc" }]
+    });
+    return withSubjectMotionLogos(products);
+  } catch (error) {
+    console.warn("[catalog] Database unavailable for all products", error);
+    return [];
+  }
 }
 
 export async function getProductBySlug(slug: string) {
@@ -112,5 +128,10 @@ export async function getPageByGradeSubject(grade: string, subject: string) {
 }
 
 export async function getPages() {
-  return prisma.contentPage.findMany({ orderBy: { updatedAt: "desc" } });
+  try {
+    return await prisma.contentPage.findMany({ orderBy: { updatedAt: "desc" } });
+  } catch (error) {
+    console.warn("[catalog] Database unavailable for pages", error);
+    return [];
+  }
 }

@@ -1,7 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createHash, timingSafeEqual } from "crypto";
 import { z } from "zod";
-import { prisma } from "@/lib/db";
 import {
   ADMIN_LOGIN_CHALLENGE_COOKIE,
   clearAdminCookie,
@@ -9,6 +8,7 @@ import {
   readAdminLoginChallenge,
   setAdminCookie
 } from "@/lib/admin-auth";
+import { findActiveAdminByEmail } from "@/lib/admin-credentials";
 import { rejectUntrustedOrigin } from "@/lib/request-security";
 import { getRequestIp, isRateLimited } from "@/lib/rate-limit";
 
@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "رمز التحقق غير صحيح" }, { status: 401 });
   }
 
-  const admin = await prisma.adminUser.findUnique({ where: { email } });
+  const admin = await findActiveAdminByEmail(email);
   if (!admin || !admin.active) {
     return NextResponse.json({ error: "بيانات الدخول غير صحيحة" }, { status: 401 });
   }

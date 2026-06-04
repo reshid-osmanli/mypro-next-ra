@@ -35,20 +35,30 @@ function normalizeSettings(rows: { key: string; value: string }[]): SiteSettings
 }
 
 export async function getSiteSettings(): Promise<SiteSettings> {
-  const rows = await prisma.siteSetting.findMany();
-  return normalizeSettings(rows);
+  try {
+    const rows = await prisma.siteSetting.findMany();
+    return normalizeSettings(rows);
+  } catch (error) {
+    console.warn("[site-settings] Database unavailable; using defaults", error);
+    return siteSettingDefaults;
+  }
 }
 
 export async function saveSiteSettings(input: Partial<SiteSettings>) {
   const entries = Object.entries(input).filter(([, value]) => typeof value === "string");
-  await Promise.all(
-    entries.map(([key, value]) =>
-      prisma.siteSetting.upsert({
-        where: { key },
-        update: { value },
-        create: { key, value }
-      })
-    )
-  );
-  return getSiteSettings();
+  try {
+    await Promise.all(
+      entries.map(([key, value]) =>
+        prisma.siteSetting.upsert({
+          where: { key },
+          update: { value },
+          create: { key, value }
+        })
+      )
+    );
+    return getSiteSettings();
+  } catch (error) {
+    console.warn("[site-settings] Database unavailable; settings were not saved", error);
+    throw new Error("تعذر حفظ الإعدادات لأن قاعدة البيانات غير متصلة. تحقق من DATABASE_URL في Vercel ثم أعد النشر.");
+  }
 }

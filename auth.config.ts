@@ -1,6 +1,11 @@
 import type { NextAuthConfig } from "next-auth";
 import Google from "next-auth/providers/google";
 
+const siteOrigin = process.env.AUTH_URL?.replace(/\/$/, "") ?? process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "");
+if (!process.env.AUTH_URL && siteOrigin) {
+  process.env.AUTH_URL = siteOrigin;
+}
+
 const authSecret = process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET ?? process.env.ADMIN_SESSION_SECRET;
 const googleClientId = process.env.AUTH_GOOGLE_ID ?? process.env.GOOGLE_CLIENT_ID;
 const googleClientSecret = process.env.AUTH_GOOGLE_SECRET ?? process.env.GOOGLE_CLIENT_SECRET;

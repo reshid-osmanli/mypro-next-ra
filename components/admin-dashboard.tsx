@@ -258,11 +258,27 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
     try {
       const res = await fetch(`/api/admin/products/${id}`, { method: "DELETE" });
       const data = await res.json();
+      if (res.status === 409 && data.suggestArchive) {
+        const archive = confirm(
+          "هذا المنتج مرتبط بطلبات سابقة ولا يمكن حذفه نهائياً.\n\nهل تريد إخفاءه من المتجر بتحويله إلى مسودة؟ (ستبقى سجلات الطلبات كما هي)"
+        );
+        if (!archive) {
+          showMessage(data.error || "لا يمكن حذف المنتج", "error");
+          return;
+        }
+        const archiveRes = await fetch(`/api/admin/products/${id}?archive=1`, { method: "DELETE" });
+        const archiveData = await archiveRes.json();
+        if (!archiveRes.ok) throw new Error(archiveData.error || "تعذر تحويل المنتج إلى مسودة");
+        if (editingProductId === id) resetProductForm();
+        showMessage(archiveData.message || "تم إخفاء المنتج (مسودة)", "success");
+        setTimeout(() => router.refresh(), 400);
+        return;
+      }
       if (!res.ok) throw new Error(data.error || "تعذر حذف المنتج");
       if (editingProductId === id) resetProductForm();
-      setMessage("تم حذف المنتج");
+      showMessage("تم حذف المنتج", "success");
       setTimeout(() => router.refresh(), 400);
-    } catch (error) { setMessage(error instanceof Error ? error.message : "حدث خطأ غير متوقع"); }
+    } catch (error) { showMessage(error instanceof Error ? error.message : "حدث خطأ غير متوقع", "error"); }
     finally { setBusy(false); }
   }
 

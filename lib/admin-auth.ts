@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { cookies } from "next/headers";
 import { createHash, createHmac, randomInt, timingSafeEqual } from "crypto";
 import { auth } from "@/auth";
-import { prisma } from "@/lib/db";
+import { findActiveAdminByEmail } from "@/lib/admin-credentials";
 import { rejectUntrustedOrigin } from "@/lib/request-security";
 
 export const ADMIN_COOKIE_NAME = "kutubi-admin";
@@ -209,11 +209,7 @@ export async function isAdminEmail(email?: string | null) {
 
   if (configuredAdminEmails().has(normalizedEmail)) return true;
 
-  const admin = await prisma.adminUser.findUnique({
-    where: { email: normalizedEmail },
-    select: { active: true }
-  });
-
+  const admin = await findActiveAdminByEmail(normalizedEmail);
   return Boolean(admin?.active);
 }
 
