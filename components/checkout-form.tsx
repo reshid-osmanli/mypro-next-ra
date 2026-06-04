@@ -97,6 +97,14 @@ export function CheckoutForm() {
           id="paypal-js-sdk"
           strategy="afterInteractive"
           src={paypalSdkScriptUrl(paypalClientId, process.env.NEXT_PUBLIC_PAYPAL_CURRENCY ?? "USD")}
+          onError={() => {
+            setMessage(
+              text({
+                ar: "تعذر تحميل سكربت PayPal. تحقق من إعدادات البيئة على Vercel وأعد النشر.",
+                en: "Unable to load the PayPal script. Check your Vercel environment settings and redeploy."
+              })
+            );
+          }}
         />
       ) : null}
 

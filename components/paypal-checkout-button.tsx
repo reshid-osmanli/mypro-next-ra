@@ -36,6 +36,7 @@ export function PayPalCheckoutButton({ items, formRef, onCompleted, onStatus, di
   const completedRef = useRef<Props["onCompleted"]>(undefined);
   const statusRef = useRef<Props["onStatus"]>(undefined);
   const [ready, setReady] = useState(false);
+  const [loadError, setLoadError] = useState("");
 
   useEffect(() => {
     completedRef.current = onCompleted;
@@ -111,11 +112,26 @@ export function PayPalCheckoutButton({ items, formRef, onCompleted, onStatus, di
       }
     };
 
+    const startedAt = Date.now();
     const timer = window.setInterval(() => {
       if (window.paypal && formRef.current && containerRef.current) {
+        setLoadError("");
         setReady(true);
         void render();
         window.clearInterval(timer);
+        return;
+      }
+
+      if (Date.now() - startedAt > 15000) {
+        window.clearInterval(timer);
+        if (!cancelled) {
+          setLoadError(
+            text({
+              ar: "تعذر تحميل PayPal. تحقق من NEXT_PUBLIC_PAYPAL_CLIENT_ID و PAYPAL_ENV على Vercel، ثم أعد النشر.",
+              en: "Unable to load PayPal. Check NEXT_PUBLIC_PAYPAL_CLIENT_ID and PAYPAL_ENV on Vercel, then redeploy."
+            })
+          );
+        }
       }
     }, 250);
 
@@ -131,7 +147,8 @@ export function PayPalCheckoutButton({ items, formRef, onCompleted, onStatus, di
 
   return (
     <div className="space-y-3">
-      {!ready ? <div className="rounded-lg border border-qatar-100 bg-white p-5 text-sm text-zinc-500">{text({ ar: "جارٍ تحميل أزرار PayPal...", en: "Loading PayPal buttons..." })}</div> : null}
+      {loadError ? <div className="rounded-lg border border-rose-200 bg-rose-50 p-5 text-sm text-rose-700">{loadError}</div> : null}
+      {!ready && !loadError ? <div className="rounded-lg border border-qatar-100 bg-white p-5 text-sm text-zinc-500">{text({ ar: "جارٍ تحميل أزرار PayPal...", en: "Loading PayPal buttons..." })}</div> : null}
       <div ref={containerRef} className="min-h-[60px]" />
     </div>
   );
