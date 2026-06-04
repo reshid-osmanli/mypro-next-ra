@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { resolveSiteOrigin } from "@/lib/site-url";
 
 function sameOrigin(urlA: string, urlB: string) {
   try {
@@ -17,8 +18,8 @@ export function isTrustedOrigin(req: Request) {
   const referer = req.headers.get("referer");
   const fetchSite = req.headers.get("sec-fetch-site");
   const requestUrl = req.url;
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
-  const configuredOrigin = siteUrl ? new URL(siteUrl).origin : null;
+  const configuredOrigin = resolveSiteOrigin();
+  const requestHost = (req.headers.get("x-forwarded-host") || req.headers.get("host") || "").split(",")[0]?.trim();
 
   if (fetchSite && !["same-origin", "same-site"].includes(fetchSite)) {
     return false;
@@ -28,9 +29,19 @@ export function isTrustedOrigin(req: Request) {
     return true;
   }
 
+  function matchesRequestHost(value: string) {
+    if (!requestHost) return false;
+    try {
+      return new URL(value).host === requestHost;
+    } catch {
+      return false;
+    }
+  }
+
   if (origin) {
     if (sameOrigin(origin, requestUrl)) return true;
     if (configuredOrigin && sameOrigin(origin, configuredOrigin)) return true;
+    if (matchesRequestHost(origin)) return true;
     if (isLocalOrigin(origin) && isLocalOrigin(new URL(requestUrl).origin)) return true;
     return false;
   }
@@ -38,6 +49,7 @@ export function isTrustedOrigin(req: Request) {
   if (referer) {
     if (sameOrigin(referer, requestUrl)) return true;
     if (configuredOrigin && sameOrigin(referer, configuredOrigin)) return true;
+    if (matchesRequestHost(referer)) return true;
     if (isLocalOrigin(referer) && isLocalOrigin(new URL(requestUrl).origin)) return true;
     return false;
   }

@@ -1,5 +1,6 @@
 import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes, randomUUID, timingSafeEqual } from "crypto";
 import { attachmentHeader } from "./stored-files";
+import { resolveSiteUrl } from "./site-url";
 
 type GoogleConfig = {
   clientId: string;
@@ -45,7 +46,7 @@ function safeEqual(a: string, b: string) {
 export function getGoogleDriveConfig() {
   const clientId = process.env.GOOGLE_CLIENT_ID?.trim();
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET?.trim();
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  const siteUrl = resolveSiteUrl();
   if (!clientId || !clientSecret || !siteUrl) return null;
 
   return {

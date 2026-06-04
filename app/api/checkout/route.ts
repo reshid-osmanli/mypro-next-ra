@@ -6,6 +6,8 @@ import { createStripeSession } from "@/lib/payments";
 import type { CheckoutPayload } from "@/lib/types";
 import { rejectUntrustedOrigin } from "@/lib/request-security";
 import { getRequestIp, isRateLimited } from "@/lib/rate-limit";
+import { validateCheckoutReadiness } from "@/lib/checkout-readiness";
+import { resolveSiteUrl } from "@/lib/site-url";
 import { checkoutItemsSchema } from "@/lib/security-validation";
 
 const schema = z.object({
@@ -54,14 +56,15 @@ export async function POST(req: Request) {
   }
 
   const productIds = [...new Set(parsed.data.items.map((item) => item.id))];
+  const readiness = await validateCheckoutReadiness(productIds);
+  if (!readiness.ok) {
+    return NextResponse.json({ error: readiness.error }, { status: 400 });
+  }
+
   const products = await prisma.product.findMany({
     where: { id: { in: productIds }, status: "published" },
     select: { id: true, title: true, price: true }
   });
-
-  if (products.length !== productIds.length) {
-    return NextResponse.json({ error: "بعض المنتجات غير متاحة أو لم تعد منشورة" }, { status: 400 });
-  }
 
   const productMap = new Map(products.map((product) => [product.id, product]));
   const normalizedItems = parsed.data.items.map((item) => {
@@ -77,13 +80,10 @@ export async function POST(req: Request) {
 
   const total = normalizedItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim();
-  if (!siteUrl) {
-    if (process.env.NODE_ENV === "production") {
-      return NextResponse.json({ error: "NEXT_PUBLIC_SITE_URL is required" }, { status: 500 });
-    }
+  const effectiveSiteUrl = resolveSiteUrl();
+  if (!effectiveSiteUrl) {
+    return NextResponse.json({ error: "AUTH_URL أو NEXT_PUBLIC_SITE_URL مطلوب على Vercel" }, { status: 500 });
   }
-  const effectiveSiteUrl = siteUrl || "http://localhost:3000";
 
   const order = await prisma.order.create({
     data: {

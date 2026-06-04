@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { createPaypalOrder } from "@/lib/payments";
 import { rejectUntrustedOrigin } from "@/lib/request-security";
 import { getRequestIp, isRateLimited } from "@/lib/rate-limit";
+import { validateCheckoutReadiness } from "@/lib/checkout-readiness";
 import { checkoutItemsSchema } from "@/lib/security-validation";
 
 const schema = z.object({
@@ -51,14 +52,15 @@ export async function POST(req: Request) {
   }
 
   const productIds = [...new Set(parsed.data.items.map((item) => item.id))];
+  const readiness = await validateCheckoutReadiness(productIds);
+  if (!readiness.ok) {
+    return NextResponse.json({ error: readiness.error }, { status: 400 });
+  }
+
   const products = await prisma.product.findMany({
     where: { id: { in: productIds }, status: "published" },
     select: { id: true, title: true, price: true }
   });
-
-  if (products.length !== productIds.length) {
-    return NextResponse.json({ error: "بعض المنتجات غير متاحة أو لم تعد منشورة" }, { status: 400 });
-  }
 
   const productMap = new Map(products.map((product) => [product.id, product]));
   const normalizedItems = parsed.data.items.map((item) => {

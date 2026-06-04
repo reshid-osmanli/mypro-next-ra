@@ -2,7 +2,13 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { capturePaypalOrder, retrievePaypalOrder } from "@/lib/payments";
-import { DOWNLOAD_SESSION_COOKIE, DOWNLOAD_SESSION_TTL_MS, createSecureToken, hashToken } from "@/lib/order-access";
+import {
+  CLAIM_TOKEN_TTL_MS,
+  DOWNLOAD_SESSION_COOKIE,
+  DOWNLOAD_SESSION_TTL_MS,
+  createSecureToken,
+  hashToken
+} from "@/lib/order-access";
 import { rejectUntrustedOrigin } from "@/lib/request-security";
 import { getRequestIp, isRateLimited } from "@/lib/rate-limit";
 
@@ -77,6 +83,8 @@ async function getPaypalCaptureResult(paypalOrderId: string, localOrderId: strin
 
 async function issuePaidDownloadSession(localOrderId: string, captureId?: string | null) {
   const sessionToken = createSecureToken();
+  const claimToken = createSecureToken();
+  const claimExpiresAt = new Date(Date.now() + CLAIM_TOKEN_TTL_MS);
 
   const order = await prisma.order.update({
     where: { id: localOrderId },
@@ -84,8 +92,8 @@ async function issuePaidDownloadSession(localOrderId: string, captureId?: string
       status: "paid",
       ...(captureId ? { providerCaptureId: captureId } : {}),
       paymentMethod: "paypal",
-      downloadClaimHash: null,
-      downloadClaimExpiresAt: null,
+      downloadClaimHash: hashToken(claimToken),
+      downloadClaimExpiresAt: claimExpiresAt,
       downloadClaimUsedAt: null,
       downloadSessionHash: hashToken(sessionToken),
       downloadSessionExpiresAt: new Date(Date.now() + DOWNLOAD_SESSION_TTL_MS),
@@ -98,7 +106,7 @@ async function issuePaidDownloadSession(localOrderId: string, captureId?: string
     ok: true,
     orderId: order.id,
     captureId: captureId ?? order.providerCaptureId,
-    claimToken: null
+    claimToken
   });
 
   response.cookies.set(DOWNLOAD_SESSION_COOKIE, sessionToken, {

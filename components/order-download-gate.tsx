@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Download, Loader2, ShieldCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useSitePreferences } from "./site-preferences";
@@ -24,12 +24,16 @@ export function OrderDownloadGate() {
   const router = useRouter();
   const { text } = useSitePreferences();
   const { clearCart } = useCart();
+  const startedRef = useRef(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [completed, setCompleted] = useState(false);
   const [downloadName, setDownloadName] = useState("");
 
   useEffect(() => {
+    if (startedRef.current) return;
+    startedRef.current = true;
+
     let cancelled = false;
 
     const run = async () => {

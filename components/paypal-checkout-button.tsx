@@ -13,7 +13,7 @@ declare global {
 type Props = {
   items: CartItem[];
   formRef: RefObject<HTMLFormElement | null>;
-  onCompleted?: (result: { orderId: string }) => void;
+  onCompleted?: (result: { orderId: string; claimToken?: string | null }) => void;
   onStatus?: (message: string) => void;
   disabled?: boolean;
 };
@@ -93,7 +93,10 @@ export function PayPalCheckoutButton({ items, formRef, onCompleted, onStatus, di
           });
           const result = await response.json().catch(() => ({}));
           if (!response.ok) throw new Error(result?.error || text({ ar: "تعذر إتمام عملية الدفع", en: "Unable to complete payment" }));
-          completedRef.current?.({ orderId: result.orderId as string });
+          completedRef.current?.({
+            orderId: result.orderId as string,
+            claimToken: typeof result.claimToken === "string" ? result.claimToken : null
+          });
         },
         onCancel: () => {
           statusRef.current?.(text({ ar: "تم إلغاء عملية الدفع", en: "Payment was cancelled" }));

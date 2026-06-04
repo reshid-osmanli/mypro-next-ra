@@ -201,8 +201,12 @@ export function CheckoutForm() {
               formRef={formRef}
               disabled={!items.length}
               onStatus={setMessage}
-              onCompleted={({ orderId }) => {
+              onCompleted={({ orderId, claimToken }) => {
                 clearCart();
+                if (claimToken) {
+                  window.location.assign(`/api/order/redeem?claim=${encodeURIComponent(claimToken)}`);
+                  return;
+                }
                 window.location.assign(`/thank-you?order=${encodeURIComponent(orderId)}`);
               }}
             />
