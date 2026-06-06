@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { reportReactError } from "@/components/telegram-error-reporter";
+
 
 export default function Error({
   error,
@@ -10,9 +10,6 @@ export default function Error({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
-  useEffect(() => {
-    void reportReactError(error, "app/error");
-  }, [error]);
 
   return (
     <main className="mx-auto flex min-h-[50vh] max-w-lg flex-col items-center justify-center gap-4 px-6 text-center">

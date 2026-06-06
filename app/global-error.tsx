@@ -2,7 +2,7 @@
 
 import "./globals.css";
 import { useEffect } from "react";
-import { reportReactError } from "@/components/telegram-error-reporter";
+
 
 export default function GlobalError({
   error,
@@ -11,9 +11,6 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
-  useEffect(() => {
-    void reportReactError(error, "app/global-error");
-  }, [error]);
 
   return (
     <html lang="ar" dir="rtl">

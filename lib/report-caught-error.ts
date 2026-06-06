@@ -1,5 +1,3 @@
-import { sendTelegramAlert } from "@/lib/telegram-alerts";
-
 export type AppArea = "storefront" | "admin" | "payments" | "orders" | "purchases" | "auth" | "system";
 
 export type ErrorReportContext = {
@@ -36,11 +34,9 @@ function prefixArea(area: AppArea | undefined, message: string) {
 
 export async function reportCaughtError(error: unknown, context: ErrorReportContext) {
   const message = error instanceof Error ? error.message : String(error);
-  await sendTelegramAlert({
-    source: "server",
-    level: context.level ?? "error",
-    message: prefixArea(context.area, message),
-    stack: error instanceof Error ? error.stack : undefined,
+  // Telegram alerts removed: fallback to logging for server-side error reports
+  console.error("[reportCaughtError]", prefixArea(context.area, message), {
+    stack: error instanceof Error ? (error as Error).stack : undefined,
     route: context.route,
     method: context.method,
     statusCode: context.statusCode,
@@ -55,10 +51,7 @@ export async function reportApiFailure(req: Request, publicMessage: string, opti
     return;
   }
 
-  await sendTelegramAlert({
-    source: "server",
-    level: options?.level ?? (options?.statusCode && options.statusCode < 500 ? "warn" : "error"),
-    message: prefixArea(ctx.area, publicMessage),
+  console.error("[reportApiFailure]", prefixArea(ctx.area, publicMessage), {
     route: ctx.route,
     method: ctx.method,
     statusCode: options?.statusCode ?? 500

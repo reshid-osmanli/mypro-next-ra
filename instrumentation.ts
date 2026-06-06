@@ -1,4 +1,3 @@
-import { sendTelegramAlert } from "@/lib/telegram-alerts";
 import { inferAreaFromRoute } from "@/lib/report-caught-error";
 
 function reasonMessage(reason: unknown) {
@@ -16,25 +15,8 @@ function reasonStack(reason: unknown) {
 }
 
 export async function register() {
-  if (typeof process === "undefined") return;
-
-  process.on("unhandledRejection", (reason) => {
-    void sendTelegramAlert({
-      source: "process",
-      message: reasonMessage(reason),
-      stack: reasonStack(reason),
-      extra: { kind: "unhandledRejection" }
-    });
-  });
-
-  process.on("uncaughtException", (error) => {
-    void sendTelegramAlert({
-      source: "process",
-      message: error.message,
-      stack: error.stack,
-      extra: { kind: "uncaughtException" }
-    });
-  });
+  // Telegram alerting removed. Keep registration API for future integrations.
+  return;
 }
 
 export async function onRequestError(
@@ -55,18 +37,13 @@ export async function onRequestError(
   const route = context.routePath || request.path;
   const area = inferAreaFromRoute(route);
 
-  await sendTelegramAlert({
-    source: "server",
-    message: area ? `[${area}] ${error.message || "Server request error"}` : error.message || "Server request error",
-    stack: error.stack,
-    digest: error.digest,
+  // Log server errors instead of sending Telegram alerts.
+  console.error(`[${area ?? "unknown"}] Server request error:`, error, {
     route,
     method: request.method,
     userAgent,
-    extra: {
-      routerKind: context.routerKind,
-      routeType: context.routeType,
-      path: request.path
-    }
+    routerKind: context.routerKind,
+    routeType: context.routeType,
+    path: request.path
   });
 }

@@ -4,7 +4,7 @@ import { CartProvider } from "@/components/cart-provider";
 import { SiteShell } from "@/components/site-shell";
 import { SitePreferenceProvider } from "@/components/site-preferences";
 import { AuthSessionProvider } from "@/components/auth-session-provider";
-import { TelegramErrorReporter } from "@/components/telegram-error-reporter";
+
 import { getSiteSettings } from "@/lib/site-settings";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -29,7 +29,6 @@ export default async function RootLayout({
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning>
       <body className="min-h-screen antialiased">
-        <TelegramErrorReporter />
         <SitePreferenceProvider>
           <AuthSessionProvider>
             <CartProvider>
