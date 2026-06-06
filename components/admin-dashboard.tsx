@@ -187,7 +187,7 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
 
   const [productForm, setProductForm] = useState<ProductFormState>(productDefaults);
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
-  const [uploadedFiles, setUploadedFiles] = useState<{ title: string; url: string; mimeType: string; size: number }[]>([]);
+  const [uploadedFiles, setUploadedFiles] = useState<Array<{ id?: string; title: string; url: string; mimeType: string; size: number }>>([]);
 
   const [pageForm, setPageForm] = useState<PageFormState>(pageDefaults);
   const [editingPageId, setEditingPageId] = useState<string | null>(null);
@@ -236,12 +236,17 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
       showMessage("املأ العنوان والملخص والوصف قبل الحفظ", "error");
       return;
     }
+    if (!uploadedFiles.length) {
+      showMessage("أضف ملفًا رقميًا واحدًا على الأقل للمنتج قبل الحفظ", "error");
+      return;
+    }
     setBusy(true); setProductSaving(true); clearMessage();
     try {
+      const filesToCreate = uploadedFiles.filter((f) => !f.id).map((file) => ({ title: file.title, url: file.url, mimeType: file.mimeType, size: file.size }));
       const res = await fetch(editingProductId ? `/api/admin/products/${editingProductId}` : "/api/admin/products", {
         method: editingProductId ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...productForm, files: uploadedFiles })
+        body: JSON.stringify({ ...productForm, files: filesToCreate })
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || "تعذر حفظ المنتج");
@@ -285,7 +290,7 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
   function startEditProduct(product: Product) {
     setEditingProductId(product.id);
     setProductForm({ title: product.title, excerpt: product.excerpt, description: product.description, price: product.price, compareAt: product.compareAt ?? 0, badge: product.badge, grade: product.grade, subject: product.subject, category: product.category, format: product.format, pages: product.pages, level: product.level, featured: product.featured, status: product.status, accentA: product.accentA, accentB: product.accentB, coverImage: product.coverImage ?? "", sortOrder: product.sortOrder ?? 0 });
-    setUploadedFiles([]);
+    setUploadedFiles(product.files?.map((f) => ({ id: f.id, title: f.title, url: f.url, mimeType: f.mimeType, size: f.size })) ?? []);
     setTab("products");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -448,6 +453,19 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
       setBusy(false);
     }
   }
+
+  async function deleteProductFile(fileId: string) {
+    if (!confirm("هل تريد حذف هذا الملف من قاعدة البيانات؟")) return;
+    setBusy(true); setMessage("");
+    try {
+      const res = await fetch(`/api/admin/product-files/${fileId}`, { method: "DELETE" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "تعذر حذف الملف");
+      setUploadedFiles((current) => current.filter((f) => f.id !== fileId));
+      showMessage("تم حذف الملف", "success");
+    } catch (error) { showMessage(error instanceof Error ? error.message : "حدث خطأ أثناء حذف الملف", "error"); }
+    finally { setBusy(false); }
+  }
   async function uploadCoverImage(file: File | null) {
     if (!file) return;
     if (!isAllowedImageFile(file, false)) {
@@ -600,6 +618,7 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
               <label className="space-y-2 sm:col-span-2"><span className="text-sm font-semibold text-zinc-700">الوصف التفصيلي</span><textarea className="textarea" value={productForm.description} onChange={(e) => setProductForm((c) => ({ ...c, description: e.target.value }))} /></label>
               <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">الترتيب</span><input className="input" type="number" value={productForm.sortOrder} onChange={(e) => setProductForm((c) => ({ ...c, sortOrder: Number(e.target.value) }))} /></label>
               <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">الحالة</span><select className="input" value={productForm.status} onChange={(e) => setProductForm((c) => ({ ...c, status: e.target.value }))}><option value="published">منشور</option><option value="draft">مسودة</option></select></label>
+              <label className="inline-flex items-center gap-3"><input type="checkbox" checked={productForm.featured} onChange={(e) => setProductForm((c) => ({ ...c, featured: e.target.checked }))} /> <span className="text-sm font-semibold text-zinc-700">عرض في الصفحة الرئيسية</span></label>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">لون أول</span><input className="input" value={productForm.accentA} onChange={(e) => setProductForm((c) => ({ ...c, accentA: e.target.value }))} /></label>
@@ -631,7 +650,18 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
             </div>
             <div className="rounded-[1.5rem] border border-dashed border-qatar-200 bg-qatar-50/60 p-4 text-sm text-zinc-700">
               <div className="flex items-center justify-between gap-3"><span>الملفات المرفوعة مؤقتًا</span><span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-qatar-800">{uploadedFiles.length}</span></div>
-              <div className="mt-3 space-y-2">{uploadedFiles.map((file) => <div key={file.url} className="flex items-center justify-between gap-3 rounded-2xl bg-white px-3 py-2"><span className="truncate">{file.title}</span><span className="text-xs text-zinc-500">{formatBytes(file.size)}</span></div>)}</div>
+              <div className="mt-3 space-y-2">{uploadedFiles.map((file) => (
+                  <div key={file.url} className="flex items-center justify-between gap-3 rounded-2xl bg-white px-3 py-2">
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold text-zinc-900">{file.title}</p>
+                      <p className="text-xs text-zinc-500">{file.url}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-zinc-500">{formatBytes(file.size)}</span>
+                      {file.id ? <button type="button" onClick={() => deleteProductFile(file.id!)} className="chip border-rose-200 text-rose-700 hover:bg-rose-50"><Trash2 size={14} />حذف</button> : null}
+                    </div>
+                  </div>
+                ))}</div>
             </div>
           </div>
           <div className="space-y-6">

@@ -71,6 +71,21 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
   const data = parsed.data;
   const { files, compareAt, coverImage, imageUrl, ...rest } = data;
 
+  // Ensure a product cannot be published without at least one attached file
+  if ((rest.status === "published" || data.status === "published")) {
+    try {
+      const existing = await prisma.product.findUnique({ where: { id }, include: { files: true } });
+      const existingFiles = existing?.files?.length ?? 0;
+      const newFiles = files?.length ?? 0;
+      if (existingFiles + newFiles === 0) {
+        return NextResponse.json({ error: "منتج منشور يجب أن يتضمن ملفًا رقميًا واحدًا على الأقل." }, { status: 400 });
+      }
+    } catch (error) {
+      logProductError("update:check-files", error, { id });
+      return NextResponse.json({ error: "تعذر التحقق من ملفات المنتج" }, { status: 500 });
+    }
+  }
+
   try {
     const product = await prisma.product.update({
       where: { id },

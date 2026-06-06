@@ -45,7 +45,12 @@ export async function getSiteSettings(): Promise<SiteSettings> {
 }
 
 export async function saveSiteSettings(input: Partial<SiteSettings>) {
-  const entries = Object.entries(input).filter(([, value]) => typeof value === "string");
+  // Only persist known keys and coerce values to strings to avoid schema issues
+  const allowedKeys = new Set(Object.keys(siteSettingDefaults));
+  const entries = Object.entries(input)
+    .filter(([key]) => allowedKeys.has(key))
+    .map(([key, value]) => [key, String(value ?? "")] as [string, string]);
+
   try {
     await Promise.all(
       entries.map(([key, value]) =>

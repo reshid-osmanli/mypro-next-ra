@@ -35,7 +35,7 @@ const createSchema = z.object({
   imageUrl: coverImageSchema,
   slug: z.string().trim().max(150).optional(),
   sortOrder: z.coerce.number().int().min(0).optional(),
-  files: z.array(fileSchema).default([])
+  files: z.array(fileSchema).min(1, "يرجى إرفاق ملف رقمي واحد على الأقل بالمنتج")
 });
 
 function getErrorCode(error: unknown) {
