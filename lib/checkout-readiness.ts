@@ -26,7 +26,7 @@ async function verifyFileReachable(file: ProductFile) {
   if (normalizedUsesEphemeralDisk(file.url) && process.env.VERCEL) {
     return {
       ok: false as const,
-      reason: `ملف "${file.title}" على تخزين محلي غير متاح على Vercel. ارفعه إلى Cloudinary من لوحة الإدارة.`
+      reason: `ملف "${file.title}" مخزن محليًا (/private-uploads/) وغير متاح على Vercel. ارفع الملف إلى Cloudinary من لوحة الإدارة أو أضف إعدادات CLOUDINARY_CLOUD_NAME و CLOUDINARY_API_KEY و CLOUDINARY_API_SECRET في إعدادات Vercel.`
     };
   }
 
@@ -37,7 +37,10 @@ async function verifyFileReachable(file: ProductFile) {
     }
     return { ok: true as const };
   } catch {
-    return { ok: false as const, reason: `تعذر الوصول إلى ملف "${file.title}" قبل الدفع` };
+    return {
+      ok: false as const,
+      reason: `تعذر الوصول إلى ملف "${file.title}" قبل الدفع — قد لا يكون الملف موجودًا في Cloudinary أو أن عنوان URL غير صالح. تأكد من رفع الملف إلى Cloudinary وأن المتغيرات CLOUDINARY_CLOUD_NAME و CLOUDINARY_API_KEY و CLOUDINARY_API_SECRET مضبوطة على Vercel.`
+    };
   }
 }
 
