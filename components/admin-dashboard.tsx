@@ -178,7 +178,7 @@ const tabs = [
   { id: "uploads", label: "رفع الملفات", icon: UploadCloud },
   { id: "diagnose", label: "تشخيص الملفات", icon: HardDrive },
   { id: "pricing", label: "التسعير السريع", icon: BadgeDollarSign },
-  { id: "vouchers", label: "القسائن", icon: Ticket },
+  { id: "vouchers", label: "القسائم", icon: Ticket },
   { id: "settings", label: "الإعدادات", icon: Settings2 }
   , { id: "orders", label: "المشتريات", icon: BarChart3 }
 ] as const;
@@ -366,7 +366,6 @@ function DiagnoseFilesTab() {
 
 function VouchersTab() {
   const { text } = useSitePreferences();
-  const [mode, setMode] = useState<"vouchers" | "deposit">("vouchers");
   const [vouchers, setVouchers] = useState<Array<{
     id: string;
     code: string;
@@ -389,7 +388,6 @@ function VouchersTab() {
   const [selectedEmails, setSelectedEmails] = useState<Set<string>>(new Set());
   const [depositAmount, setDepositAmount] = useState("");
   const [depositDescription, setDepositDescription] = useState("");
-  const [depositExpiresAt, setDepositExpiresAt] = useState("");
 
   const filteredCustomers = customers.filter((c) =>
     c.email.toLowerCase().includes(searchQuery.toLowerCase())
@@ -401,7 +399,7 @@ function VouchersTab() {
     try {
       const res = await fetch("/api/admin/vouchers");
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "فشل تحميل القسائن");
+      if (!res.ok) throw new Error(data.error || "فشل تحميل القسائم");
       setVouchers(data.vouchers || []);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "حدث خطأ");
@@ -529,8 +527,7 @@ function VouchersTab() {
         body: JSON.stringify({
           emails: Array.from(selectedEmails),
           amount: Number(depositAmount),
-          description: depositDescription,
-          expiresAt: depositExpiresAt || undefined
+          description: depositDescription
         })
       });
       const data = await res.json();
@@ -540,7 +537,6 @@ function VouchersTab() {
       setSelectedEmails(new Set());
       setDepositAmount("");
       setDepositDescription("");
-      setDepositExpiresAt("");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "حدث خطأ");
       setMessageKind("error");
@@ -550,9 +546,9 @@ function VouchersTab() {
   }
 
   useEffect(() => {
-    if (mode === "vouchers") loadVouchers();
-    else loadCustomers();
-  }, [mode]);
+    loadVouchers();
+    loadCustomers();
+  }, []);
 
   const messageClassName =
     messageKind === "error"
@@ -568,182 +564,59 @@ function VouchersTab() {
           <div>
             <div className="inline-flex items-center gap-2 rounded-full bg-qatar-50 px-4 py-2 text-xs font-black uppercase tracking-[0.22em] text-qatar-800">
               <Ticket size={16} />
-              القسائن والمحفظة
+              القسائم والمحفظة
             </div>
             <h3 className="mt-3 text-2xl font-black text-zinc-950">
-              {mode === "vouchers"
-                ? text({ ar: "إنشاء قسيمة هدايا", en: "Create Gift Voucher" })
-                : text({ ar: "إيداع للمحفظة", en: "Deposit to Wallets" })}
+              {text({ ar: "القسائم والإيداع", en: "Vouchers & Wallet Credit" })}
             </h3>
             <p className="mt-1 text-sm text-zinc-500">
-              {mode === "vouchers"
-                ? text({ ar: "أنشئ قسائن لتقديم خصومات للعملاء.", en: "Create vouchers to give discounts to customers." })
-                : text({ ar: "أضف رصيدًا لمحافظ العملاء المحددين.", en: "Add credit to selected customer wallets." })}
+              {text({ ar: "أنشئ قسائم هدايا أو أضف رصيدًا للمحفظة لعملاء محددين.", en: "Create gift vouchers or add credit to selected customer wallets." })}
             </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setMode("vouchers")}
-              className={`chip text-xs ${mode === "vouchers" ? "bg-qatar-700 text-white" : ""}`}
-            >
-              {text({ ar: "إنشاء قسائن", en: "Create Vouchers" })}
-            </button>
-            <button
-              type="button"
-              onClick={() => setMode("deposit")}
-              className={`chip text-xs ${mode === "deposit" ? "bg-qatar-700 text-white" : ""}`}
-            >
-              {text({ ar: "إيداع للمحفظة", en: "Deposit to Users" })}
-            </button>
           </div>
         </div>
 
-        {mode === "vouchers" ? (
-          <form onSubmit={createVoucher} className="mt-4 grid gap-4 sm:grid-cols-4">
-            <label className="block space-y-2">
-              <span className="text-sm font-semibold text-zinc-700">{text({ ar: "القيمة بالسنةة", en: "Amount (USD)" })}</span>
-              <input type="number" className="input" value={amount} onChange={(e) => setAmount(e.target.value)} min="1" required />
-            </label>
-            <label className="block space-y-2">
-              <span className="text-sm font-semibold text-zinc-700">{text({ ar: "عدد الاستخدامات", en: "Max uses" })}</span>
-              <input type="number" className="input" value={maxUses} onChange={(e) => setMaxUses(e.target.value)} min="1" />
-            </label>
-            <label className="block space-y-2">
-              <span className="text-sm font-semibold text-zinc-700">{text({ ar: "تاريخ الانتهاء", en: "Expires at" })}</span>
-              <input type="date" className="input" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)} />
-            </label>
-            <button type="submit" disabled={loading} className="btn-primary self-end disabled:opacity-60">
-              {loading ? <Loader2 size={16} className="animate-spin" /> : <Ticket size={16} />}
-              {text({ ar: "إنشاء", en: "Create" })}
-            </button>
-          </form>
-        ) : (
-          <form onSubmit={creditWallets} className="mt-4 grid gap-4 sm:grid-cols-3">
-            <label className="block space-y-2 sm:col-span-3">
-              <span className="text-sm font-semibold text-zinc-700">{text({ ar: "بحث عن العملاء", en: "Search customers" })}</span>
-              <input
-                type="text"
-                className="input"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={text({ ar: "اكتب البريد الإلكتروني...", en: "Type email..." })}
-              />
-            </label>
-            <div className="sm:col-span-3 max-h-60 overflow-y-auto border border-qatar-100 rounded-lg p-2">
-              {filteredCustomers.length === 0 && !loading ? (
-                <p className="py-4 text-center text-zinc-500">لا يوجد عملاء.</p>
-              ) : (
-                filteredCustomers.map((customer) => (
-                  <label key={customer.email} className="flex items-center gap-3 py-2 px-3 hover:bg-zinc-50 rounded">
-                    <input
-                      type="checkbox"
-                      checked={selectedEmails.has(customer.email)}
-                      onChange={(e) => {
-                        const newSet = new Set(selectedEmails);
-                        if (e.target.checked) newSet.add(customer.email);
-                        else newSet.delete(customer.email);
-                        setSelectedEmails(newSet);
-                      }}
-                      className="rounded border-qatar-300"
-                    />
-                    <span className="flex-1 font-medium text-zinc-900">{customer.email}</span>
-                    <span className="text-xs text-zinc-500">{customer.orders} طلب · {currencyLabel(customer.total)}</span>
-                  </label>
-                ))
-              )}
-            </div>
-            <label className="block space-y-2">
-              <span className="text-sm font-semibold text-zinc-700">{text({ ar: "قيمة الإيداع", en: "Deposit amount" })}</span>
-              <input type="number" className="input" value={depositAmount} onChange={(e) => setDepositAmount(e.target.value)} min="1" required />
-            </label>
-            <label className="block space-y-2">
-              <span className="text-sm font-semibold text-zinc-700">{text({ ar: "الوصف", en: "Description" })}</span>
-              <input type="text" className="input" value={depositDescription} onChange={(e) => setDepositDescription(e.target.value)} placeholder={text({ ar: "مكافأة، إرحالة...", en: "Reward, reimbursement..." })} required />
-            </label>
-            <label className="block space-y-2">
-              <span className="text-sm font-semibold text-zinc-700">{text({ ar: "تاريخ الانتهاء (اختياري)", en: "Expires at (optional)" })}</span>
-              <input type="date" className="input" value={depositExpiresAt} onChange={(e) => setDepositExpiresAt(e.target.value)} />
-            </label>
-            <div className="sm:col-span-3 flex items-center justify-between">
-              <span className="text-sm text-zinc-600">
-                {selectedEmails.size > 0
-                  ? text({ ar: `تم اختيار ${selectedEmails.size} عميل`, en: `${selectedEmails.size} customer(s) selected` })
-                  : text({ ar: "لم يتم اختيار أي عميل", en: "No customers selected" })}
-              </span>
-              <button type="submit" disabled={loading || selectedEmails.size === 0} className="btn-primary disabled:opacity-60">
-                {loading ? <Loader2 size={16} className="animate-spin" /> : <BadgeDollarSign size={16} />}
-                {text({ ar: "إيداع", en: "Deposit" })}
+        <div className="mt-6 space-y-6">
+          <div className="border-b border-qatar-100 pb-6">
+            <h4 className="mb-3 text-lg font-black text-zinc-950">{text({ ar: "إنشاء قسيمة هدايا", en: "Create Gift Voucher" })}</h4>
+            <form onSubmit={createVoucher} className="grid gap-4 sm:grid-cols-4">
+              <label className="block space-y-2">
+                <span className="text-sm font-semibold text-zinc-700">{text({ ar: "القيمة بالسنةة", en: "Amount (USD)" })}</span>
+                <input type="number" className="input" value={amount} onChange={(e) => setAmount(e.target.value)} min="1" required />
+              </label>
+              <label className="block space-y-2">
+                <span className="text-sm font-semibold text-zinc-700">{text({ ar: "عدد الاستخدامات", en: "Max uses" })}</span>
+                <input type="number" className="input" value={maxUses} onChange={(e) => setMaxUses(e.target.value)} min="1" />
+              </label>
+              <label className="block space-y-2">
+                <span className="text-sm font-semibold text-zinc-700">{text({ ar: "تاريخ الانتهاء", en: "Expires at" })}</span>
+                <input type="date" className="input" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)} />
+              </label>
+              <button type="submit" disabled={loading} className="btn-primary self-end disabled:opacity-60">
+                {loading ? <Loader2 size={16} className="animate-spin" /> : <Ticket size={16} />}
+                {text({ ar: "إنشاء القسيمة", en: "Create Voucher" })}
               </button>
-            </div>
-          </form>
-        )}
-      </div>
+            </form>
+          </div>
 
-      {message ? <div className={messageClassName}>{message}</div> : null}
-
-      <div className="panel p-6 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
-        <h3 className="text-xl font-black text-zinc-950">
-          {mode === "vouchers" ? text({ ar: "القسائن الموجودة", en: "Existing vouchers" }) : text({ ar: "العملاء", en: "Customers" })}
-        </h3>
-        <div className="mt-4 overflow-x-auto">
-          {mode === "vouchers" ? (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-qatar-100 text-left text-xs font-semibold text-zinc-500 uppercase tracking-wider">
-                  <th className="pb-3 pr-4">{text({ ar: "الرمز", en: "Code" })}</th>
-                  <th className="pb-3 pr-4">{text({ ar: "القيمة", en: "Amount" })}</th>
-                  <th className="pb-3 pr-4">{text({ ar: "الاستخدامات", en: "Uses" })}</th>
-                  <th className="pb-3 pr-4">{text({ ar: "تاريخ الانتهاء", en: "Expires" })}</th>
-                  <th className="pb-3 pr-4">{text({ ar: "الحالة", en: "Status" })}</th>
-                  <th className="pb-3 pr-4">{text({ ar: "الإجراءات", en: "Actions" })}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {vouchers.map((voucher) => (
-                  <tr key={voucher.id} className="border-b border-qatar-50">
-                    <td className="py-3 pr-4 font-medium text-zinc-900">{voucher.code}</td>
-                    <td className="py-3 pr-4 text-zinc-700">{currencyLabel(voucher.amount)}</td>
-                    <td className="py-3 pr-4 text-zinc-700">{voucher.usedCount} / {voucher.maxUses}</td>
-                    <td className="py-3 pr-4 text-zinc-500">{voucher.expiresAt ? new Date(voucher.expiresAt).toLocaleDateString("ar-QA") : "—"}</td>
-                    <td className="py-3 pr-4">
-                      <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${voucher.isActive ? "bg-emerald-50 text-emerald-700" : "bg-zinc-100 text-zinc-600"}`}>
-                        {voucher.isActive ? text({ ar: "فعال", en: "Active" }) : text({ ar: "غير فعال", en: "Inactive" })}
-                      </span>
-                    </td>
-                    <td className="py-3 pr-4">
-                      <div className="flex items-center gap-2">
-                        <button type="button" disabled={loading} onClick={() => toggleVoucher(voucher.id, voucher.isActive)} className="chip text-xs">
-                          {voucher.isActive ? text({ ar: "إلغاء التفعيل", en: "Deactivate" }) : text({ ar: "تفعيل", en: "Activate" })}
-                        </button>
-                        <button type="button" disabled={loading} onClick={() => deleteVoucher(voucher.id, voucher.code)} className="chip text-xs border-rose-200 text-rose-700 hover:bg-rose-50">
-                          <Trash2 size={12} /> {text({ ar: "حذف", en: "Delete" })}
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                {vouchers.length === 0 && !loading && (
-                  <tr>
-                    <td colSpan={6} className="py-8 text-center text-zinc-500">لا توجد قسائن. أنشئ قسيمة جديدة.</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          ) : (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-qatar-100 text-left text-xs font-semibold text-zinc-500 uppercase tracking-wider">
-                  <th className="pb-3 pr-4 w-10"></th>
-                  <th className="pb-3 pr-4">{text({ ar: "البريد الإلكتروني", en: "Email" })}</th>
-                  <th className="pb-3 pr-4">{text({ ar: "عدد الطلبات", en: "Order count" })}</th>
-                  <th className="pb-3 pr-4">{text({ ar: "إجمالي المشتريات", en: "Total spent" })}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredCustomers.map((customer) => (
-                  <tr key={customer.email} className="border-b border-qatar-50">
-                    <td className="py-3 pr-4">
+          <div>
+            <h4 className="mb-3 text-lg font-black text-zinc-950">{text({ ar: "إيداع للمحفظة", en: "Deposit to Wallets" })}</h4>
+            <form onSubmit={creditWallets} className="grid gap-4 sm:grid-cols-3">
+              <label className="block space-y-2 sm:col-span-3">
+                <span className="text-sm font-semibold text-zinc-700">{text({ ar: "بحث عن العملاء", en: "Search customers" })}</span>
+                <input
+                  type="text"
+                  className="input"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder={text({ ar: "اكتب البريد الإلكتروني...", en: "Type email..." })}
+                />
+              </label>
+              <div className="sm:col-span-3 max-h-60 overflow-y-auto border border-qatar-100 rounded-lg p-2">
+                {filteredCustomers.length === 0 && !loading ? (
+                  <p className="py-4 text-center text-zinc-500">لا يوجد عملاء.</p>
+                ) : (
+                  filteredCustomers.map((customer) => (
+                    <label key={customer.email} className="flex items-center gap-3 py-2 px-3 hover:bg-zinc-50 rounded cursor-pointer">
                       <input
                         type="checkbox"
                         checked={selectedEmails.has(customer.email)}
@@ -755,22 +628,83 @@ function VouchersTab() {
                         }}
                         className="rounded border-qatar-300"
                       />
-                    </td>
-                    <td className="py-3 pr-4 font-medium text-zinc-900">{customer.email}</td>
-                    <td className="py-3 pr-4 text-zinc-700">{customer.orders}</td>
-                    <td className="py-3 pr-4 text-zinc-700">{currencyLabel(customer.total)}</td>
-                  </tr>
-                ))}
-                {filteredCustomers.length === 0 && !loading && (
-                  <tr>
-                    <td colSpan={4} className="py-8 text-center text-zinc-500">
-                      {searchQuery ? text({ ar: "لا توجد نتائج بحث", en: "No search results" }) : text({ ar: "لا يوجد عملاء. قم بزيارة المتجر أولًا.", en: "No customers. Visit the store first." })}
-                    </td>
-                  </tr>
+                      <span className="flex-1 font-medium text-zinc-900">{customer.email}</span>
+                      <span className="text-xs text-zinc-500">{customer.orders} طلب · {currencyLabel(customer.total)}</span>
+                    </label>
+                  ))
                 )}
-              </tbody>
-            </table>
-          )}
+              </div>
+              <label className="block space-y-2">
+                <span className="text-sm font-semibold text-zinc-700">{text({ ar: "قيمة الإيداع", en: "Deposit amount" })}</span>
+                <input type="number" className="input" value={depositAmount} onChange={(e) => setDepositAmount(e.target.value)} min="1" required />
+              </label>
+              <label className="block space-y-2">
+                <span className="text-sm font-semibold text-zinc-700">{text({ ar: "الوصف", en: "Description" })}</span>
+                <input type="text" className="input" value={depositDescription} onChange={(e) => setDepositDescription(e.target.value)} placeholder={text({ ar: "مكافأة، إرحالة...", en: "Reward, reimbursement..." })} required />
+              </label>
+              <div className="sm:col-span-3 flex items-center justify-between">
+                <span className="text-sm text-zinc-600">
+                  {selectedEmails.size > 0
+                    ? text({ ar: `تم اختيار ${selectedEmails.size} عميل`, en: `${selectedEmails.size} customer(s) selected` })
+                    : text({ ar: "لم يتم اختيار أي عميل", en: "No customers selected" })}
+                </span>
+                <button type="submit" disabled={loading || selectedEmails.size === 0} className="btn-primary disabled:opacity-60">
+                  {loading ? <Loader2 size={16} className="animate-spin" /> : <BadgeDollarSign size={16} />}
+                  {text({ ar: "إيداع", en: "Deposit" })}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      {message ? <div className={messageClassName}>{message}</div> : null}
+
+      <div className="panel p-6 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
+          <h3 className="text-xl font-black text-zinc-950">{text({ ar: "القسائم الموجودة", en: "Existing vouchers" })}</h3>
+        <div className="mt-4 overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-qatar-100 text-left text-xs font-semibold text-zinc-500 uppercase tracking-wider">
+                <th className="pb-3 pr-4">{text({ ar: "الرمز", en: "Code" })}</th>
+                <th className="pb-3 pr-4">{text({ ar: "القيمة", en: "Amount" })}</th>
+                <th className="pb-3 pr-4">{text({ ar: "الاستخدامات", en: "Uses" })}</th>
+                <th className="pb-3 pr-4">{text({ ar: "تاريخ الانتهاء", en: "Expires" })}</th>
+                <th className="pb-3 pr-4">{text({ ar: "الحالة", en: "Status" })}</th>
+                <th className="pb-3 pr-4">{text({ ar: "الإجراءات", en: "Actions" })}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {vouchers.map((voucher) => (
+                <tr key={voucher.id} className="border-b border-qatar-50">
+                  <td className="py-3 pr-4 font-medium text-zinc-900">{voucher.code}</td>
+                  <td className="py-3 pr-4 text-zinc-700">{currencyLabel(voucher.amount)}</td>
+                  <td className="py-3 pr-4 text-zinc-700">{voucher.usedCount} / {voucher.maxUses}</td>
+                  <td className="py-3 pr-4 text-zinc-500">{voucher.expiresAt ? new Date(voucher.expiresAt).toLocaleDateString("ar-QA") : "—"}</td>
+                  <td className="py-3 pr-4">
+                    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${voucher.isActive ? "bg-emerald-50 text-emerald-700" : "bg-zinc-100 text-zinc-600"}`}>
+                      {voucher.isActive ? text({ ar: "فعال", en: "Active" }) : text({ ar: "غير فعال", en: "Inactive" })}
+                    </span>
+                  </td>
+                  <td className="py-3 pr-4">
+                    <div className="flex items-center gap-2">
+                      <button type="button" disabled={loading} onClick={() => toggleVoucher(voucher.id, voucher.isActive)} className="chip text-xs">
+                        {voucher.isActive ? text({ ar: "إلغاء التفعيل", en: "Deactivate" }) : text({ ar: "تفعيل", en: "Activate" })}
+                      </button>
+                      <button type="button" disabled={loading} onClick={() => deleteVoucher(voucher.id, voucher.code)} className="chip text-xs border-rose-200 text-rose-700 hover:bg-rose-50">
+                        <Trash2 size={12} /> {text({ ar: "حذف", en: "Delete" })}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {vouchers.length === 0 && !loading && (
+                <tr>
+                  <td colSpan={6} className="py-8 text-center text-zinc-500">لا توجد قسائم. أنشئ قسيمة جديدة.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
