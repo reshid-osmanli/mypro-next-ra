@@ -4,11 +4,13 @@ import { requireAdminRequest } from "@/lib/admin-auth";
 
 export const runtime = "nodejs";
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+type RouteContext = { params: Promise<{ id: string }> };
+
+export async function PATCH(req: NextRequest, { params }: RouteContext) {
   const authError = await requireAdminRequest(req);
   if (authError) return authError;
 
-  const id = params.id;
+  const { id } = await params;
   let body: { isActive?: boolean } | undefined;
 
   try {
@@ -34,11 +36,11 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   });
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: RouteContext) {
   const authError = await requireAdminRequest(req);
   if (authError) return authError;
 
-  const id = params.id;
+  const { id } = await params;
 
   const voucher = await prisma.giftVoucher.findUnique({ where: { id } });
   if (!voucher) {
