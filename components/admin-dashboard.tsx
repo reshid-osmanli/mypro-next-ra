@@ -1,4 +1,3 @@
-"use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
@@ -16,7 +15,10 @@ import {
   Trash2,
   UploadCloud,
   PackageSearch,
-  Loader2
+  Loader2,
+  HardDrive,
+  RotateCcw,
+  AlertCircle
 } from "lucide-react";
 import { currencyLabel, formatBytes } from "@/lib/utils";
 import { describeAllowedPrivateUploads, MAX_UPLOAD_BYTES, PRIVATE_UPLOAD_ACCEPT } from "@/lib/upload-policy";
@@ -171,10 +173,192 @@ const tabs = [
   { id: "grades", label: "الصفوف والمواد", icon: Layers3 },
   { id: "pages", label: "صفحات المواد", icon: BookText },
   { id: "uploads", label: "رفع الملفات", icon: UploadCloud },
+  { id: "diagnose", label: "تشخيص الملفات", icon: HardDrive },
   { id: "pricing", label: "التسعير السريع", icon: BadgeDollarSign },
   { id: "settings", label: "الإعدادات", icon: Settings2 }
   , { id: "orders", label: "المشتريات", icon: BarChart3 }
 ] as const;
+
+function DiagnoseFilesTab() {
+  const [files, setFiles] = useState<Array<{
+    id: string;
+    title: string;
+    url: string;
+    mimeType: string;
+    size: number;
+    productTitle: string | null;
+    isCloudinary: boolean;
+    isLocal: boolean;
+    reachable: boolean;
+    error: string | null;
+    actualSize: number;
+  }>>([]);
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
+  const [messageKind, setMessageKind] = useState<"info" | "success" | "error">("info");
+
+  async function loadFiles() {
+    setLoading(true);
+    setMessage("");
+    try {
+      const res = await fetch("/api/admin/diagnose-files");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "فشل تحميل الملفات");
+      setFiles(data.files || []);
+      setMessage(`تم تحميل ${data.files?.length || 0} ملف`);
+      setMessageKind("success");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "حدث خطأ");
+      setMessageKind("error");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleAction(fileId: string, action: "verify" | "reupload") {
+    setMessage("");
+    try {
+      const res = await fetch("/api/admin/diagnose-files", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fileId, action })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "فشل العملية");
+
+      if (action === "verify") {
+        setFiles(prev => prev.map(f => f.id === fileId ? { ...f, reachable: data.reachable, error: data.error || null, actualSize: data.size } : f));
+        setMessage(data.reachable ? "الملف قابل للوصول" : `الملف غير قابل للوصول: ${data.error}`);
+        setMessageKind(data.reachable ? "success" : "error");
+      } else if (action === "reupload") {
+        setFiles(prev => prev.map(f => f.id === fileId ? { ...f, url: data.newUrl, isCloudinary: true, isLocal: false, reachable: true, error: null } : f));
+        setMessage(`تم إعادة رفع الملف إلى Cloudinary: ${data.newUrl}`);
+        setMessageKind("success");
+      }
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "حدث خطأ");
+      setMessageKind("error");
+    }
+  }
+
+  const messageClassName =
+    messageKind === "error"
+      ? "rounded-[1.4rem] border border-rose-200 bg-rose-50 px-5 py-4 text-sm font-semibold text-rose-700 shadow-[0_12px_30px_rgba(15,23,42,0.04)]"
+      : messageKind === "success"
+        ? "rounded-[1.4rem] border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-semibold text-emerald-700 shadow-[0_12px_30px_rgba(15,23,42,0.04)]"
+        : "rounded-[1.4rem] border border-qatar-100 bg-white px-5 py-4 text-sm text-zinc-700 shadow-[0_12px_30px_rgba(15,23,42,0.04)]";
+
+  return (
+    <div className="space-y-6">
+      <div className="panel p-6 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h3 className="text-2xl font-black text-zinc-950">تشخيص ملفات المنتجات</h3>
+            <p className="mt-1 text-sm text-zinc-500">تحقق من وصولية الملفات وأعد رفع الملفات المفقودة إلى Cloudinary.</p>
+          </div>
+          <button type="button" disabled={loading} onClick={loadFiles} className="btn-primary disabled:opacity-60">
+            <RotateCcw size={16} className={loading ? "animate-spin" : ""} />
+            {loading ? "جارٍ التحميل..." : "تحديث القائمة"}
+          </button>
+        </div>
+      </div>
+
+      {message ? <div className={messageClassName}>{message}</div> : null}
+
+      <div className="panel p-6 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-qatar-100 text-left text-xs font-semibold text-zinc-500 uppercase tracking-wider">
+                <th className="pb-3 pr-4">الملف</th>
+                <th className="pb-3 pr-4">المنتج</th>
+                <th className="pb-3 pr-4">النوع</th>
+                <th className="pb-3 pr-4">الحجم</th>
+                <th className="pb-3 pr-4">التخزين</th>
+                <th className="pb-3 pr-4">الحالة</th>
+                <th className="pb-3 pr-4">الإجراءات</th>
+              </tr>
+            </thead>
+            <tbody>
+              {files.map((file) => (
+                <tr key={file.id} className="border-b border-qatar-50">
+                  <td className="py-3 pr-4">
+                    <div>
+                      <p className="font-medium text-zinc-900 truncate max-w-xs">{file.title}</p>
+                      <p className="text-xs text-zinc-500 truncate max-w-xs">{file.url}</p>
+                    </div>
+                  </td>
+                  <td className="py-3 pr-4 text-zinc-700">{file.productTitle || "—"}</td>
+                  <td className="py-3 pr-4">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-600">
+                      {file.mimeType}
+                    </span>
+                  </td>
+                  <td className="py-3 pr-4 text-zinc-700">{file.actualSize > 0 ? formatBytes(file.actualSize) : formatBytes(file.size)}</td>
+                  <td className="py-3 pr-4">
+                    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${file.isCloudinary ? "bg-sky-50 text-sky-700" : file.isLocal ? "bg-amber-50 text-amber-700" : "bg-zinc-100 text-zinc-600"
+                      }`}>
+                      {file.isCloudinary ? "Cloudinary" : file.isLocal ? "محلي" : "غير معروف"}
+                    </span>
+                  </td>
+                  <td className="py-3 pr-4">
+                    {file.reachable ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                        قابل للوصول
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-rose-50 px-2 py-0.5 text-xs font-medium text-rose-700">
+                        <AlertCircle size={10} />
+                        غير قابل للوصول
+                      </span>
+                    )}
+                  </td>
+                  <td className="py-3 pr-4">
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        disabled={loading}
+                        onClick={() => handleAction(file.id, "verify")}
+                        className="chip text-xs"
+                        title="تحقق من الوصول"
+                      >
+                        <RotateCcw size={12} /> تحقق
+                      </button>
+                      {!file.reachable && !file.isCloudinary && (
+                        <button
+                          type="button"
+                          disabled={loading}
+                          onClick={() => handleAction(file.id, "reupload")}
+                          className="chip text-xs border-sky-200 text-sky-700 hover:bg-sky-50"
+                          title="أعد رفع إلى Cloudinary"
+                        >
+                          <HardDrive size={12} /> رفع لـ Cloudinary
+                        </button>
+                      )}
+                      {file.error && (
+                        <span className="text-xs text-rose-600 truncate max-w-xs" title={file.error}>
+                          {file.error}
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {files.length === 0 && !loading && (
+                <tr>
+                  <td colSpan={7} className="py-8 text-center text-zinc-500">
+                    لا توجد ملفات. اضغط "تحديث القائمة" للتحميل.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function AdminDashboard({ products, pages, catalog, settings, adminStats }: Props) {
   const router = useRouter();
@@ -754,6 +938,10 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
             <div className="mt-4 space-y-2">{uploadedFiles.map((file) => <div key={file.url} className="flex items-center justify-between rounded-2xl bg-zinc-50 px-4 py-3"><div><p className="font-semibold text-zinc-950">{file.title}</p><p className="text-xs text-zinc-500">{file.url}</p></div><span className="text-xs text-zinc-500">{formatBytes(file.size)}</span></div>)}</div>
           </div>
         </div>
+      ) : null}
+
+      {tab === "diagnose" ? (
+        <DiagnoseFilesTab />
       ) : null}
 
       {tab === "pricing" ? (
