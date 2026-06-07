@@ -20,6 +20,7 @@ export type CheckoutPayload = {
   notes?: string;
   purchaseTrackingConsent?: boolean;
   paymentMethod: "stripe";
+  voucherCode?: string;
 };
 
 export type ProductInput = {
@@ -40,4 +41,35 @@ export type ProductInput = {
   accentA?: string;
   accentB?: string;
   slug?: string;
+};
+
+export type WalletTransactionType = "credit" | "debit";
+
+export type WalletTransaction = {
+  id: string;
+  type: WalletTransactionType;
+  amount: number;
+  description: string | null;
+  orderId: string | null;
+  createdAt: string;
+};
+
+export type UserWallet = {
+  balance: number;
+  transactions: WalletTransaction[];
+};
+
+export type GiftVoucher = {
+  code: string;
+  amount: number;
+  maxUses: number;
+  usedCount: number;
+  expiresAt: string | null;
+  isActive: boolean;
+};
+
+export type VoucherValidation = {
+  valid: boolean;
+  voucher?: GiftVoucher;
+  error?: string;
 };

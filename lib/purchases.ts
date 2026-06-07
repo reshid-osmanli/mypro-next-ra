@@ -1,10 +1,11 @@
 import { prisma } from "./db";
 import { normalizePurchaseEmail } from "./purchase-access";
+import { getOrCreateWallet } from "./wallet";
 
 export async function getPurchaseLibrary(email: string) {
   const normalizedEmail = normalizePurchaseEmail(email);
 
-  const [orders, driveConnection] = await Promise.all([
+  const [orders, driveConnection, wallet] = await Promise.all([
     prisma.order.findMany({
       where: {
         email: normalizedEmail,
@@ -24,11 +25,16 @@ export async function getPurchaseLibrary(email: string) {
     prisma.googleDriveConnection.findUnique({
       where: { email: normalizedEmail },
       select: { connectedAt: true, lastSyncedAt: true }
-    })
+    }),
+    getOrCreateWallet(normalizedEmail)
   ]);
 
   return {
     email: normalizedEmail,
+    wallet: {
+      balance: wallet.balance,
+      transactions: wallet.transactions
+    },
     drive: driveConnection
       ? {
           connected: true,

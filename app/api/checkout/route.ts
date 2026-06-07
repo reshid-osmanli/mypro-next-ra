@@ -3,6 +3,7 @@ import { z } from "zod";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { createStripeSession } from "@/lib/payments";
+import { validateVoucher, applyVoucher, getOrCreateWallet } from "@/lib/wallet";
 import type { CheckoutPayload } from "@/lib/types";
 import { rejectUntrustedOrigin } from "@/lib/request-security";
 import { getRequestIp, isRateLimited } from "@/lib/rate-limit";
@@ -18,7 +19,8 @@ const schema = z.object({
   phone: z.string().trim().max(40).optional(),
   notes: z.string().trim().max(1000).optional(),
   purchaseTrackingConsent: z.boolean().optional().default(false),
-  paymentMethod: z.literal("stripe")
+  paymentMethod: z.literal("stripe"),
+  voucherCode: z.string().trim().optional()
 });
 
 export async function POST(req: Request) {
@@ -81,6 +83,22 @@ export async function POST(req: Request) {
 
   const total = normalizedItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
+  let discount = 0;
+  let voucherId: string | null = null;
+
+  if (parsed.data.voucherCode) {
+    const voucherResult = await validateVoucher(parsed.data.voucherCode, orderEmail);
+    if (voucherResult.valid && voucherResult.voucher) {
+      discount = voucherResult.voucher.amount;
+      voucherId = voucherResult.voucher.code;
+    }
+  }
+
+  const wallet = await getOrCreateWallet(orderEmail);
+  const walletDiscount = Math.min(wallet.balance, total - discount);
+  const finalDiscount = discount + walletDiscount;
+  const finalTotal = Math.max(0, total - finalDiscount);
+
   const effectiveSiteUrl = resolveSiteUrl();
   if (!effectiveSiteUrl) {
     await reportApiFailure(req, "AUTH_URL أو NEXT_PUBLIC_SITE_URL مطلوب على Vercel", { statusCode: 500, area: "payments" });
@@ -94,13 +112,32 @@ export async function POST(req: Request) {
       phone: parsed.data.phone,
       notes: parsed.data.notes,
       purchaseTrackingConsent,
-      total,
+      total: finalTotal,
       paymentMethod: parsed.data.paymentMethod,
+      voucherId: voucherId,
+      walletUsed: walletDiscount > 0 ? walletDiscount : undefined,
       items: {
         create: normalizedItems
       }
     }
   });
+
+  if (walletDiscount > 0) {
+    await prisma.userWallet.update({
+      where: { email: orderEmail },
+      data: {
+        balance: { decrement: walletDiscount },
+        transactions: {
+          create: {
+            type: "debit",
+            amount: walletDiscount,
+            description: `خصم على الطلب #${order.id.slice(-8)}`,
+            orderId: order.id
+          }
+        }
+      }
+    });
+  }
 
   const successUrl = `${effectiveSiteUrl}/api/stripe/complete?session_id={CHECKOUT_SESSION_ID}`;
   const cancelUrl = `${effectiveSiteUrl}/checkout?order=${order.id}`;
@@ -111,7 +148,8 @@ export async function POST(req: Request) {
       items: normalizedItems.map((item) => ({ title: item.productTitle, price: item.price, quantity: item.quantity })),
       successUrl,
       cancelUrl,
-      customerEmail: orderEmail
+      customerEmail: orderEmail,
+      discountAmount: finalDiscount
     });
     await prisma.order.update({ where: { id: order.id }, data: { providerOrderId: session.id } });
     return NextResponse.json({ url: session.url, orderId: order.id });

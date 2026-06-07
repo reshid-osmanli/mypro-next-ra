@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { DOWNLOAD_SESSION_COOKIE, DOWNLOAD_SESSION_TTL_MS, createSecureToken, hashToken } from "@/lib/order-access";
 import { expectedStripeCurrency, retrieveStripeCheckoutSession } from "@/lib/payments";
+import { applyVoucher } from "@/lib/wallet";
 import { getRequestIp, isRateLimited } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
@@ -84,6 +85,11 @@ export async function GET(req: NextRequest) {
 
     if (updated.count !== 1) {
       return redirect(req, "/checkout?stripe=payment-not-verified");
+    }
+
+    if (order.voucherId) {
+      const voucherCode = order.voucherId;
+      await applyVoucher(voucherCode, order.email, order.id).catch(() => null);
     }
 
     const response = redirect(req, `/thank-you?order=${encodeURIComponent(order.id)}`);

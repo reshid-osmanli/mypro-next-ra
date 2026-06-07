@@ -37,6 +37,7 @@ export async function createStripeSession(params: {
   cancelUrl: string;
   customerEmail?: string;
   currency?: string;
+  discountAmount?: number;
 }) {
   const stripe = getStripeClient();
   const currency = (params.currency ?? stripeCurrency).toLowerCase();
@@ -48,13 +49,17 @@ export async function createStripeSession(params: {
     customer_email: params.customerEmail,
     client_reference_id: params.orderReference,
     metadata: {
-      orderId: params.orderReference
+      orderId: params.orderReference,
+      discountAmount: String(params.discountAmount ?? 0)
     },
     payment_intent_data: {
       metadata: {
         orderId: params.orderReference
       }
     },
+    discounts: params.discountAmount && params.discountAmount > 0
+      ? [{ coupon: await createStripeDiscount(params.discountAmount, currency) }]
+      : undefined,
     line_items: params.items.map((item) => ({
       quantity: item.quantity,
       price_data: {
@@ -66,6 +71,14 @@ export async function createStripeSession(params: {
   });
 
   return { id: session.id, url: session.url ?? params.cancelUrl };
+}
+
+async function createStripeDiscount(amount: number, currency: string) {
+  const stripe = getStripeClient();
+  return (await stripe.coupons.create({
+    amount_off: Math.round(amount * 100),
+    currency
+  })).id;
 }
 
 export async function retrieveStripeCheckoutSession(sessionId: string) {

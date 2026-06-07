@@ -2,7 +2,7 @@
 
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { CreditCard, Mail, Phone, ShieldCheck, User2 } from "lucide-react";
+import { CheckCircle, CreditCard, Gift, Loader2, Mail, Phone, ShieldCheck, Ticket, User2 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import Script from "next/script";
 import { useCart } from "./cart-provider";
@@ -36,10 +36,14 @@ export function CheckoutForm() {
   const paypalEnabled = providers.find((provider) => provider.id === "paypal")?.enabled ?? false;
   const paypalClientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID ?? "";
   const [loading, setLoading] = useState(false);
+  const [validatingVoucher, setValidatingVoucher] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<(typeof providers)[number]["id"]>(paypalEnabled ? "paypal" : "stripe");
   const [message, setMessage] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
+  const [voucherCode, setVoucherCode] = useState("");
+  const [voucherDiscount, setVoucherDiscount] = useState<number | null>(null);
+  const [voucherError, setVoucherError] = useState<string | null>(null);
   const [purchaseTrackingConsent, setPurchaseTrackingConsent] = useState(false);
   const signedInEmail = session?.user?.email?.trim() ?? "";
 
@@ -51,6 +55,35 @@ export function CheckoutForm() {
   useEffect(() => {
     if (signedInEmail) setPurchaseTrackingConsent(true);
   }, [signedInEmail]);
+
+  const finalTotal = useMemo(() => {
+    return Math.max(0, total - (voucherDiscount ?? 0));
+  }, [total, voucherDiscount]);
+
+  async function validateVoucher() {
+    if (!voucherCode.trim() || !signedInEmail) return;
+    setValidatingVoucher(true);
+    setVoucherError(null);
+    try {
+      const response = await fetch("/api/vouchers/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: voucherCode.trim() })
+      });
+      const data = await response.json();
+      if (!response.ok || !data.valid) {
+        setVoucherError(data.error || text({ ar: "القسيمة غير صالحة", en: "Invalid voucher" }));
+        setVoucherDiscount(null);
+      } else {
+        setVoucherDiscount(data.voucher.amount);
+      }
+    } catch (error) {
+      setVoucherError(text({ ar: "فشل التحقق من القسيمة", en: "Failed to validate voucher" }));
+      setVoucherDiscount(null);
+    } finally {
+      setValidatingVoucher(false);
+    }
+  }
 
   async function submitStripe(formData: FormData) {
     if (!items.length) return;
@@ -67,7 +100,8 @@ export function CheckoutForm() {
           phone: String(formData.get("phone") ?? ""),
           notes: String(formData.get("notes") ?? ""),
           purchaseTrackingConsent: formData.get("purchaseTrackingConsent") === "on",
-          paymentMethod: "stripe"
+          paymentMethod: "stripe",
+          voucherCode: voucherDiscount ? voucherCode.trim() : undefined
         })
       });
 
@@ -156,6 +190,42 @@ export function CheckoutForm() {
       </label>
 
       <div className="space-y-3">
+        <p className="text-sm font-semibold text-zinc-700">{text({ ar: "قسيمة الخصم", en: "Voucher code" })}</p>
+        <div className="flex items-start gap-2">
+          <div className="relative flex-1">
+            <Ticket size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400" />
+            <input
+              type="text"
+              className="input pr-12"
+              placeholder={text({ ar: "أدخل القسيمة هنا", en: "Enter voucher code" })}
+              value={voucherCode}
+              onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
+              disabled={!signedInEmail || !!voucherDiscount}
+            />
+          </div>
+          <button
+            type="button"
+            onClick={validateVoucher}
+            disabled={!voucherCode.trim() || !signedInEmail || !!voucherDiscount || validatingVoucher}
+            className="btn-secondary disabled:opacity-60"
+          >
+            {validatingVoucher ? <Loader2 size={16} className="animate-spin" /> : <Gift size={16} />}
+          </button>
+        </div>
+        {voucherError ? (
+          <p className="text-sm text-rose-600">{voucherError}</p>
+        ) : voucherDiscount ? (
+          <p className="text-sm text-emerald-700">
+            <CheckCircle size={14} className="inline-block mr-1" />
+            {text({ ar: "تم تطبيق خصم ", en: "Applied discount " })}
+            {currencyLabel(voucherDiscount)}
+          </p>
+        ) : signedInEmail ? null : (
+          <p className="text-sm text-zinc-500">{text({ ar: "سجّل الدخول لاستخدام القسيمة", en: "Sign in to use voucher codes" })}</p>
+        )}
+      </div>
+
+      <div className="space-y-3">
         <p className="text-sm font-semibold text-zinc-700">{text({ ar: "طريقة الدفع", en: "Payment method" })}</p>
         <div className="grid gap-3 sm:grid-cols-2">
           {providers.map((provider) => (
@@ -188,8 +258,16 @@ export function CheckoutForm() {
 
       <div className="rounded-lg border border-qatar-100 bg-qatar-50 p-5">
         <div className="flex items-center justify-between gap-4">
-          <span className="text-sm text-zinc-600">{text({ ar: "الإجمالي التقريبي", en: "Estimated total" })}</span>
-          <span className="text-2xl font-black text-qatar-800">{currencyLabel(total)}</span>
+          <div>
+            <span className="text-sm text-zinc-600">{voucherDiscount ? text({ ar: "الإجمالي بعد الخصم", en: "Total after discount" }) : text({ ar: "الإجمالي التقريبي", en: "Estimated total" })}</span>
+            {voucherDiscount ? (
+              <div className="mt-1 space-x-2">
+                <span className="text-xs text-zinc-400 line-through">{currencyLabel(total)}</span>
+                <span className="text-xs text-emerald-600">{text({ ar: "خصم", en: "Discount" })}: -{currencyLabel(voucherDiscount)}</span>
+              </div>
+            ) : null}
+          </div>
+          <span className="text-2xl font-black text-qatar-800">{currencyLabel(finalTotal)}</span>
         </div>
         <p className="mt-2 text-sm leading-7 text-zinc-600">
           {text({

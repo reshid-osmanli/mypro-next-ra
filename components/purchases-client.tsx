@@ -2,13 +2,26 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { Cloud, HardDrive, Loader2, LogIn, RefreshCw, ShieldCheck } from "lucide-react";
+import { Cloud, HardDrive, Loader2, LogIn, RefreshCw, ShieldCheck, Wallet, History, Gift, CheckCircle } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { currencyLabel, formatBytes } from "@/lib/utils";
 import { useSitePreferences } from "./site-preferences";
 
+type WalletTransaction = {
+  id: string;
+  type: "credit" | "debit";
+  amount: number;
+  description: string | null;
+  orderId: string | null;
+  createdAt: string;
+};
+
 type PurchaseLibrary = {
   email: string;
+  wallet: {
+    balance: number;
+    transactions: WalletTransaction[];
+  };
   drive: {
     connected: boolean;
     connectedAt: string | null;
@@ -118,6 +131,56 @@ export function PurchasesClient({ initialLibrary }: Props) {
             <div className="rounded-lg bg-emerald-50 px-4 py-3"><p className="text-xs text-emerald-700">{text({ ar: "الإجمالي", en: "Total" })}</p><p className="text-xl font-black text-emerald-800">{currencyLabel(totals.total)}</p></div>
           </div>
         </div>
+      </div>
+
+      <div className="panel p-6">
+        <div className="flex items-center gap-4">
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <Wallet size={20} className="text-qatar-700" />
+              <h2 className="text-xl font-black text-zinc-950">{text({ ar: "المحفظة", en: "Wallet" })}</h2>
+            </div>
+            <p className="mt-1 text-sm leading-7 text-zinc-600">
+              {text({
+                ar: "رصيدك الحالي يمكن استخدامه لخصم على مشترياتك القادمة.",
+                en: "Your current balance can be used for discounts on future purchases."
+              })}
+            </p>
+          </div>
+          <div className="text-center">
+            <p className="text-xs text-zinc-500">{text({ ar: "الرصيد الحالي", en: "Current balance" })}</p>
+            <p className="text-3xl font-black text-qatar-800">{currencyLabel(library.wallet.balance)}</p>
+          </div>
+        </div>
+
+        {library.wallet.transactions.length > 0 ? (
+          <div className="mt-6">
+            <div className="flex items-center gap-2 mb-4">
+              <History size={16} className="text-zinc-500" />
+              <h3 className="text-sm font-semibold text-zinc-700">{text({ ar: "سجل المعاملات", en: "Transaction history" })}</h3>
+            </div>
+            <div className="space-y-2">
+              {library.wallet.transactions.map((tx) => (
+                <div key={tx.id} className="flex items-center justify-between rounded-lg border border-qatar-100 bg-white px-4 py-3 text-sm">
+                  <div className="flex items-center gap-2">
+                    {tx.type === "credit" ? (
+                      <CheckCircle size={14} className="text-emerald-600" />
+                    ) : (
+                      <Gift size={14} className="text-sky-600" />
+                    )}
+                    <span className="text-zinc-900">{tx.description || (tx.type === "credit" ? text({ ar: "إيداع", en: "Credit" }) : text({ ar: "خصم", en: "Debit" }))}</span>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <span className={`font-bold ${tx.type === "credit" ? "text-emerald-700" : "text-sky-700"}`}>
+                      {tx.type === "credit" ? "+" : "-"}{currencyLabel(tx.amount)}
+                    </span>
+                    <span className="text-xs text-zinc-500">{new Date(tx.createdAt).toLocaleDateString("ar-QA")}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
       </div>
 
       <div className="panel p-6">

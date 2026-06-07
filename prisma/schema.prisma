@@ -116,6 +116,8 @@ model Order {
   providerCaptureId     String?
   purchaseTrackingConsent Boolean          @default(false)
   driveSyncConsent      Boolean           @default(false)
+  voucherId             String?
+  walletUsed            Int               @default(0)
   downloadClaimHash     String?
   downloadClaimExpiresAt DateTime?
   downloadClaimUsedAt   DateTime?
@@ -233,4 +235,59 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+model UserWallet {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  balance      Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  transactions WalletTransaction[]
+
+  @@index([email])
+}
+
+model GiftVoucher {
+  id          String    @id @default(cuid())
+  code        String    @unique
+  amount      Int
+  maxUses     Int       @default(1)
+  usedCount   Int       @default(0)
+  createdBy   String?
+  createdAt   DateTime  @default(now())
+  expiresAt   DateTime?
+  isActive    Boolean   @default(true)
+
+  usages VoucherUsage[]
+}
+
+model VoucherUsage {
+  id         String   @id @default(cuid())
+  voucherId  String
+  email      String
+  orderId    String?
+  usedAt     DateTime @default(now())
+
+  voucher GiftVoucher @relation(fields: [voucherId], references: [id], onDelete: Cascade)
+
+  @@index([email])
+  @@index([voucherId])
+  @@index([usedAt])
+}
+
+model WalletTransaction {
+  id          String   @id @default(cuid())
+  walletId    String
+  type        String
+  amount      Int
+  description String?
+  orderId     String?
+  createdAt   DateTime @default(now())
+
+  wallet UserWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  @@index([walletId])
+  @@index([orderId])
 }

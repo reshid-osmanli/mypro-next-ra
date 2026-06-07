@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import {
@@ -19,10 +19,12 @@ import {
   Loader2,
   HardDrive,
   RotateCcw,
-  AlertCircle
+  AlertCircle,
+  Ticket
 } from "lucide-react";
 import { currencyLabel, formatBytes } from "@/lib/utils";
 import { describeAllowedPrivateUploads, MAX_UPLOAD_BYTES, PRIVATE_UPLOAD_ACCEPT } from "@/lib/upload-policy";
+import { useSitePreferences } from "./site-preferences";
 import type { ProductCardModel } from "./product-card";
 
 type Product = ProductCardModel & {
@@ -176,6 +178,7 @@ const tabs = [
   { id: "uploads", label: "رفع الملفات", icon: UploadCloud },
   { id: "diagnose", label: "تشخيص الملفات", icon: HardDrive },
   { id: "pricing", label: "التسعير السريع", icon: BadgeDollarSign },
+  { id: "vouchers", label: "القسائن", icon: Ticket },
   { id: "settings", label: "الإعدادات", icon: Settings2 }
   , { id: "orders", label: "المشتريات", icon: BarChart3 }
 ] as const;
@@ -351,6 +354,210 @@ function DiagnoseFilesTab() {
                   <td colSpan={7} className="py-8 text-center text-zinc-500">
                     لا توجد ملفات. اضغط "تحديث القائمة" للتحميل.
                   </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function VouchersTab() {
+  const { text } = useSitePreferences();
+  const [vouchers, setVouchers] = useState<Array<{
+    id: string;
+    code: string;
+    amount: number;
+    maxUses: number;
+    usedCount: number;
+    expiresAt: string | null;
+    isActive: boolean;
+    createdAt: string;
+  }>>([]);
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
+  const [messageKind, setMessageKind] = useState<"info" | "success" | "error">("info");
+  const [amount, setAmount] = useState("");
+  const [maxUses, setMaxUses] = useState("1");
+  const [expiresAt, setExpiresAt] = useState("");
+
+  async function loadVouchers() {
+    setLoading(true);
+    setMessage("");
+    try {
+      const res = await fetch("/api/admin/vouchers");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "فشل تحميل القسائن");
+      setVouchers(data.vouchers || []);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "حدث خطأ");
+      setMessageKind("error");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function createVoucher(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!amount || Number(amount) <= 0) {
+      setMessage("أدخل قيمة القسيمة");
+      setMessageKind("error");
+      return;
+    }
+    setLoading(true);
+    setMessage("");
+    try {
+      const res = await fetch("/api/admin/vouchers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount: Number(amount),
+          maxUses: Number(maxUses) || 1,
+          expiresAt: expiresAt ? new Date(expiresAt).toISOString() : undefined
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "فشل إنشاء القسيمة");
+      setMessage(`تم إنشاء القسيمة: ${data.voucher.code}`);
+      setMessageKind("success");
+      setAmount("");
+      setMaxUses("1");
+      setExpiresAt("");
+      loadVouchers();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "حدث خطأ");
+      setMessageKind("error");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function toggleVoucher(id: string, isActive: boolean) {
+    setLoading(true);
+    setMessage("");
+    try {
+      const res = await fetch(`/api/admin/vouchers/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isActive: !isActive })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "فشل تحديث القسيمة");
+      setVouchers(prev => prev.map(v => v.id === id ? { ...v, isActive: !isActive } : v));
+      setMessage(data.message || "تم تحديث القسيمة");
+      setMessageKind("success");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "حدث خطأ");
+      setMessageKind("error");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function deleteVoucher(id: string, code: string) {
+    if (!confirm(`هل تريد حذف القسيمة ${code}؟`)) return;
+    setLoading(true);
+    setMessage("");
+    try {
+      const res = await fetch(`/api/admin/vouchers/${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "فشل حذف القسيمة");
+      setVouchers(prev => prev.filter(v => v.id !== id));
+      setMessage("تم حذف القسيمة");
+      setMessageKind("success");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "حدث خطأ");
+      setMessageKind("error");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadVouchers();
+  }, []);
+
+  const messageClassName =
+    messageKind === "error"
+      ? "rounded-[1.4rem] border border-rose-200 bg-rose-50 px-5 py-4 text-sm font-semibold text-rose-700 shadow-[0_12px_30px_rgba(15,23,42,0.04)]"
+      : messageKind === "success"
+        ? "rounded-[1.4rem] border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-semibold text-emerald-700 shadow-[0_12px_30px_rgba(15,23,42,0.04)]"
+        : "rounded-[1.4rem] border border-qatar-100 bg-white px-5 py-4 text-sm text-zinc-700 shadow-[0_12px_30px_rgba(15,23,42,0.04)]";
+
+  return (
+    <div className="space-y-6">
+      <div className="panel p-6 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h3 className="text-2xl font-black text-zinc-950">إنشاء قسيمة هدايا</h3>
+            <p className="mt-1 text-sm text-zinc-500">أنشئ قسائن لتقديم خصومات للعملاء.</p>
+          </div>
+        </div>
+        <form onSubmit={createVoucher} className="mt-4 grid gap-4 sm:grid-cols-4">
+          <label className="block space-y-2">
+            <span className="text-sm font-semibold text-zinc-700">{text({ ar: "القيمة بالسنةة", en: "Amount (USD)" })}</span>
+            <input type="number" className="input" value={amount} onChange={(e) => setAmount(e.target.value)} min="1" required />
+          </label>
+          <label className="block space-y-2">
+            <span className="text-sm font-semibold text-zinc-700">{text({ ar: "عدد الاستخدامات", en: "Max uses" })}</span>
+            <input type="number" className="input" value={maxUses} onChange={(e) => setMaxUses(e.target.value)} min="1" />
+          </label>
+          <label className="block space-y-2">
+            <span className="text-sm font-semibold text-zinc-700">{text({ ar: "تاريخ الانتهاء", en: "Expires at" })}</span>
+            <input type="date" className="input" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)} />
+          </label>
+          <button type="submit" disabled={loading} className="btn-primary self-end disabled:opacity-60">
+            {loading ? <Loader2 size={16} className="animate-spin" /> : <Ticket size={16} />}
+            {text({ ar: "إنشاء", en: "Create" })}
+          </button>
+        </form>
+      </div>
+
+      {message ? <div className={messageClassName}>{message}</div> : null}
+
+      <div className="panel p-6 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
+        <h3 className="text-xl font-black text-zinc-950">{text({ ar: "القسائن الموجودة", en: "Existing vouchers" })}</h3>
+        <div className="mt-4 overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-qatar-100 text-left text-xs font-semibold text-zinc-500 uppercase tracking-wider">
+                <th className="pb-3 pr-4">{text({ ar: "الرمز", en: "Code" })}</th>
+                <th className="pb-3 pr-4">{text({ ar: "القيمة", en: "Amount" })}</th>
+                <th className="pb-3 pr-4">{text({ ar: "الاستخدامات", en: "Uses" })}</th>
+                <th className="pb-3 pr-4">{text({ ar: "تاريخ الانتهاء", en: "Expires" })}</th>
+                <th className="pb-3 pr-4">{text({ ar: "الحالة", en: "Status" })}</th>
+                <th className="pb-3 pr-4">{text({ ar: "الإجراءات", en: "Actions" })}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {vouchers.map((voucher) => (
+                <tr key={voucher.id} className="border-b border-qatar-50">
+                  <td className="py-3 pr-4 font-medium text-zinc-900">{voucher.code}</td>
+                  <td className="py-3 pr-4 text-zinc-700">{currencyLabel(voucher.amount)}</td>
+                  <td className="py-3 pr-4 text-zinc-700">{voucher.usedCount} / {voucher.maxUses}</td>
+                  <td className="py-3 pr-4 text-zinc-500">{voucher.expiresAt ? new Date(voucher.expiresAt).toLocaleDateString("ar-QA") : "—"}</td>
+                  <td className="py-3 pr-4">
+                    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${voucher.isActive ? "bg-emerald-50 text-emerald-700" : "bg-zinc-100 text-zinc-600"}`}>
+                      {voucher.isActive ? text({ ar: "فعال", en: "Active" }) : text({ ar: "غير فعال", en: "Inactive" })}
+                    </span>
+                  </td>
+                  <td className="py-3 pr-4">
+                    <div className="flex items-center gap-2">
+                      <button type="button" disabled={loading} onClick={() => toggleVoucher(voucher.id, voucher.isActive)} className="chip text-xs">
+                        {voucher.isActive ? text({ ar: "إلغاء التفعيل", en: "Deactivate" }) : text({ ar: "تفعيل", en: "Activate" })}
+                      </button>
+                      <button type="button" disabled={loading} onClick={() => deleteVoucher(voucher.id, voucher.code)} className="chip text-xs border-rose-200 text-rose-700 hover:bg-rose-50">
+                        <Trash2 size={12} /> {text({ ar: "حذف", en: "Delete" })}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {vouchers.length === 0 && !loading && (
+                <tr>
+                  <td colSpan={6} className="py-8 text-center text-zinc-500">لا توجد قسائن. أنشئ قسيمة جديدة.</td>
                 </tr>
               )}
             </tbody>
@@ -950,6 +1157,10 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
           <div className="flex flex-wrap items-center justify-between gap-4"><div><h3 className="text-2xl font-black text-zinc-950">التسعير السريع</h3><p className="mt-2 text-sm leading-7 text-zinc-600">عدل الأسعار واحفظ المنتجات المميزة ورتب ظهورها دون الدخول في كل منتج على حدة.</p></div><div className="rounded-full bg-qatar-50 px-4 py-2 text-xs font-bold text-qatar-800">إجمالي المنتجات: {products.length}</div></div>
           <div className="mt-5 space-y-4">{products.map((product) => { const draft = priceDrafts[product.id] ?? { price: String(product.price), compareAt: product.compareAt ? String(product.compareAt) : "", featured: product.featured, status: product.status, sortOrder: String(product.sortOrder ?? 0) }; return <div key={product.id} className="grid gap-3 rounded-[1.5rem] border border-qatar-100 p-4 lg:grid-cols-[1fr_120px_120px_120px_120px_auto] lg:items-center"><div><p className="font-bold text-zinc-950">{product.title}</p><p className="text-sm text-zinc-500">{product.grade} · {product.subject}</p></div><input className="input" type="number" value={draft.price} onChange={(e) => setPriceDrafts((c) => ({ ...c, [product.id]: { ...draft, price: e.target.value } }))} /><input className="input" type="number" value={draft.compareAt} onChange={(e) => setPriceDrafts((c) => ({ ...c, [product.id]: { ...draft, compareAt: e.target.value } }))} placeholder="السعر السابق" /><input className="input" value={draft.sortOrder} onChange={(e) => setPriceDrafts((c) => ({ ...c, [product.id]: { ...draft, sortOrder: e.target.value } }))} placeholder="الترتيب" /><button type="button" onClick={() => setPriceDrafts((c) => ({ ...c, [product.id]: { ...draft, featured: !draft.featured } }))} className={`chip justify-center ${draft.featured ? "border-qatar-300 bg-qatar-50 text-qatar-800" : ""}`}>{draft.featured ? "مميز" : "عادي"}</button><button type="button" disabled={busy} onClick={() => savePrice(product.id)} className="btn-primary h-11 justify-center disabled:opacity-60">حفظ</button></div>; })}</div>
         </div>
+      ) : null}
+
+      {tab === "vouchers" ? (
+        <VouchersTab />
       ) : null}
 
       {tab === "orders" ? (
