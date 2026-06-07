@@ -32,24 +32,26 @@ export async function creditWallet(
 ): Promise<void> {
   const normalizedEmail = email.trim().toLowerCase();
 
-  await prisma.$transaction([
-    prisma.userWallet.upsert({
+  await prisma.$transaction(async (tx) => {
+    const wallet = await tx.userWallet.upsert({
       where: { email: normalizedEmail },
       update: { balance: { increment: amount } },
       create: {
         email: normalizedEmail,
         balance: amount
       }
-    }),
-    prisma.userWallet.update({
-      where: { email: normalizedEmail },
+    });
+
+    await tx.walletTransaction.create({
       data: {
-        transactions: {
-          create: { type: "credit", amount, description, orderId }
-        }
+        walletId: wallet.id,
+        type: "credit",
+        amount,
+        description,
+        orderId
       }
-    }).catch(() => Promise.resolve())
-  ]);
+    });
+  });
 }
 
 export async function debitWallet(
@@ -62,19 +64,28 @@ export async function debitWallet(
 
   const result = await prisma.userWallet.findUnique({
     where: { email: normalizedEmail },
-    select: { balance: true }
+    select: { id: true, balance: true }
   });
 
   if (!result || result.balance < amount) return false;
 
-  await prisma.userWallet.update({
-    where: { email: normalizedEmail },
-    data: {
-      balance: { decrement: amount },
-      transactions: {
-        create: { type: "debit", amount, description, orderId }
+  await prisma.$transaction(async (tx) => {
+    await tx.userWallet.update({
+      where: { email: normalizedEmail },
+      data: {
+        balance: { decrement: amount }
       }
-    }
+    });
+
+    await tx.walletTransaction.create({
+      data: {
+        walletId: result.id,
+        type: "debit",
+        amount,
+        description,
+        orderId
+      }
+    });
   });
 
   return true;
@@ -162,15 +173,15 @@ export async function applyVoucher(
     return { success: false, error: "هذه القسيمة مرتبطة بهذا البريد مسبقاً" };
   }
 
-  await prisma.$transaction([
-    prisma.voucherUsage.create({
+  await prisma.$transaction(async (tx) => {
+    await tx.voucherUsage.create({
       data: { voucherId: voucher.id, email: normalizedEmail, orderId }
-    }),
-    prisma.giftVoucher.update({
+    });
+    await tx.giftVoucher.update({
       where: { code },
       data: { usedCount: { increment: 1 } }
-    })
-  ]);
+    });
+  });
 
   return { success: true };
 }
