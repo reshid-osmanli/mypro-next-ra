@@ -290,7 +290,7 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
   function startEditProduct(product: Product) {
     setEditingProductId(product.id);
     setProductForm({ title: product.title, excerpt: product.excerpt, description: product.description, price: product.price, compareAt: product.compareAt ?? 0, badge: product.badge, grade: product.grade, subject: product.subject, category: product.category, format: product.format, pages: product.pages, level: product.level, featured: product.featured, status: product.status, accentA: product.accentA, accentB: product.accentB, coverImage: product.coverImage ?? "", sortOrder: product.sortOrder ?? 0 });
-    setUploadedFiles(product.files?.map((f) => ({ id: f.id, title: f.title, url: f.url, mimeType: f.mimeType, size: f.size })) ?? []);
+    setUploadedFiles(product.files?.map((f) => ({ id: f.id, title: f.title, url: f.url, mimeType: f.mimeType ?? "", size: f.size ?? 0 })) ?? []);
     setTab("products");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -651,17 +651,17 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
             <div className="rounded-[1.5rem] border border-dashed border-qatar-200 bg-qatar-50/60 p-4 text-sm text-zinc-700">
               <div className="flex items-center justify-between gap-3"><span>الملفات المرفوعة مؤقتًا</span><span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-qatar-800">{uploadedFiles.length}</span></div>
               <div className="mt-3 space-y-2">{uploadedFiles.map((file) => (
-                  <div key={file.url} className="flex items-center justify-between gap-3 rounded-2xl bg-white px-3 py-2">
-                    <div className="min-w-0">
-                      <p className="truncate font-semibold text-zinc-900">{file.title}</p>
-                      <p className="text-xs text-zinc-500">{file.url}</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-zinc-500">{formatBytes(file.size)}</span>
-                      {file.id ? <button type="button" onClick={() => deleteProductFile(file.id!)} className="chip border-rose-200 text-rose-700 hover:bg-rose-50"><Trash2 size={14} />حذف</button> : null}
-                    </div>
+                <div key={file.url} className="flex items-center justify-between gap-3 rounded-2xl bg-white px-3 py-2">
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold text-zinc-900">{file.title}</p>
+                    <p className="text-xs text-zinc-500">{file.url}</p>
                   </div>
-                ))}</div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-zinc-500">{formatBytes(file.size)}</span>
+                    {file.id ? <button type="button" onClick={() => deleteProductFile(file.id!)} className="chip border-rose-200 text-rose-700 hover:bg-rose-50"><Trash2 size={14} />حذف</button> : null}
+                  </div>
+                </div>
+              ))}</div>
             </div>
           </div>
           <div className="space-y-6">

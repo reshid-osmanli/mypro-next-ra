@@ -27,7 +27,7 @@ export type ProductCardModel = {
   accentB: string;
   coverImage?: string | null;
   subjectMotionLogo?: string | null;
-  files?: { id: string; url: string; title: string }[];
+  files?: { id: string; url: string; title: string; mimeType?: string; size?: number }[];
 };
 
 function ProductCard({ product }: { product: ProductCardModel }) {
