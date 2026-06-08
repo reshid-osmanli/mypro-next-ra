@@ -57,7 +57,7 @@ export async function getGradeSubjectMap(): Promise<GradeCatalogItem[]> {
 }
 
 async function withSubjectMotionLogos<T extends { grade: string; subject: string }>(products: T[]) {
-  if (!products.length) return [] as Array<T & { subjectMotionLogo: string | null; additionalImages?: string[]; motionEnabled?: boolean; motionPosition?: string; motionScale?: number; motionRotation?: number; motionSrc?: string | null }>;
+  if (!products.length) return [] as Array<T & { subjectMotionLogo: string | null; additionalImages?: string[]; motionEnabled?: boolean; motionPosition?: string | null; motionScale?: number | null; motionRotation?: number | null; motionSrc?: string | null }>;
 
   const dbMap = await getDbGradeMap();
   const logoMap = new Map<string, string>();

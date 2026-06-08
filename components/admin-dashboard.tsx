@@ -35,9 +35,9 @@ type Product = ProductCardModel & {
   compareAt: number | null;
   sortOrder: number;
   motionEnabled?: boolean;
-  motionPosition?: string;
-  motionScale?: number;
-  motionRotation?: number;
+  motionPosition?: string | null;
+  motionScale?: number | null;
+  motionRotation?: number | null;
   motionSrc?: string | null;
   files?: { id: string; title: string; url: string; mimeType: string; size: number }[];
 };
