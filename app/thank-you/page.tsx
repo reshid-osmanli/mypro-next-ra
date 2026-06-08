@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, Download, RefreshCw } from "lucide-react";
 import { cookies } from "next/headers";
 import { OrderDownloadGate } from "@/components/order-download-gate";
 import { LocalizedText } from "@/components/site-preferences";
@@ -9,7 +9,7 @@ import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
-type ThankYouSearchParams = { order?: string; expired?: string };
+type ThankYouSearchParams = { order?: string; expired?: string; error?: string };
 
 export default async function ThankYouPage({ searchParams }: { searchParams?: Promise<ThankYouSearchParams> }) {
   const params = (await searchParams) ?? {};
@@ -37,6 +37,8 @@ export default async function ThankYouPage({ searchParams }: { searchParams?: Pr
       })
     : null;
 
+  const showError = Boolean(params.error);
+  const errorReason = params.error ? decodeURIComponent(params.error) : null;
   const expired = Boolean(params.expired) || Boolean(order?.downloadSessionUsedAt);
 
   return (
@@ -53,6 +55,20 @@ export default async function ThankYouPage({ searchParams }: { searchParams?: Pr
                 : { ar: "تم إنشاء الطلب بنجاح، وسيظهر المحتوى بعد اكتمال الدفع.", en: "The order was created successfully. Content appears after payment is completed." }}
           />
         </p>
+
+        {showError && errorReason && !order ? (
+          <div className="mt-4 rounded-lg border border-rose-200 bg-rose-50 p-5 text-sm text-rose-700">
+            <p className="mb-3">{errorReason}</p>
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="inline-flex items-center gap-2 rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700"
+            >
+              <RefreshCw size={16} />
+              <LocalizedText value={{ ar: "لم يتم التنزيل اضغط هنا للمحاولة مرة أخرى", en: "Download did not start. Click to retry." }} />
+            </button>
+          </div>
+        ) : null}
 
         <MotionShowcase variant="download" compact className="mt-8 text-right" />
 
