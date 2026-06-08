@@ -33,36 +33,23 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Google Drive is not connected." }, { status: 409 });
   }
 
-  let orders: Awaited<ReturnType<typeof prisma.order.findMany>>;
-  try {
-    orders = await prisma.order.findMany({
-      where: { email, status: "paid", purchaseTrackingConsent: true },
-      include: {
-        items: {
-          include: {
-            product: {
-              include: { files: true }
-            }
+  const orders = await prisma.order.findMany({
+    where: { email, status: "paid", purchaseTrackingConsent: true },
+    include: {
+      items: {
+        include: {
+          product: {
+            include: { files: true }
           }
         }
       }
-    });
-  } catch (e) {
-    console.error("Failed to fetch orders:", e);
-    return NextResponse.json({ error: "Failed to fetch orders." }, { status: 500 });
-  }
+    }
+  });
 
-  let existing: { orderId: string; fileId: string }[];
-  try {
-    const existingRaw = await prisma.driveFileSync.findMany({
-      where: { email },
-      select: { orderId: true, fileId: true }
-    });
-    existing = existingRaw;
-  } catch (e) {
-    console.error("Failed to check existing syncs:", e);
-    return NextResponse.json({ error: "Failed to check existing file syncs." }, { status: 500 });
-  }
+  const existing = await prisma.driveFileSync.findMany({
+    where: { email },
+    select: { orderId: true, fileId: true }
+  });
   const syncedKeys = new Set(existing.map((item) => `${item.orderId}:${item.fileId}`));
 
   const pending = orders.flatMap((order) =>
@@ -89,24 +76,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Google Drive authentication failed. Please reconnect." }, { status: 401 });
   }
 
-  let folderId: string;
-  try {
-    folderId = await ensureKutubiDriveFolder(accessToken);
-  } catch (e) {
-    console.error("Failed to ensure Drive folder:", e);
-    return NextResponse.json({ error: "Failed to create Google Drive folder." }, { status: 500 });
-  }
-
+  const folderId = await ensureKutubiDriveFolder(accessToken);
   let uploaded = 0;
-  const failedFiles: string[] = [];
 
   for (const item of pending) {
     try {
       const stored = await readStoredFile(item.file);
-      if (!stored.data || stored.data.length === 0) {
-        failedFiles.push(item.file.title);
-        continue;
-      }
+      if (!stored.data || stored.data.length === 0) continue;
       const driveFile = await uploadBufferToDrive({
         accessToken,
         folderId,
@@ -126,22 +102,13 @@ export async function POST(req: NextRequest) {
       uploaded += 1;
     } catch (e) {
       console.error(`Failed to upload file ${item.file.title}:`, e);
-      failedFiles.push(item.file.title);
     }
   }
 
-  if (uploaded === 0 && failedFiles.length > 0) {
-    return NextResponse.json({ error: `Failed to upload files: ${failedFiles.join(", ")}` }, { status: 500 });
-  }
+  await prisma.googleDriveConnection.update({
+    where: { email },
+    data: { lastSyncedAt: new Date() }
+  }).catch((e) => console.error("Failed to update sync timestamp:", e));
 
-  try {
-    await prisma.googleDriveConnection.update({
-      where: { email },
-      data: { lastSyncedAt: new Date() }
-    });
-  } catch (e) {
-    console.error("Failed to update sync timestamp:", e);
-  }
-
-  return NextResponse.json({ ok: true, uploaded, skipped: existing.length, failed: failedFiles.length > 0 ? failedFiles : undefined });
+  return NextResponse.json({ ok: true, uploaded, skipped: existing.length });
 }
