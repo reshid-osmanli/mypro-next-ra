@@ -49,7 +49,13 @@ export default async function ProductDetailsPage({ params }: { params: Promise<{
               accentA={product.accentA}
               accentB={product.accentB}
               coverImage={product.coverImage}
+              additionalImages={product.additionalImages}
               subjectMotionLogo={product.subjectMotionLogo}
+              motionEnabled={(product as any).motionEnabled}
+              motionPosition={(product as any).motionPosition}
+              motionScale={(product as any).motionScale}
+              motionRotation={(product as any).motionRotation}
+              motionSrc={(product as any).motionSrc}
             />
           </div>
 

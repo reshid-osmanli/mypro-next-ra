@@ -36,6 +36,12 @@ const baseSchema = z.object({
   imageUrl: coverImageSchema,
   slug: z.string().trim().max(150).optional(),
   sortOrder: z.coerce.number().int().min(0).optional(),
+  additionalImages: z.array(z.string().trim().min(1).max(500)).optional(),
+  motionEnabled: z.boolean().optional(),
+  motionPosition: z.enum(["top-left", "top-right", "bottom-left", "bottom-right", "center"]).optional(),
+  motionScale: z.coerce.number().min(0.1).max(3).optional(),
+  motionRotation: z.coerce.number().min(-180).max(180).optional(),
+  motionSrc: coverImageSchema,
   files: z.array(fileSchema).default([])
 });
 
@@ -69,7 +75,10 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
   }
 
   const data = parsed.data;
-  const { files, compareAt, coverImage, imageUrl, ...rest } = data;
+  const { files, compareAt, coverImage, imageUrl, additionalImages, motionEnabled, motionPosition, motionScale, motionRotation, motionSrc, ...rest } = data;
+
+  const motionSrcNormalized = normalizeOptionalStoredUrl(motionSrc);
+  const additionalImagesNormalized = (additionalImages ?? []).filter(Boolean).map(normalizeOptionalStoredUrl).filter(Boolean) as string[];
 
   // Ensure a product cannot be published without at least one attached file
   if ((rest.status === "published" || data.status === "published")) {
@@ -93,6 +102,12 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
         ...rest,
         ...(typeof coverImage === "string" || typeof imageUrl === "string" ? { coverImage: normalizeOptionalStoredUrl(coverImage ?? imageUrl) } : {}),
         ...(typeof compareAt !== "undefined" ? { compareAt: compareAt && compareAt > 0 ? compareAt : null } : {}),
+        additionalImages: additionalImagesNormalized.length > 0 ? additionalImagesNormalized : [],
+        motionEnabled: motionEnabled ?? false,
+        motionPosition: motionEnabled ? (motionPosition ?? "top-right") : null,
+        motionScale: motionEnabled ? (motionScale ?? 1) : null,
+        motionRotation: motionEnabled ? (motionRotation ?? 0) : null,
+        motionSrc: motionEnabled ? (motionSrcNormalized ?? null) : null,
         ...(files?.length
           ? {
               files: {

@@ -35,6 +35,12 @@ const createSchema = z.object({
   imageUrl: coverImageSchema,
   slug: z.string().trim().max(150).optional(),
   sortOrder: z.coerce.number().int().min(0).optional(),
+  additionalImages: z.array(z.string().trim().min(1).max(500)).optional(),
+  motionEnabled: z.boolean().optional(),
+  motionPosition: z.enum(["top-left", "top-right", "bottom-left", "bottom-right", "center"]).optional(),
+  motionScale: z.coerce.number().min(0.1).max(3).optional(),
+  motionRotation: z.coerce.number().min(-180).max(180).optional(),
+  motionSrc: coverImageSchema,
   files: z.array(fileSchema).min(1, "يرجى إرفاق ملف رقمي واحد على الأقل بالمنتج")
 });
 
@@ -80,6 +86,8 @@ export async function POST(req: NextRequest) {
 
   const data = parsed.data;
   const coverImage = normalizeOptionalStoredUrl(data.coverImage ?? data.imageUrl);
+  const motionSrc = normalizeOptionalStoredUrl(data.motionSrc);
+  const additionalImages = (data.additionalImages ?? []).filter(Boolean).map(normalizeOptionalStoredUrl).filter(Boolean) as string[];
   const slug = await createUniqueSlug(data.slug || data.title);
 
   try {
@@ -104,6 +112,12 @@ export async function POST(req: NextRequest) {
         accentB: data.accentB ?? "#5f1029",
         coverImage,
         sortOrder: data.sortOrder ?? 0,
+        additionalImages: additionalImages.length > 0 ? additionalImages : [],
+        motionEnabled: data.motionEnabled ?? false,
+        motionPosition: data.motionEnabled ? data.motionPosition ?? "top-right" : null,
+        motionScale: data.motionEnabled ? data.motionScale ?? 1 : null,
+        motionRotation: data.motionEnabled ? data.motionRotation ?? 0 : null,
+        motionSrc: data.motionEnabled ? motionSrc ?? null : null,
         ...(data.files.length
           ? {
               files: {

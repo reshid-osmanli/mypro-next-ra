@@ -26,6 +26,7 @@ export type ProductCardModel = {
   accentA: string;
   accentB: string;
   coverImage?: string | null;
+  additionalImages?: string[];
   subjectMotionLogo?: string | null;
   files?: { id: string; url: string; title: string; mimeType?: string; size?: number }[];
 };
@@ -62,7 +63,13 @@ function ProductCard({ product }: { product: ProductCardModel }) {
             accentA={product.accentA}
             accentB={product.accentB}
             coverImage={product.coverImage}
+            additionalImages={product.additionalImages}
             subjectMotionLogo={product.subjectMotionLogo}
+            motionEnabled={product.motionEnabled}
+            motionPosition={product.motionPosition as any}
+            motionScale={product.motionScale}
+            motionRotation={product.motionRotation}
+            motionSrc={product.motionSrc}
           />
         </div>
       </div>

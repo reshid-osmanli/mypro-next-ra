@@ -4,6 +4,9 @@ import type { CSSProperties } from "react";
 import { FileText, Layers3, PlayCircle, Presentation, ShieldCheck } from "lucide-react";
 import { useSitePreferences } from "./site-preferences";
 import { SubjectMotionLogo } from "./subject-motion-logo";
+import { KutubiLogoMotion } from "./kutubi-logo-motion";
+
+type MotionPosition = "top-left" | "top-right" | "bottom-left" | "bottom-right" | "center";
 
 type ProductVisualProps = {
   title: string;
@@ -14,8 +17,14 @@ type ProductVisualProps = {
   accentA?: string;
   accentB?: string;
   coverImage?: string | null;
+  additionalImages?: string[];
   subjectMotionLogo?: string | null;
   compact?: boolean;
+  motionEnabled?: boolean;
+  motionPosition?: MotionPosition;
+  motionScale?: number;
+  motionRotation?: number;
+  motionSrc?: string | null;
 };
 
 function ProductVisual({
@@ -27,8 +36,14 @@ function ProductVisual({
   accentA = "#8a1538",
   accentB = "#0f766e",
   coverImage,
+  additionalImages = [],
   subjectMotionLogo,
-  compact = false
+  compact = false,
+  motionEnabled = false,
+  motionPosition = "top-right",
+  motionScale = 1,
+  motionRotation = 0,
+  motionSrc
 }: ProductVisualProps) {
   const { text } = useSitePreferences();
   const style = {
@@ -36,20 +51,54 @@ function ProductVisual({
     "--accent-b": accentB
   } as CSSProperties;
 
-  if (coverImage) {
+  function getMotionPositionClasses() {
+    const positions: Record<MotionPosition, string> = {
+      "top-left": "top-3 left-3",
+      "top-right": "top-3 right-3",
+      "bottom-left": "bottom-3 left-3",
+      "bottom-right": "bottom-3 right-3",
+      "center": "top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+    };
+    return positions[motionPosition] ?? "top-3 right-3";
+  }
+
+  function getMotionStyle(): CSSProperties {
+    return {
+      "--motion-scale": motionScale,
+      "--motion-rotation": `${motionRotation}deg`,
+      transform: `scale(var(--motion-scale, 1)) rotate(var(--motion-rotation, 0))`
+    } as CSSProperties;
+  }
+
+  if (coverImage || additionalImages.length > 0) {
+    const allImages = [coverImage, ...additionalImages].filter(Boolean) as string[];
     return (
       <div className="relative h-full w-full overflow-hidden bg-[#f8f5ef] dark:bg-[#101826]" style={style}>
-        <div className="absolute inset-x-0 top-0 z-20 h-1.5 bg-[var(--accent-a)]" />
+        <div className="absolute inset-x-0 top-0 z-10 h-1.5 bg-[var(--accent-a)]" />
         <div className="absolute inset-0 opacity-[0.18] [background-image:linear-gradient(135deg,rgba(15,23,42,0.12)_1px,transparent_1px),linear-gradient(45deg,rgba(138,21,56,0.08)_1px,transparent_1px)] [background-size:28px_28px]" />
         <div className="absolute inset-x-0 bottom-0 h-28" style={{ background: `linear-gradient(0deg, ${accentB}18, transparent)` }} />
 
-        <div className="absolute inset-3 overflow-hidden border border-white/80 bg-white/95 shadow-[0_24px_60px_rgba(60,32,18,0.16)] sm:inset-5">
-          <img src={coverImage} alt={title} className="h-full w-full object-contain p-2 sm:p-3" />
+        <div className="absolute inset-3 flex flex-col gap-3 overflow-hidden border border-white/80 bg-white/95 shadow-[0_24px_60px_rgba(60,32,18,0.16)] sm:inset-5">
+          {allImages.length > 0 ? (
+            <div className="grid gap-2" style={{ gridTemplateRows: allImages.length > 1 ? '1fr 1fr' : '1fr' }}>
+              {allImages.map((img, index) => (
+                <img key={index} src={img} alt={`${title} ${index + 1}`} className="w-full object-contain p-1 sm:p-2" />
+              ))}
+            </div>
+          ) : (
+            <img src={coverImage} alt={title} className="h-full w-full object-contain p-2 sm:p-3" />
+          )}
         </div>
 
-        <div className="absolute left-5 top-5 z-30">
-          <SubjectMotionLogo src={subjectMotionLogo} subject={subject} compact />
-        </div>
+        {motionEnabled && motionSrc ? (
+          <div className={`absolute ${getMotionPositionClasses()} z-30 w-24 sm:w-28`} style={getMotionStyle()}>
+            <KutubiLogoMotion compact className="w-full" />
+          </div>
+        ) : (
+          <div className="absolute left-5 top-5 z-30">
+            <SubjectMotionLogo src={subjectMotionLogo} subject={subject} compact />
+          </div>
+        )}
 
         <div className="absolute right-5 top-5 z-30 inline-flex items-center gap-2 border border-white/80 bg-white/95 px-3 py-1.5 text-[11px] font-black text-zinc-800 shadow-[0_12px_28px_rgba(45,24,32,0.14)] backdrop-blur">
           <Presentation size={14} className="text-[var(--accent-a)]" />
@@ -67,7 +116,7 @@ function ProductVisual({
           </div>
         </div>
 
-        <div className="sweep-line absolute left-0 top-16 z-20 h-px w-2/3 bg-gradient-to-l from-transparent via-[var(--accent-b)] to-transparent" />
+        <div className="sweep-line absolute left-0 top-16 z-10 h-px w-2/3 bg-gradient-to-l from-transparent via-[var(--accent-b)] to-transparent" />
       </div>
     );
   }

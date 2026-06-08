@@ -9,30 +9,36 @@ datasource db {
 }
 
 model Product {
-  id           String       @id @default(cuid())
-  slug         String       @unique
-  title        String
-  excerpt      String
-  description  String
-  price        Int
-  compareAt    Int?
-  badge        String
-  grade        String
-  subject      String
-  category     String
-  format       String
-  pages        String
-  level        String
-  featured     Boolean      @default(false)
-  status       String       @default("published")
-  accentA      String       @default("#8a1538")
-  accentB      String       @default("#5f1029")
-  coverImage   String?
-  sortOrder    Int          @default(0)
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
-  files        ProductFile[]
-  orderItems   OrderItem[]
+  id              String       @id @default(cuid())
+  slug            String       @unique
+  title           String
+  excerpt         String
+  description     String
+  price           Int
+  compareAt       Int?
+  badge           String
+  grade           String
+  subject         String
+  category        String
+  format          String
+  pages           String
+  level           String
+  featured        Boolean      @default(false)
+  status          String       @default("published")
+  accentA         String       @default("#8a1538")
+  accentB         String       @default("#5f1029")
+  coverImage      String?
+  additionalImages String[]     @default([])
+  motionEnabled   Boolean      @default(false)
+  motionPosition  String?
+  motionScale     Float?       @default(1)
+  motionRotation  Float?       @default(0)
+  motionSrc       String?
+  sortOrder       Int          @default(0)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  files           ProductFile[]
+  orderItems      OrderItem[]
 }
 
 model ProductFile {

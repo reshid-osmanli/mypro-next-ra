@@ -34,6 +34,11 @@ type Product = ProductCardModel & {
   featured: boolean;
   compareAt: number | null;
   sortOrder: number;
+  motionEnabled?: boolean;
+  motionPosition?: string;
+  motionScale?: number;
+  motionRotation?: number;
+  motionSrc?: string | null;
   files?: { id: string; title: string; url: string; mimeType: string; size: number }[];
 };
 
@@ -121,6 +126,12 @@ type ProductFormState = {
   accentB: string;
   coverImage: string;
   sortOrder: number;
+  additionalImages: string[];
+  motionEnabled: boolean;
+  motionPosition: string;
+  motionScale: number;
+  motionRotation: number;
+  motionSrc: string;
 };
 
 type PageFormState = { grade: string; subject: string; title: string; intro: string; body: string; heroLabel: string; published: boolean };
@@ -158,7 +169,13 @@ const productDefaults: ProductFormState = {
   accentA: "#8a1538",
   accentB: "#0f766e",
   coverImage: "",
-  sortOrder: 0
+  sortOrder: 0,
+  additionalImages: [],
+  motionEnabled: false,
+  motionPosition: "top-right",
+  motionScale: 1,
+  motionRotation: 0,
+  motionSrc: ""
 };
 
 const pageDefaults: PageFormState = {
@@ -824,7 +841,32 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
 
   function startEditProduct(product: Product) {
     setEditingProductId(product.id);
-    setProductForm({ title: product.title, excerpt: product.excerpt, description: product.description, price: product.price, compareAt: product.compareAt ?? 0, badge: product.badge, grade: product.grade, subject: product.subject, category: product.category, format: product.format, pages: product.pages, level: product.level, featured: product.featured, status: product.status, accentA: product.accentA, accentB: product.accentB, coverImage: product.coverImage ?? "", sortOrder: product.sortOrder ?? 0 });
+    setProductForm({
+      title: product.title,
+      excerpt: product.excerpt,
+      description: product.description,
+      price: product.price,
+      compareAt: product.compareAt ?? 0,
+      badge: product.badge,
+      grade: product.grade,
+      subject: product.subject,
+      category: product.category,
+      format: product.format,
+      pages: product.pages,
+      level: product.level,
+      featured: product.featured,
+      status: product.status,
+      accentA: product.accentA,
+      accentB: product.accentB,
+      coverImage: product.coverImage ?? "",
+      sortOrder: product.sortOrder ?? 0,
+      additionalImages: product.additionalImages ?? [],
+      motionEnabled: product.motionEnabled ?? false,
+      motionPosition: product.motionPosition ?? "top-right",
+      motionScale: product.motionScale ?? 1,
+      motionRotation: product.motionRotation ?? 0,
+      motionSrc: product.motionSrc ?? ""
+    });
     setUploadedFiles(product.files?.map((f) => ({ id: f.id, title: f.title, url: f.url, mimeType: f.mimeType ?? "", size: f.size ?? 0 })) ?? []);
     setTab("products");
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -1029,6 +1071,63 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
     }
   }
 
+  async function uploadAdditionalImages(files: FileList | null) {
+    if (!files?.length) return;
+    const invalidFile = Array.from(files).find((file) => !isAllowedImageFile(file, true));
+    if (invalidFile) {
+      showMessage("يرجى اختيار صور بصيغة PNG أو JPG أو WEBP أو GIF فقط", "error");
+      return;
+    }
+    setBusy(true); clearMessage();
+    try {
+      const results: string[] = [];
+      for (const file of Array.from(files)) {
+        const formData = new FormData();
+        formData.append("file", file);
+        const res = await fetch("/api/admin/uploads", { method: "POST", body: formData });
+        const data = await res.json().catch(() => ({}));
+        const upload = requireUploadData(data, "فشل رفع الصورة الإضافية");
+        if (!res.ok) throw new Error("فشل رفع الصورة الإضافية");
+        if (upload.private || upload.kind !== "image") throw new Error("الصور الإضافية يجب أن تكون صور عامة قابلة للعرض");
+        results.push(upload.url);
+      }
+      setProductForm((current) => ({ ...current, additionalImages: [...current.additionalImages, ...results] }));
+      showMessage(`تم رفع ${results.length} صورة إضافية`, "success");
+    } catch (error) {
+      showMessage(error instanceof Error ? error.message : "حدث خطأ أثناء رفع الصور الإضافية", "error");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function uploadMotionSrc(file: File | null) {
+    if (!file) return;
+    if (!isAllowedImageFile(file, true)) {
+      showMessage("يرجى اختيار ملف لغو متحرك بصيغة صورة فقط", "error");
+      return;
+    }
+    if (file.size <= 0 || file.size > MAX_UPLOAD_BYTES) {
+      showMessage(`حجم ملف اللغو يجب ألا يتجاوز ${formatBytes(MAX_UPLOAD_BYTES)}`, "error");
+      return;
+    }
+    setBusy(true); clearMessage();
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/admin/uploads", { method: "POST", body: formData });
+      const data = await res.json().catch(() => ({}));
+      const upload = requireUploadData(data, "فشل رفع ملف اللغو");
+      if (!res.ok) throw new Error("فشل رفع ملف اللغو");
+      if (upload.private || upload.kind !== "image") throw new Error("ملف اللغو يجب أن يكون صورة عامة قابلة للعرض");
+      setProductForm((current) => ({ ...current, motionEnabled: true, motionSrc: upload.url }));
+      showMessage("تم رفع ملف اللغو المتحرك بنجاح", "success");
+    } catch (error) {
+      showMessage(error instanceof Error ? error.message : "حدث خطأ أثناء رفع ملف اللغو", "error");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function uploadSubjectMotionLogo(file: File | null) {
     if (!file) return;
     if (!isAllowedImageFile(file, true)) {
@@ -1176,6 +1275,97 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
                   <div className="mt-3 overflow-hidden rounded-2xl border border-qatar-100 bg-zinc-50">
                     <img src={productForm.coverImage} alt="معاينة صورة الغلاف" className="h-52 w-full object-cover" />
                   </div>
+                ) : null}
+              </label>
+              <label className="space-y-2 sm:col-span-2">
+                <span className="text-sm font-semibold text-zinc-700">الصور الإضافية (سيظهر تحت صورة الغلاف)</span>
+                <div className="flex flex-wrap gap-2">
+                  {productForm.additionalImages.map((img, index) => (
+                    <div key={index} className="relative">
+                      <img src={img} alt={`إضافية ${index + 1}`} className="h-16 w-16 rounded-lg object-cover border border-qatar-100" />
+                      <button
+                        type="button"
+                        onClick={() => setProductForm((c) => ({ ...c, additionalImages: c.additionalImages.filter((_, i) => i !== index) }))}
+                        className="absolute -top-1 -right-1 rounded-full bg-rose-100 p-0.5 text-rose-700"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-2xl border border-qatar-200 bg-white px-4 py-3 text-sm font-semibold text-qatar-800 transition hover:bg-qatar-50">
+                  <PlusCircle size={16} /> إضافة صور
+                  <input type="file" multiple accept=".png,.jpg,.jpeg,.webp,.gif" className="hidden" onChange={(e) => uploadAdditionalImages(e.target.files)} />
+                </label>
+              </label>
+              <label className="space-y-2 sm:col-span-2">
+                <span className="text-sm font-semibold text-zinc-700">اللغو المتحرك للمنتج</span>
+                <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-center">
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      checked={productForm.motionEnabled}
+                      onChange={(e) => setProductForm((c) => ({ ...c, motionEnabled: e.target.checked }))}
+                      className="rounded border-qatar-300"
+                    />
+                    <span className="text-xs text-zinc-600">تفعيل اللغو المتحرك</span>
+                  </div>
+                </div>
+                {productForm.motionEnabled ? (
+                  <>
+                    <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                      <label className="block space-y-2">
+                        <span className="text-xs font-semibold text-zinc-600">الموضع</span>
+                        <select
+                          className="input"
+                          value={productForm.motionPosition}
+                          onChange={(e) => setProductForm((c) => ({ ...c, motionPosition: e.target.value }))}
+                        >
+                          <option value="top-left">أعلى اليسار</option>
+                          <option value="top-right">أعلى اليمين</option>
+                          <option value="bottom-left">أسفل اليسار</option>
+                          <option value="bottom-right">أسفل اليمين</option>
+                          <option value="center">الوسط</option>
+                        </select>
+                      </label>
+                      <label className="block space-y-2">
+                        <span className="text-xs font-semibold text-zinc-600">الحجم (1 = أصلي)</span>
+                        <input
+                          type="number"
+                          step="0.1"
+                          min="0.1"
+                          max="3"
+                          className="input"
+                          value={productForm.motionScale}
+                          onChange={(e) => setProductForm((c) => ({ ...c, motionScale: Number(e.target.value) }))}
+                        />
+                      </label>
+                      <label className="block space-y-2">
+                        <span className="text-xs font-semibold text-zinc-600">الدوران (بالدرجات)</span>
+                        <input
+                          type="number"
+                          step="1"
+                          min="-180"
+                          max="180"
+                          className="input"
+                          value={productForm.motionRotation}
+                          onChange={(e) => setProductForm((c) => ({ ...c, motionRotation: Number(e.target.value) }))}
+                        />
+                      </label>
+                    </div>
+                    <div className="mt-3 grid gap-3 md:grid-cols-[1fr_auto] md:items-center">
+                      <input
+                        className="input"
+                        value={productForm.motionSrc}
+                        onChange={(e) => setProductForm((c) => ({ ...c, motionSrc: e.target.value }))}
+                        placeholder="سيستخدم اللغو الافتراضي إذا كان فارغاً"
+                      />
+                      <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-2xl border border-qatar-200 bg-white px-4 py-3 text-sm font-semibold text-qatar-800 transition hover:bg-qatar-50">
+                        <Sparkles size={16} /> رفع لغو
+                        <input type="file" accept={PUBLIC_IMAGE_ACCEPT} className="hidden" onChange={(e) => uploadMotionSrc(e.target.files?.[0] ?? null)} />
+                      </label>
+                    </div>
+                  </>
                 ) : null}
               </label>
             </div>
