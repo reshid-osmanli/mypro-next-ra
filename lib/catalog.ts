@@ -95,6 +95,7 @@ export async function getProducts(where?: { grade?: string; subject?: string; fe
 export async function getAllProducts() {
   try {
     const products = await prisma.product.findMany({
+      where: { status: "published" },
       include: { files: true },
       orderBy: [{ featured: "desc" }, { sortOrder: "desc" }, { createdAt: "desc" }]
     });
@@ -106,7 +107,10 @@ export async function getAllProducts() {
 }
 
 export async function getProductBySlug(slug: string) {
-  const product = await prisma.product.findUnique({ where: { slug }, include: { files: true } });
+  const product = await prisma.product.findUnique({
+    where: { slug, status: "published" },
+    include: { files: true }
+  });
   if (!product) return null;
   const [enriched] = await withSubjectMotionLogos([product]);
   return enriched;

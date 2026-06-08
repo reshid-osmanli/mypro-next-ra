@@ -50,7 +50,7 @@ export default async function HomePage() {
           {[
             { value: `${featured.length || 3}+`, label: { ar: "منتجات مميزة", en: "Featured products" } },
             { value: `${grades.length || 6}+`, label: { ar: "صفوف ومقررات", en: "Grades and courses" } },
-            { value: "50MB", label: { ar: "حد رفع لكل ملف", en: "Upload limit per file" } }
+            { value: "5GB+", label: { ar: "حد رفع لكل ملف", en: "Upload limit per file" } }
           ].map((item) => (
             <div key={item.value} className="rounded-lg border border-pearl-200 bg-white p-6 text-center shadow-sm">
               <div className="mx-auto mb-4 h-1 w-14 rounded-md bg-qatar-700" />

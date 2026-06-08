@@ -40,8 +40,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: `نوع الملف غير مسموح. الأنواع المقبولة: ${describeAllowedUploads()}` }, { status: 400 });
   }
 
-  if (file.size <= 0 || file.size > MAX_UPLOAD_BYTES) {
-    return NextResponse.json({ error: "حجم الملف غير مناسب. الحد الأقصى 50MB" }, { status: 400 });
+  if (file.size <= 0) {
+    return NextResponse.json({ error: "الملف فارغ. اختر ملفاً صالحاً." }, { status: 400 });
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());

@@ -8,7 +8,7 @@ export type UploadPolicy = {
   private: boolean;
 };
 
-export const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
+export const MAX_UPLOAD_BYTES = 5 * 1024 * 1024 * 1024; // 5GB for large digital projects
 
 export const UPLOAD_POLICIES: UploadPolicy[] = [
   {
