@@ -21,9 +21,9 @@ type ProductVisualProps = {
   subjectMotionLogo?: string | null;
   compact?: boolean;
   motionEnabled?: boolean;
-  motionPosition?: MotionPosition;
-  motionScale?: number;
-  motionRotation?: number;
+  motionPosition?: string | null;
+  motionScale?: number | null;
+  motionRotation?: number | null;
   motionSrc?: string | null;
 };
 
@@ -52,20 +52,20 @@ function ProductVisual({
   } as CSSProperties;
 
   function getMotionPositionClasses() {
-    const positions: Record<MotionPosition, string> = {
+    const positions: Record<string, string> = {
       "top-left": "top-3 left-3",
       "top-right": "top-3 right-3",
       "bottom-left": "bottom-3 left-3",
       "bottom-right": "bottom-3 right-3",
       "center": "top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
     };
-    return positions[motionPosition] ?? "top-3 right-3";
+    return motionPosition && motionPosition in positions ? positions[motionPosition] : "top-3 right-3";
   }
 
   function getMotionStyle(): CSSProperties {
     return {
-      "--motion-scale": motionScale,
-      "--motion-rotation": `${motionRotation}deg`,
+      "--motion-scale": motionScale ?? 1,
+      "--motion-rotation": `${motionRotation ?? 0}deg`,
       transform: `scale(var(--motion-scale, 1)) rotate(var(--motion-rotation, 0))`
     } as CSSProperties;
   }
@@ -85,9 +85,9 @@ function ProductVisual({
                 <img key={index} src={img} alt={`${title} ${index + 1}`} className="w-full object-contain p-1 sm:p-2" />
               ))}
             </div>
-          ) : (
-            <img src={coverImage} alt={title} className="h-full w-full object-contain p-2 sm:p-3" />
-          )}
+) : (
+             <img src={coverImage ?? ""} alt={title} className="h-full w-full object-contain p-2 sm:p-3" />
+           )}
         </div>
 
         {motionEnabled && motionSrc ? (

@@ -51,11 +51,11 @@ export default async function ProductDetailsPage({ params }: { params: Promise<{
               coverImage={product.coverImage}
               additionalImages={product.additionalImages}
               subjectMotionLogo={product.subjectMotionLogo}
-              motionEnabled={(product as any).motionEnabled}
-              motionPosition={(product as any).motionPosition}
-              motionScale={(product as any).motionScale}
-              motionRotation={(product as any).motionRotation}
-              motionSrc={(product as any).motionSrc}
+              motionEnabled={product.motionEnabled}
+              motionPosition={product.motionPosition}
+              motionScale={product.motionScale}
+              motionRotation={product.motionRotation}
+              motionSrc={product.motionSrc}
             />
           </div>
 

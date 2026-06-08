@@ -29,6 +29,11 @@ export type ProductCardModel = {
   additionalImages?: string[];
   subjectMotionLogo?: string | null;
   files?: { id: string; url: string; title: string; mimeType?: string; size?: number }[];
+  motionEnabled?: boolean;
+  motionPosition?: string | null;
+  motionScale?: number | null;
+  motionRotation?: number | null;
+  motionSrc?: string | null;
 };
 
 function ProductCard({ product }: { product: ProductCardModel }) {
@@ -54,7 +59,7 @@ function ProductCard({ product }: { product: ProductCardModel }) {
     >
       <div className="relative overflow-hidden bg-pearl-100">
         <div className="aspect-[1.35/1] sm:aspect-[1.45/1]">
-          <ProductVisual
+<ProductVisual
             title={product.title}
             subject={product.subject}
             category={product.category}
@@ -66,7 +71,7 @@ function ProductCard({ product }: { product: ProductCardModel }) {
             additionalImages={product.additionalImages}
             subjectMotionLogo={product.subjectMotionLogo}
             motionEnabled={product.motionEnabled}
-            motionPosition={product.motionPosition as any}
+            motionPosition={product.motionPosition}
             motionScale={product.motionScale}
             motionRotation={product.motionRotation}
             motionSrc={product.motionSrc}
