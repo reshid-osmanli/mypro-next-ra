@@ -82,9 +82,15 @@ export function PurchasesClient({ initialLibrary }: Props) {
       if (!res.ok) throw new Error(data?.error || text({ ar: "تعذر الحفظ في Google Drive", en: "Unable to save to Google Drive" }));
       const refreshed = await fetch("/api/purchases").then((response) => response.json());
       setLibrary(refreshed);
-      setMessage(text({ ar: `تم حفظ ${data.uploaded ?? 0} ملف في Google Drive.`, en: `${data.uploaded ?? 0} file(s) saved to Google Drive.` }));
+      const baseMsg = text({ ar: `تم حفظ ${data.uploaded ?? 0} ملف في Google Drive.`, en: `${data.uploaded ?? 0} file(s) saved to Google Drive.` });
+      const failedMsg = data.failed?.length ? text({ ar: ` فشل إرفاق ${data.failed.length} ملف.`, en: ` ${data.failed.length} file(s) failed to upload.` }) : "";
+      setMessage(baseMsg + failedMsg);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : text({ ar: "حدث خطأ غير متوقع", en: "An unexpected error occurred" }));
+      if (error instanceof Error && error.message.includes("429")) {
+        setMessage(text({ ar: "تم تجاوز حد التنزيلات. يرجى الانتظار 15 دقيقة ثم المحاولة مرة أخرى.", en: "Rate limit exceeded. Please wait 15 minutes and try again." }));
+      } else {
+        setMessage(error instanceof Error ? error.message : text({ ar: "حدث خطأ غير متوقع", en: "An unexpected error occurred" }));
+      }
     } finally {
       setBusy(false);
     }

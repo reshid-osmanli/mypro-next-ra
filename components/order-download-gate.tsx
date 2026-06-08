@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { Download, Loader2, ShieldCheck } from "lucide-react";
+import { useEffect, useRef, useState, useCallback } from "react";
+import { Download, Loader2, ShieldCheck, RefreshCw } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useSitePreferences } from "./site-preferences";
 import { useCart } from "./cart-provider";
@@ -30,58 +30,52 @@ export function OrderDownloadGate() {
   const [completed, setCompleted] = useState(false);
   const [downloadName, setDownloadName] = useState("");
 
+  const runDownload = useCallback(async () => {
+    try {
+      const res = await fetch("/api/order/download-package", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" }
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.error || text({ ar: "تعذر تجهيز التنزيل", en: "Unable to prepare the download" }));
+      }
+
+      const blob = await res.blob();
+      if (blob.size === 0) {
+        throw new Error(text({ ar: "الملف فارغ أو تالف", en: "File is empty or corrupted" }));
+      }
+
+      const name = safeDownloadName(filenameFromHeader(res.headers.get("X-Kutubi-Download-Name")));
+      const objectUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = objectUrl;
+      a.download = name;
+      a.rel = "noreferrer noopener";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+
+      clearCart();
+      setDownloadName(name);
+      setCompleted(true);
+      window.setTimeout(() => router.replace("/"), 900);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : text({ ar: "تعذر تجهيز التنزيل", en: "Unable to prepare the download" }));
+    } finally {
+      setLoading(false);
+    }
+  }, [clearCart, router, text]);
+
   useEffect(() => {
     if (startedRef.current) return;
     startedRef.current = true;
-
-    let cancelled = false;
-
-    const run = async () => {
-      try {
-        const res = await fetch("/api/order/download-package", {
-          method: "POST",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" }
-        });
-
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-          throw new Error(data?.error || text({ ar: "تعذر تجهيز التنزيل", en: "Unable to prepare the download" }));
-        }
-
-        const blob = await res.blob();
-        if (cancelled) return;
-
-        const name = safeDownloadName(filenameFromHeader(res.headers.get("X-Kutubi-Download-Name")));
-        const objectUrl = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = objectUrl;
-        a.download = name;
-        a.rel = "noreferrer noopener";
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
-
-        clearCart();
-        setDownloadName(name);
-        setCompleted(true);
-        window.setTimeout(() => router.replace("/"), 900);
-      } catch (err) {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : text({ ar: "تعذر تجهيز التنزيل", en: "Unable to prepare the download" }));
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
-
-    void run();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [clearCart, router, text]);
+    void runDownload();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (loading) {
     return (
@@ -95,7 +89,26 @@ export function OrderDownloadGate() {
   }
 
   if (error) {
-    return <div className="mt-6 rounded-lg border border-rose-200 bg-rose-50 p-5 text-sm text-rose-700">{error}</div>;
+    return (
+      <div className="mt-6 space-y-3">
+        <div className="rounded-lg border border-rose-200 bg-rose-50 p-5 text-sm text-rose-700">
+          {error}
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            setLoading(true);
+            setError("");
+            startedRef.current = false;
+            void runDownload();
+          }}
+          className="btn-primary inline-flex items-center gap-2 text-sm"
+        >
+          <RefreshCw size={16} />
+          {text({ ar: "لم يتم تنزيل الملف اضغط هنا لعمل التنزيل مرة أخرى", en: "Download did not start. Click here to retry." })}
+        </button>
+      </div>
+    )
   }
 
   return (
