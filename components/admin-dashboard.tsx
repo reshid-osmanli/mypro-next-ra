@@ -1102,46 +1102,12 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
       showMessage("تم رفع صورة الغلاف بنجاح", "success");
     } catch (error) {
       showMessage(error instanceof Error ? error.message : "حدث خطأ أثناء رفع صورة الغلاف", "error");
-    } finally {
-      setBusy(false);
-    }
+  } finally {
+    setBusy(false);
+  }
   }
 
-  async function uploadAdditionalImages(files: FileList | null) {
-    if (!files?.length) return;
-    const invalidFile = Array.from(files).find((file) => !isAllowedImageFile(file, true));
-    if (invalidFile) {
-      showMessage("يرجى اختيار صور بصيغة PNG أو JPG أو WEBP أو GIF فقط", "error");
-      return;
-    }
-    setBusy(true); clearMessage();
-    try {
-      const results: string[] = [];
-      for (const file of Array.from(files)) {
-        const direct = await uploadFileDirect(file, false);
-        if (direct.url.includes("cloudinary") && direct.url.includes("/raw/")) {
-          throw new Error("الصور الإضافية يجب أن تكون صور عامة قابلة للعرض");
-        }
-        results.push(direct.url);
-      }
-      setProductForm((current) => ({ ...current, additionalImages: [...current.additionalImages, ...results] }));
-      showMessage(`تم رفع ${results.length} صورة إضافية`, "success");
-    } catch (error) {
-      showMessage(error instanceof Error ? error.message : "حدث خطأ أثناء رفع الصور الإضافية", "error");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function uploadMotionSrc(file: File | null) {
-    if (!file) return;
-    const validExtensions = /\.(?:png|jpe?g|webp|gif|mp4|webm|mov)$/i;
-    const validMimeTypes = ["image/png", "image/jpeg", "image/webp", "image/gif", "video/mp4", "video/webm", "video/quicktime"];
-    const mimeOk = validMimeTypes.includes(file.type) || validExtensions.test(file.name);
-    if (!mimeOk) {
-      showMessage("يرجى اختيار صورة أو فيديو للغو المتحرك", "error");
-      return;
-    }
+  async function handleCoverImageUpload(file: File) {
     if (file.size <= 0 || file.size > MAX_UPLOAD_BYTES) {
       showMessage(`حجم ملف اللغو يجب ألا يتجاوز ${formatBytes(MAX_UPLOAD_BYTES)}`, "error");
       return;
