@@ -1013,7 +1013,7 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
     finally { setBusy(false); }
   }
 
-  async function uploadFileDirect(file: File): Promise<{ url: string; mimeType: string; size: number }> {
+  async function uploadFileDirect(file: File, mustBePrivate = false): Promise<{ url: string; mimeType: string; size: number }> {
     const signedRes = await fetch("/api/admin/signed-upload", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -1034,8 +1034,13 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
       throw new Error(uploadResult.error?.message || "فشل رفع الملف مباشرة إلى Cloudinary");
     }
 
+    const url = uploadResult.secure_url;
+    if (mustBePrivate && !url.includes("cloudinary")) {
+      throw new Error("يجب أن ترفع الملفات الخاصة إلى التخزين الخاص");
+    }
+
     return {
-      url: uploadResult.secure_url,
+      url,
       mimeType: signedData.mimeType,
       size: uploadResult.bytes ?? file.size
     };
@@ -1052,23 +1057,8 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
     try {
       const results: typeof uploadedFiles = [];
       for (const file of Array.from(fileList)) {
-        if (file.size >= 45 * 1024 * 1024) {
-          showMessage(`جاري رفع ${file.name} (${formatBytes(file.size)}) مباشرة...`, "info");
-          const direct = await uploadFileDirect(file);
-          if (!direct.url.startsWith("/private-uploads/") && !direct.url.includes("cloudinary")) {
-            throw new Error("يجب أن ترفع الملفات الخاصة إلى التخزين الخاص");
-          }
-          results.push({ title: file.name, url: direct.url, mimeType: direct.mimeType, size: direct.size });
-        } else {
-          const formData = new FormData();
-          formData.append("file", file);
-          const res = await fetch("/api/admin/uploads", { method: "POST", body: formData });
-          const data = await res.json().catch(() => ({}));
-          const upload = requireUploadData(data, "فشل الرفع");
-          if (!res.ok) throw new Error("فشل الرفع");
-          if (!upload.private) throw new Error("مرفقات المنتج يجب أن تحفظ في التخزين الخاص");
-          results.push({ title: file.name, url: upload.url, mimeType: upload.mimeType, size: typeof upload.size === "number" ? upload.size : file.size });
-        }
+        const direct = await uploadFileDirect(file, true);
+        results.push({ title: file.name, url: direct.url, mimeType: direct.mimeType, size: direct.size });
       }
       setUploadedFiles((current) => [...current, ...results]);
       showMessage("تم رفع الملفات وربطها مؤقتًا بالمنتج القادم", "success");
@@ -1098,6 +1088,131 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
       showMessage("يرجى اختيار صورة غلاف بصيغة PNG أو JPG أو WEBP", "error");
       return;
     }
+    if (file.size <= 0 || file.size > MAX_UPLOAD_BYTES) {
+      showMessage(`حجم صورة الغلاف يجب ألا يتجاوز ${formatBytes(MAX_UPLOAD_BYTES)}`, "error");
+      return;
+    }
+    setBusy(true); clearMessage();
+    try {
+      const direct = await uploadFileDirect(file, false);
+      if (direct.url.includes("cloudinary") && direct.url.includes("/raw/")) {
+        throw new Error("صورة الغلاف يجب أن تكون صورة عامة قابلة للعرض");
+      }
+      setProductForm((current) => ({ ...current, coverImage: direct.url }));
+      showMessage("تم رفع صورة الغلاف بنجاح", "success");
+    } catch (error) {
+      showMessage(error instanceof Error ? error.message : "حدث خطأ أثناء رفع صورة الغلاف", "error");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function uploadAdditionalImages(files: FileList | null) {
+    if (!files?.length) return;
+    const invalidFile = Array.from(files).find((file) => !isAllowedImageFile(file, true));
+    if (invalidFile) {
+      showMessage("يرجى اختيار صور بصيغة PNG أو JPG أو WEBP أو GIF فقط", "error");
+      return;
+    }
+    setBusy(true); clearMessage();
+    try {
+      const results: string[] = [];
+      for (const file of Array.from(files)) {
+        const direct = await uploadFileDirect(file, false);
+        if (direct.url.includes("cloudinary") && direct.url.includes("/raw/")) {
+          throw new Error("الصور الإضافية يجب أن تكون صور عامة قابلة للعرض");
+        }
+        results.push(direct.url);
+      }
+      setProductForm((current) => ({ ...current, additionalImages: [...current.additionalImages, ...results] }));
+      showMessage(`تم رفع ${results.length} صورة إضافية`, "success");
+    } catch (error) {
+      showMessage(error instanceof Error ? error.message : "حدث خطأ أثناء رفع الصور الإضافية", "error");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function uploadMotionSrc(file: File | null) {
+    if (!file) return;
+    const validExtensions = /\.(?:png|jpe?g|webp|gif|mp4|webm|mov)$/i;
+    const validMimeTypes = ["image/png", "image/jpeg", "image/webp", "image/gif", "video/mp4", "video/webm", "video/quicktime"];
+    const mimeOk = validMimeTypes.includes(file.type) || validExtensions.test(file.name);
+    if (!mimeOk) {
+      showMessage("يرجى اختيار صورة أو فيديو للغو المتحرك", "error");
+      return;
+    }
+    if (file.size <= 0 || file.size > MAX_UPLOAD_BYTES) {
+      showMessage(`حجم ملف اللغو يجب ألا يتجاوز ${formatBytes(MAX_UPLOAD_BYTES)}`, "error");
+      return;
+    }
+    setBusy(true); clearMessage();
+    try {
+      const direct = await uploadFileDirect(file, false);
+      if (direct.url.includes("cloudinary") && direct.url.includes("/raw/")) {
+        throw new Error("ملف اللغو يجب أن يكون عامًا قابلًا للعرض");
+      }
+      setProductForm((current) => ({ ...current, motionEnabled: true, motionSrc: direct.url }));
+      showMessage("تم رفع ملف اللغو المتحرك بنجاح", "success");
+    } catch (error) {
+      showMessage(error instanceof Error ? error.message : "حدث خطأ أثناء رفع ملف اللغو", "error");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function uploadSubjectMotionLogo(file: File | null) {
+    if (!file) return;
+    const validExtensions = /\.(?:png|jpe?g|webp|gif|mp4|webm|mov)$/i;
+    const validMimeTypes = ["image/png", "image/jpeg", "image/webp", "image/gif", "video/mp4", "video/webm", "video/quicktime"];
+    const mimeOk = validMimeTypes.includes(file.type) || validExtensions.test(file.name);
+    if (!mimeOk) {
+      showMessage("يرجى اختيار صورة أو فيديو لشعار المادة", "error");
+      return;
+    }
+    if (file.size <= 0 || file.size > MAX_UPLOAD_BYTES) {
+      showMessage(`حجم شعار المادة يجب ألا يتجاوز ${formatBytes(MAX_UPLOAD_BYTES)}`, "error");
+      return;
+    }
+    setBusy(true); clearMessage();
+    try {
+      const direct = await uploadFileDirect(file, false);
+      if (direct.url.includes("cloudinary") && direct.url.includes("/raw/")) {
+        throw new Error("شعار المادة يجب أن يكون عامًا قابلًا للعرض");
+      }
+      setSubjectForm((current) => ({ ...current, motionLogo: direct.url }));
+      showMessage("تم رفع شعار المادة المتحرك بنجاح", "success");
+    } catch (error) {
+      showMessage(error instanceof Error ? error.message : "حدث خطأ أثناء رفع شعار المادة", "error");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function uploadLogo(file: File | null) {
+    if (!file) return;
+    const validExtensions = /\.(?:png|jpe?g|webp|gif|mp4|webm|mov)$/i;
+    const validMimeTypes = ["image/png", "image/jpeg", "image/webp", "image/gif", "video/mp4", "video/webm", "video/quicktime"];
+    const mimeOk = validMimeTypes.includes(file.type) || validExtensions.test(file.name);
+    if (!mimeOk) {
+      showMessage("يرجى اختيار صورة أو فيديو لشعار الموقع", "error");
+      return;
+    }
+    if (file.size <= 0 || file.size > MAX_UPLOAD_BYTES) {
+      showMessage(`حجم شعار الموقع يجب ألا يتجاوز ${formatBytes(MAX_UPLOAD_BYTES)}`, "error");
+      return;
+    }
+    setBusy(true); clearMessage();
+    try {
+      const direct = await uploadFileDirect(file, false);
+      setSettingsForm((current) => ({ ...current, logoUrl: direct.url }));
+      showMessage("تم رفع شعار الموقع بنجاح", "success");
+    } catch (error) {
+      showMessage(error instanceof Error ? error.message : "حدث خطأ أثناء رفع شعار الموقع", "error");
+    } finally {
+      setBusy(false);
+    }
+  }
     if (file.size <= 0 || file.size > MAX_UPLOAD_BYTES) {
       showMessage(`حجم صورة الغلاف يجب ألا يتجاوز ${formatBytes(MAX_UPLOAD_BYTES)}`, "error");
       return;
