@@ -55,6 +55,13 @@ export const UPLOAD_POLICIES: UploadPolicy[] = [
     extensions: [".png", ".jpg", ".jpeg", ".webp", ".gif"],
     mimeTypes: ["image/png", "image/jpeg", "image/webp", "image/gif"],
     private: false
+  },
+  {
+    kind: "image",
+    label: "فيديو الشعار",
+    extensions: [".mp4", ".webm", ".mov"],
+    mimeTypes: ["video/mp4", "video/webm", "video/quicktime"],
+    private: false
   }
 ];
 
@@ -107,7 +114,10 @@ export function preferredUploadMimeType(policy: UploadPolicy, fileName: string, 
     ".jpg": "image/jpeg",
     ".jpeg": "image/jpeg",
     ".webp": "image/webp",
-    ".gif": "image/gif"
+    ".gif": "image/gif",
+    ".mp4": "video/mp4",
+    ".webm": "video/webm",
+    ".mov": "video/quicktime"
   };
 
   return byExtension[extension] ?? policy.mimeTypes[0];
@@ -128,7 +138,7 @@ export function isSafeCloudinaryStoredUrl(url: string) {
       !parsed.search &&
       !parsed.hash &&
       pathParts.length >= 5 &&
-      ["image", "raw"].includes(resourceType) &&
+      ["image", "raw", "video"].includes(resourceType) &&
       deliveryType === "upload"
     );
   } catch {
@@ -211,12 +221,15 @@ export function hasValidUploadSignature(bytes: Uint8Array, fileName: string) {
   if ([".doc", ".ppt", ".pps", ".xls"].includes(extension)) {
     return startsWith(bytes, [0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]);
   }
+  if ([".mp4", ".webm", ".mov"].includes(extension)) {
+    return bytes.length >= 12;
+  }
 
   return false;
 }
 
 export function describeAllowedUploads() {
-  return "PDF, PPT, PPTX, PPSX, DOC, DOCX, XLS, XLSX, PNG, JPG, WEBP, GIF";
+  return "PDF, PPT, PPTX, PPSX, DOC, DOCX, XLS, XLSX, PNG, JPG, WEBP, GIF, MP4, WEBM, MOV";
 }
 
 export function describeAllowedPrivateUploads() {

@@ -11,6 +11,7 @@ export type SiteSettings = {
   checkoutNote: string;
   primaryColor: string;
   secondaryColor: string;
+  logoUrl: string | null;
 };
 
 export const siteSettingDefaults: SiteSettings = {
@@ -24,7 +25,8 @@ export const siteSettingDefaults: SiteSettings = {
     "واجهة عربية أنيقة مع متجر واضح، مكتبة مرتبة حسب الصف والمادة، ولوحة إدارة آمنة لإضافة المنتجات والملفات والأسعار وصور الأغلفة.",
   checkoutNote: "الملفات الرقمية تُسلّم مباشرة بعد الدفع عبر روابط تحميل مؤقتة وآمنة.",
   primaryColor: "#8a1538",
-  secondaryColor: "#0f766e"
+  secondaryColor: "#0f766e",
+  logoUrl: null
 };
 
 function normalizeSettings(rows: { key: string; value: string }[]): SiteSettings {

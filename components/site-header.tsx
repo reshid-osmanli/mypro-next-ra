@@ -17,6 +17,7 @@ const navItems = [
 
 type SiteHeaderProps = {
   brandName?: string;
+  logoUrl?: string | null;
 };
 
 const copy: Record<string, LocalizedTextValue> = {
@@ -28,7 +29,7 @@ const copy: Record<string, LocalizedTextValue> = {
   language: { ar: "تغيير اللغة", en: "Change language" }
 };
 
-export function SiteHeader({ brandName = "موقع كُتبي" }: SiteHeaderProps) {
+export function SiteHeader({ brandName = "موقع كُتبي", logoUrl = null }: SiteHeaderProps) {
   const { language, theme, text, toggleLanguage, toggleTheme } = useSitePreferences();
   const { data: session, status } = useSession();
   const isAuthenticated = status === "authenticated" && Boolean(session?.user?.email);
@@ -38,7 +39,22 @@ export function SiteHeader({ brandName = "موقع كُتبي" }: SiteHeaderProp
       <div className="h-1 bg-qatar-700" />
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 lg:px-8">
         <Link href="/" className="flex min-w-0 items-center gap-3">
-          <KutubiLogoMotion compact className="shrink-0" />
+          {logoUrl ? (
+            logoUrl.match(/\.(mp4|webm|mov)(\?|$)/i) ? (
+              <video
+                src={logoUrl}
+                className="h-10 w-10 shrink-0 rounded-lg object-cover"
+                muted
+                loop
+                playsInline
+                autoPlay
+              />
+            ) : (
+              <img src={logoUrl} alt="logo" className="h-10 w-10 shrink-0 rounded-lg object-cover" />
+            )
+          ) : (
+            <KutubiLogoMotion compact className="shrink-0" />
+          )}
           <div className="min-w-0 leading-tight">
             <div className="truncate text-sm font-black text-zinc-950">{brandName}</div>
             <div className="hidden text-[11px] font-semibold text-zinc-500 sm:block">{text(copy.subtitle)}</div>

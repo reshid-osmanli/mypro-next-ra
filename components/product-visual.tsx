@@ -79,26 +79,37 @@ function ProductVisual({
         <div className="absolute inset-x-0 bottom-0 h-28" style={{ background: `linear-gradient(0deg, ${accentB}18, transparent)` }} />
 
         <div className="absolute inset-3 flex flex-col gap-3 overflow-hidden border border-white/80 bg-white/95 shadow-[0_24px_60px_rgba(60,32,18,0.16)] sm:inset-5">
-          {allImages.length > 0 ? (
-            <div className="grid gap-2" style={{ gridTemplateRows: allImages.length > 1 ? '1fr 1fr' : '1fr' }}>
-              {allImages.map((img, index) => (
-                <img key={index} src={img} alt={`${title} ${index + 1}`} className="w-full object-contain p-1 sm:p-2" />
-              ))}
-            </div>
-) : (
-             <img src={coverImage ?? ""} alt={title} className="h-full w-full object-contain p-2 sm:p-3" />
+{allImages.length > 0 ? (
+             <div className="grid gap-2" style={{ gridTemplateRows: allImages.length > 1 ? '1fr 1fr' : '1fr' }}>
+               {allImages.map((img, index) => (
+                 <img key={index} src={img} alt={`${title} ${index + 1}`} className="w-full object-contain p-1 sm:p-2" />
+               ))}
+             </div>
+           ) : (
+              <img src={coverImage ?? ""} alt={title} className="h-full w-full object-contain p-2 sm:p-3" />
            )}
-        </div>
+         </div>
 
-        {motionEnabled && motionSrc ? (
-          <div className={`absolute ${getMotionPositionClasses()} z-30 w-24 sm:w-28`} style={getMotionStyle()}>
-            <KutubiLogoMotion compact className="w-full" />
-          </div>
-        ) : (
-          <div className="absolute left-5 top-5 z-30">
-            <SubjectMotionLogo src={subjectMotionLogo} subject={subject} compact />
-          </div>
-        )}
+         {motionEnabled && motionSrc ? (
+           <div className={`absolute ${getMotionPositionClasses()} z-30 w-24 sm:w-28`} style={getMotionStyle()}>
+             {motionSrc.match(/\.(mp4|webm|mov)(\?|$)/i) ? (
+               <video
+                 src={motionSrc}
+                 className="h-full w-full object-contain"
+                 muted
+                 loop
+                 playsInline
+                 autoPlay
+               />
+             ) : (
+               <img src={motionSrc} alt="motion logo" className="h-full w-full object-contain" />
+             )}
+           </div>
+         ) : (
+           <div className="absolute left-5 top-5 z-30">
+             <SubjectMotionLogo src={subjectMotionLogo} subject={subject} compact />
+           </div>
+         )}
 
         <div className="absolute right-5 top-5 z-30 inline-flex items-center gap-2 border border-white/80 bg-white/95 px-3 py-1.5 text-[11px] font-black text-zinc-800 shadow-[0_12px_28px_rgba(45,24,32,0.14)] backdrop-blur">
           <Presentation size={14} className="text-[var(--accent-a)]" />
@@ -135,7 +146,19 @@ function ProductVisual({
       </div>
       <div className="sweep-line absolute left-0 top-16 h-px w-2/3 bg-gradient-to-l from-transparent via-[var(--accent-b)] to-transparent" />
       <div className="absolute left-4 top-4 z-20 flex max-w-32 flex-col items-start gap-2">
-        <SubjectMotionLogo src={subjectMotionLogo} subject={subject} compact />
+        {subjectMotionLogo ? (
+          subjectMotionLogo.match(/\.(mp4|webm|mov)(\?|$)/i) ? (
+            <video
+              src={subjectMotionLogo}
+              className="h-11 w-11 object-cover"
+              muted
+              loop
+              playsInline
+            />
+          ) : (
+            <img src={subjectMotionLogo} alt={subject} className="h-11 w-11 object-cover" />
+          )
+        ) : null}
         {coverImage ? (
           <div className="overflow-hidden border border-white/75 bg-white/95 p-1 shadow-[0_16px_34px_rgba(45,24,32,0.18)] backdrop-blur sm:hidden">
             <img src={coverImage} alt={title} className="h-16 w-24 object-cover" />

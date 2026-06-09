@@ -68,6 +68,7 @@ type SiteSettings = {
   checkoutNote: string;
   primaryColor: string;
   secondaryColor: string;
+  logoUrl: string | null;
 };
 
 type AdminStats = {
@@ -138,7 +139,7 @@ type PageFormState = { grade: string; subject: string; title: string; intro: str
 type GradeFormState = { name: string; sortOrder: number };
 type SubjectFormState = { gradeId: string; name: string; motionLogo: string; sortOrder: number };
 
-const PUBLIC_IMAGE_ACCEPT = ".png,.jpg,.jpeg,.webp,.gif";
+const PUBLIC_IMAGE_ACCEPT = ".png,.jpg,.jpeg,.webp,.gif,.mp4,.webm,.mov";
 const COVER_IMAGE_MIME_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
 const PUBLIC_IMAGE_MIME_TYPES = new Set([...COVER_IMAGE_MIME_TYPES, "image/gif"]);
 
@@ -1102,8 +1103,11 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
 
   async function uploadMotionSrc(file: File | null) {
     if (!file) return;
-    if (!isAllowedImageFile(file, true)) {
-      showMessage("يرجى اختيار ملف لغو متحرك بصيغة صورة فقط", "error");
+    const validExtensions = /\.(?:png|jpe?g|webp|gif|mp4|webm|mov)$/i;
+    const validMimeTypes = ["image/png", "image/jpeg", "image/webp", "image/gif", "video/mp4", "video/webm", "video/quicktime"];
+    const mimeOk = validMimeTypes.includes(file.type) || validExtensions.test(file.name);
+    if (!mimeOk) {
+      showMessage("يرجى اختيار صورة أو فيديو للغو المتحرك", "error");
       return;
     }
     if (file.size <= 0 || file.size > MAX_UPLOAD_BYTES) {
@@ -1118,7 +1122,7 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
       const data = await res.json().catch(() => ({}));
       const upload = requireUploadData(data, "فشل رفع ملف اللغو");
       if (!res.ok) throw new Error("فشل رفع ملف اللغو");
-      if (upload.private || upload.kind !== "image") throw new Error("ملف اللغو يجب أن يكون صورة عامة قابلة للعرض");
+      if (upload.private) throw new Error("ملف اللغو يجب أن يكون عامًا قابلًا للعرض");
       setProductForm((current) => ({ ...current, motionEnabled: true, motionSrc: upload.url }));
       showMessage("تم رفع ملف اللغو المتحرك بنجاح", "success");
     } catch (error) {
@@ -1130,8 +1134,11 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
 
   async function uploadSubjectMotionLogo(file: File | null) {
     if (!file) return;
-    if (!isAllowedImageFile(file, true)) {
-      showMessage("يرجى اختيار صورة أو شعار متحرك بصيغة صورة فقط", "error");
+    const validExtensions = /\.(?:png|jpe?g|webp|gif|mp4|webm|mov)$/i;
+    const validMimeTypes = ["image/png", "image/jpeg", "image/webp", "image/gif", "video/mp4", "video/webm", "video/quicktime"];
+    const mimeOk = validMimeTypes.includes(file.type) || validExtensions.test(file.name);
+    if (!mimeOk) {
+      showMessage("يرجى اختيار صورة أو فيديو لشعار المادة", "error");
       return;
     }
     if (file.size <= 0 || file.size > MAX_UPLOAD_BYTES) {
@@ -1146,7 +1153,7 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
       const data = await res.json().catch(() => ({}));
       const upload = requireUploadData(data, "فشل رفع شعار المادة");
       if (!res.ok) throw new Error("فشل رفع شعار المادة");
-      if (upload.private || upload.kind !== "image") throw new Error("شعار المادة يجب أن يكون صورة عامة قابلة للعرض");
+      if (upload.private) throw new Error("شعار المادة يجب أن يكون عامًا قابلًا للعرض");
       setSubjectForm((current) => ({ ...current, motionLogo: upload.url }));
       showMessage("تم رفع شعار المادة المتحرك بنجاح", "success");
     } catch (error) {
@@ -1156,6 +1163,35 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
     }
   }
 
+  async function uploadLogo(file: File | null) {
+    if (!file) return;
+    const validExtensions = /\.(?:png|jpe?g|webp|gif|mp4|webm|mov)$/i;
+    const validMimeTypes = ["image/png", "image/jpeg", "image/webp", "image/gif", "video/mp4", "video/webm", "video/quicktime"];
+    const mimeOk = validMimeTypes.includes(file.type) || validExtensions.test(file.name);
+    if (!mimeOk) {
+      showMessage("يرجى اختيار صورة أو فيديو للشعار (PNG, JPG, GIF, MP4, WEBM, MOV)", "error");
+      return;
+    }
+    if (file.size <= 0 || file.size > MAX_UPLOAD_BYTES) {
+      showMessage(`حجم الشعار يجب ألا يتجاوز ${formatBytes(MAX_UPLOAD_BYTES)}`, "error");
+      return;
+    }
+    setBusy(true); clearMessage();
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/admin/uploads", { method: "POST", body: formData });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "فشل رفع الشعار");
+      if (data.private) throw new Error("الشعار يجب أن يكون عامًا قابلًا للعرض");
+      setSettingsForm((current) => ({ ...current, logoUrl: data.url }));
+      showMessage("تم رفع شعار الموقع بنجاح", "success");
+    } catch (error) {
+      showMessage(error instanceof Error ? error.message : "حدث خطأ أثناء رفع الشعار", "error");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function saveSettings() {
     setBusy(true); setMessage("");
@@ -1582,8 +1618,33 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
               <label className="space-y-2 sm:col-span-2"><span className="text-sm font-semibold text-zinc-700">سطر التمهيد</span><input className="input" value={settingsForm.heroEyebrow} onChange={(e) => setSettingsForm((c) => ({ ...c, heroEyebrow: e.target.value }))} /></label>
               <label className="space-y-2 sm:col-span-2"><span className="text-sm font-semibold text-zinc-700">عنوان البطل</span><input className="input" value={settingsForm.heroTitle} onChange={(e) => setSettingsForm((c) => ({ ...c, heroTitle: e.target.value }))} /></label>
               <label className="space-y-2 sm:col-span-2"><span className="text-sm font-semibold text-zinc-700">وصف البطل</span><textarea className="textarea" value={settingsForm.heroDescription} onChange={(e) => setSettingsForm((c) => ({ ...c, heroDescription: e.target.value }))} /></label>
-              <label className="space-y-2 sm:col-span-2"><span className="text-sm font-semibold text-zinc-700">ملاحظة الدفع</span><input className="input" value={settingsForm.checkoutNote} onChange={(e) => setSettingsForm((c) => ({ ...c, checkoutNote: e.target.value }))} /></label>
-              <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">لون أساسي</span><input className="input" value={settingsForm.primaryColor} onChange={(e) => setSettingsForm((c) => ({ ...c, primaryColor: e.target.value }))} /></label>
+<label className="space-y-2 sm:col-span-2"><span className="text-sm font-semibold text-zinc-700">ملاحظة الدفع</span><input className="input" value={settingsForm.checkoutNote} onChange={(e) => setSettingsForm((c) => ({ ...c, checkoutNote: e.target.value }))} /></label>
+               <label className="space-y-2 sm:col-span-2">
+                 <span className="text-sm font-semibold text-zinc-700">شعار الموقع (صور أو فيديو)</span>
+                 <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-center">
+                   <input
+                     className="input"
+                     value={settingsForm.logoUrl ?? ""}
+                     onChange={(e) => setSettingsForm((c) => ({ ...c, logoUrl: e.target.value }))}
+                     placeholder="/uploads/logo.png أو رابط Cloudinary"
+                   />
+                   <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-2xl border border-qatar-200 bg-white px-4 py-3 text-sm font-semibold text-qatar-800 transition hover:bg-qatar-50">
+                     <Sparkles size={16} /> رفع شعار
+                     <input type="file" accept={PUBLIC_IMAGE_ACCEPT} className="hidden" onChange={(e) => uploadLogo(e.target.files?.[0] ?? null)} />
+                   </label>
+                 </div>
+                 {settingsForm.logoUrl ? (
+                   <div className="mt-3 inline-flex items-center gap-3 rounded-2xl border border-qatar-100 bg-qatar-50/60 p-3">
+                     {settingsForm.logoUrl.match(/\.(mp4|webm|mov)(\?|$)/i) ? (
+                       <video src={settingsForm.logoUrl} className="h-14 w-14 rounded-xl object-cover shadow-sm" muted loop playsInline />
+                     ) : (
+                       <img src={settingsForm.logoUrl} alt="معاينة شعار الموقع" className="h-14 w-14 rounded-xl object-cover shadow-sm" />
+                     )}
+                     <span className="text-xs font-bold leading-6 text-qatar-800">سيظهر هذا الشعار في الهيدر.</span>
+                   </div>
+                 ) : null}
+               </label>
+               <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">لون أساسي</span><input className="input" value={settingsForm.primaryColor} onChange={(e) => setSettingsForm((c) => ({ ...c, primaryColor: e.target.value }))} /></label>
               <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">لون ثانوي</span><input className="input" value={settingsForm.secondaryColor} onChange={(e) => setSettingsForm((c) => ({ ...c, secondaryColor: e.target.value }))} /></label>
             </div>
             <div className="mt-5 flex flex-wrap gap-3">

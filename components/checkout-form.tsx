@@ -27,6 +27,8 @@ const providers = [
   }
 ];
 
+type AvailableVoucher = { code: string; amount: number };
+
 export function CheckoutForm() {
   const formRef = useRef<HTMLFormElement>(null);
   const { data: session } = useSession();
@@ -44,6 +46,8 @@ export function CheckoutForm() {
   const [voucherCode, setVoucherCode] = useState("");
   const [voucherDiscount, setVoucherDiscount] = useState<number | null>(null);
   const [voucherError, setVoucherError] = useState<string | null>(null);
+  const [availableVouchers, setAvailableVouchers] = useState<AvailableVoucher[]>([]);
+  const [showVoucherSelector, setShowVoucherSelector] = useState(false);
   const [purchaseTrackingConsent, setPurchaseTrackingConsent] = useState(false);
   const signedInEmail = session?.user?.email?.trim() ?? "";
 
@@ -53,29 +57,48 @@ export function CheckoutForm() {
   }, [customerName, session?.user?.name, signedInEmail]);
 
   useEffect(() => {
-    if (signedInEmail) setPurchaseTrackingConsent(true);
+    if (signedInEmail) {
+      setPurchaseTrackingConsent(true);
+      loadAvailableVouchers();
+    }
   }, [signedInEmail]);
+
+  async function loadAvailableVouchers() {
+    try {
+      const res = await fetch("/api/vouchers/available");
+      const data = await res.json();
+      if (res.ok && Array.isArray(data.vouchers)) {
+        setAvailableVouchers(data.vouchers);
+      }
+    } catch {
+      setAvailableVouchers([]);
+    }
+  }
 
   const finalTotal = useMemo(() => {
     return Math.max(0, total - (voucherDiscount ?? 0));
   }, [total, voucherDiscount]);
 
-  async function validateVoucher() {
-    if (!voucherCode.trim() || !signedInEmail) return;
+  async function validateVoucher(code?: string) {
+    const codeToValidate = code ?? voucherCode.trim();
+    if (!codeToValidate || !signedInEmail) return;
     setValidatingVoucher(true);
     setVoucherError(null);
     try {
       const response = await fetch("/api/vouchers/validate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: voucherCode.trim() })
+        body: JSON.stringify({ code: codeToValidate })
       });
       const data = await response.json();
       if (!response.ok || !data.valid) {
         setVoucherError(data.error || text({ ar: "القسيمة غير صالحة", en: "Invalid voucher" }));
         setVoucherDiscount(null);
+        setVoucherCode("");
       } else {
         setVoucherDiscount(data.voucher.amount);
+        setVoucherCode(codeToValidate);
+        setShowVoucherSelector(false);
       }
     } catch (error) {
       setVoucherError(text({ ar: "فشل التحقق من القسيمة", en: "Failed to validate voucher" }));
@@ -190,28 +213,58 @@ export function CheckoutForm() {
       </label>
 
       <div className="space-y-3">
-        <p className="text-sm font-semibold text-zinc-700">{text({ ar: "قسيمة الخصم", en: "Voucher code" })}</p>
-        <div className="flex items-start gap-2">
-          <div className="relative flex-1">
-            <Ticket size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400" />
-            <input
-              type="text"
-              className="input pr-12"
-              placeholder={text({ ar: "أدخل القسيمة هنا", en: "Enter voucher code" })}
-              value={voucherCode}
-              onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
-              disabled={!signedInEmail || !!voucherDiscount}
-            />
-          </div>
-          <button
-            type="button"
-            onClick={validateVoucher}
-            disabled={!voucherCode.trim() || !signedInEmail || !!voucherDiscount || validatingVoucher}
-            className="btn-secondary disabled:opacity-60"
-          >
-            {validatingVoucher ? <Loader2 size={16} className="animate-spin" /> : <Gift size={16} />}
-          </button>
+        <div className="flex items-center justify-between">
+          <p className="text-sm font-semibold text-zinc-700">{text({ ar: "قسيمة الخصم", en: "Voucher code" })}</p>
+          {availableVouchers.length > 0 && !voucherDiscount && signedInEmail ? (
+            <button
+              type="button"
+              onClick={() => setShowVoucherSelector(!showVoucherSelector)}
+              className="text-xs font-bold text-qatar-700 hover:underline"
+            >
+              {text({ ar: "اختر قسيمة", en: "Select voucher" })}
+            </button>
+          ) : null}
         </div>
+
+        {showVoucherSelector ? (
+          <div className="max-h-40 overflow-y-auto rounded-lg border border-qatar-100 bg-white p-2">
+            {availableVouchers.map((voucher) => (
+              <button
+                key={voucher.code}
+                type="button"
+                onClick={() => validateVoucher(voucher.code)}
+                disabled={validatingVoucher}
+                className="flex w-full items-center justify-between rounded-md px-3 py-2 text-sm hover:bg-qatar-50 disabled:opacity-60"
+              >
+                <span className="font-mono text-zinc-900">{voucher.code}</span>
+                <span className="font-bold text-qatar-800">{currencyLabel(voucher.amount)}</span>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div className="flex items-start gap-2">
+            <div className="relative flex-1">
+              <Ticket size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400" />
+              <input
+                type="text"
+                className="input pr-12"
+                placeholder={text({ ar: "أدخل القسيمة هنا", en: "Enter voucher code" })}
+                value={voucherCode}
+                onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
+                disabled={!signedInEmail || !!voucherDiscount}
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => validateVoucher()}
+              disabled={!voucherCode.trim() || !signedInEmail || !!voucherDiscount || validatingVoucher}
+              className="btn-secondary disabled:opacity-60"
+            >
+              {validatingVoucher ? <Loader2 size={16} className="animate-spin" /> : <Gift size={16} />}
+            </button>
+          </div>
+        )}
+
         {voucherError ? (
           <p className="text-sm text-rose-600">{voucherError}</p>
         ) : voucherDiscount ? (
@@ -321,4 +374,3 @@ export function CheckoutForm() {
     </form>
   );
 }
-

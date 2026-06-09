@@ -32,7 +32,7 @@ export default async function RootLayout({
         <SitePreferenceProvider>
           <AuthSessionProvider>
             <CartProvider>
-              <SiteShell brandName={settings.brandName}>{children}</SiteShell>
+              <SiteShell brandName={settings.brandName} logoUrl={settings.logoUrl}>{children}</SiteShell>
             </CartProvider>
           </AuthSessionProvider>
         </SitePreferenceProvider>

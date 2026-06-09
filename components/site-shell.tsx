@@ -7,9 +7,10 @@ import { SiteFooter } from "./site-footer";
 type SiteShellProps = {
   children: React.ReactNode;
   brandName?: string;
+  logoUrl?: string | null;
 };
 
-export function SiteShell({ children, brandName }: SiteShellProps) {
+export function SiteShell({ children, brandName, logoUrl }: SiteShellProps) {
   const pathname = usePathname();
   const isAdminRoute = pathname?.startsWith("/admin");
 
@@ -26,7 +27,7 @@ export function SiteShell({ children, brandName }: SiteShellProps) {
         <span className="site-motion-panel site-motion-panel-a" />
         <span className="site-motion-panel site-motion-panel-b" />
       </div>
-      <SiteHeader brandName={brandName} />
+      <SiteHeader brandName={brandName} logoUrl={logoUrl} />
       <main className="relative">{children}</main>
       <SiteFooter />
     </div>
