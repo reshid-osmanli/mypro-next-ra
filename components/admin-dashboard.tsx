@@ -735,6 +735,7 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
   const [tab, setTab] = useState<(typeof tabs)[number]["id"]>("products");
   const [message, setMessage] = useState("");
   const [messageKind, setMessageKind] = useState<"info" | "success" | "error">("info");
+  const [localProducts, setLocalProducts] = useState(products);
   const [busy, setBusy] = useState(false);
   const [productSaving, setProductSaving] = useState(false);
 
@@ -752,8 +753,18 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
   const [settingsForm, setSettingsForm] = useState<SiteSettings>(settings);
 
   const [priceDrafts, setPriceDrafts] = useState<Record<string, { price: string; compareAt: string; featured: boolean; status: string; sortOrder: string }>>(
-    Object.fromEntries(products.map((product) => [product.id, { price: String(product.price), compareAt: product.compareAt ? String(product.compareAt) : "", featured: product.featured, status: product.status, sortOrder: String(product.sortOrder ?? 0) }]))
+    Object.fromEntries(localProducts.map((product) => [product.id, { price: String(product.price), compareAt: product.compareAt ? String(product.compareAt) : "", featured: product.featured, status: product.status, sortOrder: String(product.sortOrder ?? 0) }]))
   );
+
+  useEffect(() => {
+    setLocalProducts(products);
+  }, [products]);
+
+  useEffect(() => {
+    setPriceDrafts(
+      Object.fromEntries(localProducts.map((product) => [product.id, { price: String(product.price), compareAt: product.compareAt ? String(product.compareAt) : "", featured: product.featured, status: product.status, sortOrder: String(product.sortOrder ?? 0) }]))
+    );
+  }, [localProducts]);
 
   useEffect(() => {
     if (!subjectForm.gradeId && catalog[0]?.id) setSubjectForm((c) => ({ ...c, gradeId: catalog[0].id }));
@@ -766,7 +777,7 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
   const gradeOptions = catalog.map((item) => item.grade);
   const subjectsForProduct = useMemo(() => catalog.find((item) => item.grade === productForm.grade)?.subjects.map((s) => s.name) ?? [], [catalog, productForm.grade]);
   const subjectsForPage = useMemo(() => catalog.find((item) => item.grade === pageForm.grade)?.subjects.map((s) => s.name) ?? [], [catalog, pageForm.grade]);
-  const groupedProducts = useMemo(() => catalog.map((item) => ({ grade: item.grade, items: products.filter((product) => product.grade === item.grade) })).filter((group) => group.items.length > 0), [products, catalog]);
+  const groupedProducts = useMemo(() => catalog.map((item) => ({ grade: item.grade, items: localProducts.filter((product) => product.grade === item.grade) })).filter((group) => group.items.length > 0), [localProducts, catalog]);
   const selectedGrade = useMemo(() => catalog.find((item) => item.id === subjectForm.gradeId) ?? catalog[0], [catalog, subjectForm.gradeId]);
 
   function resetProductForm() { setProductForm(productDefaults); setEditingProductId(null); setUploadedFiles([]); }
@@ -1233,7 +1244,7 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
 
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {[
-              { label: "المنتجات", value: products.length.toString(), icon: Layers3 },
+               { label: "المنتجات", value: localProducts.length.toString(), icon: Layers3 },
               { label: "الصفحات", value: pages.length.toString(), icon: BookText },
               { label: "الصفوف", value: catalog.length.toString(), icon: Layers3 },
               { label: "الملفات المرفوعة", value: uploadedFiles.length.toString(), icon: FolderUp }
@@ -1523,8 +1534,8 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
 
       {tab === "pricing" ? (
         <div className="panel p-6 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
-          <div className="flex flex-wrap items-center justify-between gap-4"><div><h3 className="text-2xl font-black text-zinc-950">التسعير السريع</h3><p className="mt-2 text-sm leading-7 text-zinc-600">عدل الأسعار واحفظ المنتجات المميزة ورتب ظهورها دون الدخول في كل منتج على حدة.</p></div><div className="rounded-full bg-qatar-50 px-4 py-2 text-xs font-bold text-qatar-800">إجمالي المنتجات: {products.length}</div></div>
-          <div className="mt-5 space-y-4">{products.map((product) => { const draft = priceDrafts[product.id] ?? { price: String(product.price), compareAt: product.compareAt ? String(product.compareAt) : "", featured: product.featured, status: product.status, sortOrder: String(product.sortOrder ?? 0) }; return <div key={product.id} className="grid gap-3 rounded-[1.5rem] border border-qatar-100 p-4 lg:grid-cols-[1fr_120px_120px_120px_120px_auto] lg:items-center"><div><p className="font-bold text-zinc-950">{product.title}</p><p className="text-sm text-zinc-500">{product.grade} · {product.subject}</p></div><input className="input" type="number" value={draft.price} onChange={(e) => setPriceDrafts((c) => ({ ...c, [product.id]: { ...draft, price: e.target.value } }))} /><input className="input" type="number" value={draft.compareAt} onChange={(e) => setPriceDrafts((c) => ({ ...c, [product.id]: { ...draft, compareAt: e.target.value } }))} placeholder="السعر السابق" /><input className="input" value={draft.sortOrder} onChange={(e) => setPriceDrafts((c) => ({ ...c, [product.id]: { ...draft, sortOrder: e.target.value } }))} placeholder="الترتيب" /><button type="button" onClick={() => setPriceDrafts((c) => ({ ...c, [product.id]: { ...draft, featured: !draft.featured } }))} className={`chip justify-center ${draft.featured ? "border-qatar-300 bg-qatar-50 text-qatar-800" : ""}`}>{draft.featured ? "مميز" : "عادي"}</button><button type="button" disabled={busy} onClick={() => savePrice(product.id)} className="btn-primary h-11 justify-center disabled:opacity-60">حفظ</button></div>; })}</div>
+          <div className="flex flex-wrap items-center justify-between gap-4"><div><h3 className="text-2xl font-black text-zinc-950">التسعير السريع</h3><p className="mt-2 text-sm leading-7 text-zinc-600">عدل الأسعار واحفظ المنتجات المميزة ورتب ظهورها دون الدخول في كل منتج على حدة.</p></div><div className="rounded-full bg-qatar-50 px-4 py-2 text-xs font-bold text-qatar-800">إجمالي المنتجات: {localProducts.length}</div></div>
+          <div className="mt-5 space-y-4">{localProducts.map((product) => { const draft = priceDrafts[product.id] ?? { price: String(product.price), compareAt: product.compareAt ? String(product.compareAt) : "", featured: product.featured, status: product.status, sortOrder: String(product.sortOrder ?? 0) }; return <div key={product.id} className="grid gap-3 rounded-[1.5rem] border border-qatar-100 p-4 lg:grid-cols-[1fr_120px_120px_120px_120px_auto] lg:items-center"><div><p className="font-bold text-zinc-950">{product.title}</p><p className="text-sm text-zinc-500">{product.grade} · {product.subject}</p></div><input className="input" type="number" value={draft.price} onChange={(e) => setPriceDrafts((c) => ({ ...c, [product.id]: { ...draft, price: e.target.value } }))} /><input className="input" type="number" value={draft.compareAt} onChange={(e) => setPriceDrafts((c) => ({ ...c, [product.id]: { ...draft, compareAt: e.target.value } }))} placeholder="السعر السابق" /><input className="input" value={draft.sortOrder} onChange={(e) => setPriceDrafts((c) => ({ ...c, [product.id]: { ...draft, sortOrder: e.target.value } }))} placeholder="الترتيب" /><button type="button" onClick={() => setPriceDrafts((c) => ({ ...c, [product.id]: { ...draft, featured: !draft.featured } }))} className={`chip justify-center ${draft.featured ? "border-qatar-300 bg-qatar-50 text-qatar-800" : ""}`}>{draft.featured ? "مميز" : "عادي"}</button><button type="button" disabled={busy} onClick={() => savePrice(product.id)} className="btn-primary h-11 justify-center disabled:opacity-60">حفظ</button></div>; })}</div>
         </div>
       ) : null}
 
