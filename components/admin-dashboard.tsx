@@ -1013,6 +1013,34 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
     finally { setBusy(false); }
   }
 
+  async function uploadFileDirect(file: File): Promise<{ url: string; mimeType: string; size: number }> {
+    const signedRes = await fetch("/api/admin/signed-upload", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fileName: file.name, mimeType: file.type })
+    });
+    const signedData = await signedRes.json();
+    if (!signedRes.ok) throw new Error(signedData.error || "تعذر إنشاء رابط الرفع");
+
+    const form = new FormData();
+    for (const [key, value] of Object.entries(signedData.formData)) {
+      form.append(key, value as string);
+    }
+    form.append("file", file);
+
+    const uploadRes = await fetch(signedData.uploadUrl, { method: "POST", body: form });
+    const uploadResult = await uploadRes.json();
+    if (!uploadRes.ok || !uploadResult.secure_url) {
+      throw new Error(uploadResult.error?.message || "فشل رفع الملف مباشرة إلى Cloudinary");
+    }
+
+    return {
+      url: uploadResult.secure_url,
+      mimeType: signedData.mimeType,
+      size: uploadResult.bytes ?? file.size
+    };
+  }
+
   async function uploadFiles(fileList: FileList | null) {
     if (!fileList?.length) return;
     const tooLarge = Array.from(fileList).find((file) => file.size > MAX_UPLOAD_BYTES);
@@ -1024,14 +1052,23 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
     try {
       const results: typeof uploadedFiles = [];
       for (const file of Array.from(fileList)) {
-        const formData = new FormData();
-        formData.append("file", file);
-        const res = await fetch("/api/admin/uploads", { method: "POST", body: formData });
-        const data = await res.json().catch(() => ({}));
-        const upload = requireUploadData(data, "فشل الرفع");
-        if (!res.ok) throw new Error("فشل الرفع");
-        if (!upload.private) throw new Error("مرفقات المنتج يجب أن تحفظ في التخزين الخاص");
-        results.push({ title: file.name, url: upload.url, mimeType: upload.mimeType, size: typeof upload.size === "number" ? upload.size : file.size });
+        if (file.size >= 45 * 1024 * 1024) {
+          showMessage(`جاري رفع ${file.name} (${formatBytes(file.size)}) مباشرة...`, "info");
+          const direct = await uploadFileDirect(file);
+          if (!direct.url.startsWith("/private-uploads/") && !direct.url.includes("cloudinary")) {
+            throw new Error("يجب أن ترفع الملفات الخاصة إلى التخزين الخاص");
+          }
+          results.push({ title: file.name, url: direct.url, mimeType: direct.mimeType, size: direct.size });
+        } else {
+          const formData = new FormData();
+          formData.append("file", file);
+          const res = await fetch("/api/admin/uploads", { method: "POST", body: formData });
+          const data = await res.json().catch(() => ({}));
+          const upload = requireUploadData(data, "فشل الرفع");
+          if (!res.ok) throw new Error("فشل الرفع");
+          if (!upload.private) throw new Error("مرفقات المنتج يجب أن تحفظ في التخزين الخاص");
+          results.push({ title: file.name, url: upload.url, mimeType: upload.mimeType, size: typeof upload.size === "number" ? upload.size : file.size });
+        }
       }
       setUploadedFiles((current) => [...current, ...results]);
       showMessage("تم رفع الملفات وربطها مؤقتًا بالمنتج القادم", "success");

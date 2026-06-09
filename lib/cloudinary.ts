@@ -27,8 +27,6 @@ export type CloudinaryUploadResult = {
   originalFilename?: string;
 };
 
-const LARGE_FILE_THRESHOLD = 100 * 1024 * 1024;
-
 export function getCloudinaryConfig(): CloudinaryConfig | null {
   const cloudName = process.env.CLOUDINARY_CLOUD_NAME?.trim();
   const apiKey = process.env.CLOUDINARY_API_KEY?.trim();
@@ -93,30 +91,15 @@ export async function uploadToCloudinary(params: {
   const resourceType = resolveResourceType(params.policy);
   const publicId = safePublicId(params.fileName);
   const folder = uploadFolder(params.policy);
-  const isLarge = params.bytes.length >= LARGE_FILE_THRESHOLD;
 
-  const dataUri = `data:${params.mimeType};base64,${params.bytes.toString("base64")}`;
-
-  let uploadResult: CloudinaryUploadResponse;
-  if (isLarge) {
-    uploadResult = (await cloudinary.uploader.upload_large(dataUri, {
-      resource_type: resourceType,
-      public_id: publicId,
-      folder,
-      overwrite: false,
-      use_filename: false,
-      unique_filename: false
-    })) as CloudinaryUploadResponse;
-  } else {
-    uploadResult = (await cloudinary.uploader.upload(dataUri, {
-      resource_type: resourceType,
-      public_id: publicId,
-      folder,
-      overwrite: false,
-      use_filename: false,
-      unique_filename: false
-    })) as CloudinaryUploadResponse;
-  }
+  const uploadResult = (await cloudinary.uploader.upload(params.bytes as unknown as string, {
+    resource_type: resourceType,
+    public_id: publicId,
+    folder,
+    overwrite: false,
+    use_filename: false,
+    unique_filename: false
+  })) as CloudinaryUploadResponse;
 
   if (!uploadResult.secure_url || !uploadResult.public_id) {
     throw new Error("Cloudinary upload failed: missing secure_url or public_id in response");
@@ -129,5 +112,50 @@ export async function uploadToCloudinary(params: {
     bytes: uploadResult.bytes ?? params.bytes.length,
     format: uploadResult.format,
     originalFilename: uploadResult.original_filename
+  };
+}
+
+export function generateSignedUploadParams(params: {
+  fileName: string;
+  mimeType: string;
+  policy: UploadPolicy;
+}): { uploadUrl: string; formData: Record<string, string> } {
+  const config = requireCloudinaryConfig();
+  const resourceType = resolveResourceType(params.policy);
+  const publicId = safePublicId(params.fileName);
+  const folder = uploadFolder(params.policy);
+  const timestamp = Math.floor(Date.now() / 1000);
+
+  const uploadParams: Record<string, string | number | boolean> = {
+    folder,
+    public_id: publicId,
+    timestamp,
+    overwrite: false,
+    use_filename: false,
+    unique_filename: false
+  };
+
+  const signature = createHash("sha1")
+    .update(
+      Object.entries(uploadParams)
+        .filter(([, value]) => value !== undefined && value !== "")
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([key, value]) => `${key}=${value}`)
+        .join("&") + config.apiSecret
+    )
+    .digest("hex");
+
+  return {
+    uploadUrl: `https://api.cloudinary.com/v1_1/${encodeURIComponent(config.cloudName)}/${resourceType}/upload`,
+    formData: {
+      timestamp: String(timestamp),
+      signature,
+      api_key: config.apiKey,
+      folder: String(folder),
+      public_id: publicId,
+      overwrite: "false",
+      use_filename: "false",
+      unique_filename: "false"
+    } as Record<string, string>
   };
 }
