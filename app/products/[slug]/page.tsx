@@ -111,7 +111,7 @@ export default async function ProductDetailsPage({ params }: { params: Promise<{
             <MotionShowcase variant="product" compact className="mb-4 mt-4" />
             {productFiles.length ? (
               <div className="space-y-3">
-                {productFiles.map((file) => (
+                {productFiles.map((file: { id: string; title: string }) => (
                   <div key={file.id} className="flex items-center justify-between rounded-lg border border-pearl-200 bg-pearl-50 px-4 py-3">
                     <span className="inline-flex items-center gap-2 text-sm font-bold text-zinc-800">
                       <FileText size={16} className="text-qatar-700" /> {file.title}
