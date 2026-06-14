@@ -1,5 +1,5 @@
 import { prisma } from "./db";
-import type { Product } from "@/components/product-card";
+import type { Product, ProductCardModel } from "@/components/product-card";
 
 export type CatalogSubject = { id: string; name: string; motionLogo: string | null; sortOrder: number };
 export type GradeCatalogItem = { id: string; grade: string; sortOrder: number; subjects: CatalogSubject[] };
