@@ -41,6 +41,10 @@ export type ProductCardModel = {
   status?: string;
 };
 
+export type Product = Required<Pick<ProductCardModel, "description" | "level" | "status" | "featured" | "compareAt" | "sortOrder">> & Omit<ProductCardModel, "description" | "level" | "status" | "featured" | "compareAt" | "sortOrder"> & {
+  files?: { id: string; title: string; url: string; mimeType: string; size: number }[];
+};
+
 function ProductCard({ product }: { product: ProductCardModel }) {
   const { text } = useSitePreferences();
   const cartItem = {

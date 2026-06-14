@@ -25,22 +25,7 @@ import {
 import { currencyLabel, dateLabel, formatBytes, numberLabel } from "@/lib/utils";
 import { describeAllowedPrivateUploads, MAX_UPLOAD_BYTES, PRIVATE_UPLOAD_ACCEPT } from "@/lib/upload-policy";
 import { useSitePreferences } from "./site-preferences";
-import type { ProductCardModel } from "./product-card";
-
-type Product = ProductCardModel & {
-  description: string;
-  level: string;
-  status: string;
-  featured: boolean;
-  compareAt: number | null;
-  sortOrder: number;
-  motionEnabled?: boolean;
-  motionPosition?: string | null;
-  motionScale?: number | null;
-  motionRotation?: number | null;
-  motionSrc?: string | null;
-  files?: { id: string; title: string; url: string; mimeType: string; size: number }[];
-};
+import type { Product } from "./product-card";
 
 type PageItem = {
   id: string;

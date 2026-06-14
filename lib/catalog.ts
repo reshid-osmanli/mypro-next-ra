@@ -1,5 +1,5 @@
 import { prisma } from "./db";
-import type { ProductCardModel } from "@/components/product-card";
+import type { Product } from "@/components/product-card";
 
 export type CatalogSubject = { id: string; name: string; motionLogo: string | null; sortOrder: number };
 export type GradeCatalogItem = { id: string; grade: string; sortOrder: number; subjects: CatalogSubject[] };
@@ -57,8 +57,8 @@ export async function getGradeSubjectMap(): Promise<GradeCatalogItem[]> {
   }));
 }
 
-async function withSubjectMotionLogos<T extends { grade: string; subject: string }>(products: T[]) {
-  if (!products.length) return [] as Array<T & { subjectMotionLogo: string | null; additionalImages?: string[]; motionEnabled?: boolean; motionPosition?: string | null; motionScale?: number | null; motionRotation?: number | null; motionSrc?: string | null }>;
+async function withSubjectMotionLogos<T extends { grade: string; subject: string }>(products: T[]): Promise<Array<T & { subjectMotionLogo: string | null; additionalImages?: string[]; motionEnabled?: boolean; motionPosition?: string | null; motionScale?: number | null; motionRotation?: number | null; motionSrc?: string | null }>> {
+  if (!products.length) return [];
 
   const dbMap = await getDbGradeMap();
   const logoMap = new Map<string, string>();
@@ -93,14 +93,33 @@ export async function getProducts(where?: { grade?: string; subject?: string; fe
   }
 }
 
-export async function getAllProducts(): Promise<ProductCardModel[]> {
+export async function getAllProducts(): Promise<Product[]> {
   try {
     const products = (await prisma.product.findMany({
       where: { status: "published" },
       include: { files: true },
       orderBy: [{ featured: "desc" }, { sortOrder: "desc" }, { createdAt: "desc" }]
-    })) as ProductCardModel[];
-    return withSubjectMotionLogos(products);
+    }));
+    return withSubjectMotionLogos(
+      products.map((item) => ({
+        ...item,
+        description: item.description ?? "",
+        level: item.level ?? "",
+        status: item.status ?? "",
+        featured: item.featured ?? false,
+        compareAt: item.compareAt ?? null,
+        sortOrder: item.sortOrder ?? 0,
+        files: Array.isArray(item.files)
+          ? item.files.map((file) => ({
+              id: file.id,
+              title: file.title,
+              url: file.url,
+              mimeType: file.mimeType ?? "",
+              size: file.size ?? 0
+            }))
+          : []
+      }))
+    );
   } catch (error) {
     console.warn("[catalog] Database unavailable for all products", error);
     return [];
