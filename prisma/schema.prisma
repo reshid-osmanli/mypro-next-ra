@@ -273,11 +273,12 @@ model VoucherUsage {
   id         String   @id @default(cuid())
   voucherId  String
   email      String
-  orderId    String?
+  orderId    String?  @unique
   usedAt     DateTime @default(now())
 
   voucher GiftVoucher @relation(fields: [voucherId], references: [id], onDelete: Cascade)
 
+  @@unique([voucherId, email])
   @@index([email])
   @@index([voucherId])
   @@index([usedAt])
@@ -297,3 +298,19 @@ model WalletTransaction {
   @@index([walletId])
   @@index([orderId])
 }
+
+model WalletReservation {
+  id        String   @id @default(cuid())
+  email     String
+  orderId   String   @unique
+  amount    Int
+  status    String   @default("reserved")
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([email])
+  @@index([expiresAt])
+  @@index([status])
+}
+

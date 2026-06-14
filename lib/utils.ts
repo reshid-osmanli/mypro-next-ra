@@ -2,12 +2,28 @@ export function cn(...values: Array<string | undefined | null | false>) {
   return values.filter(Boolean).join(" ");
 }
 
+const englishNumberFormat = new Intl.NumberFormat("en-US", {
+  maximumFractionDigits: 0
+});
+
+export function numberLabel(value: number) {
+  return englishNumberFormat.format(value);
+}
+
 export function currencyLabel(amount: number, currency = "USD") {
-  return new Intl.NumberFormat("ar-QA", {
+  return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency,
     maximumFractionDigits: 0
   }).format(amount);
+}
+
+export function dateLabel(value: string | Date) {
+  return new Intl.DateTimeFormat("en-GB", {
+    year: "numeric",
+    month: "short",
+    day: "2-digit"
+  }).format(new Date(value));
 }
 
 export function slugify(input: string) {
@@ -26,7 +42,7 @@ export function splitCommaList(value: string) {
 }
 
 export function formatBytes(bytes: number) {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  if (bytes < 1024) return `${numberLabel(bytes)} B`;
+  if (bytes < 1024 * 1024) return `${numberLabel(Math.round(bytes / 1024))} KB`;
+  return `${new Intl.NumberFormat("en-US", { maximumFractionDigits: 1 }).format(bytes / (1024 * 1024))} MB`;
 }

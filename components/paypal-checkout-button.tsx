@@ -16,9 +16,10 @@ type Props = {
   onCompleted?: (result: { orderId: string; claimToken?: string | null }) => void;
   onStatus?: (message: string) => void;
   disabled?: boolean;
+  voucherCode?: string;
 };
 
-function buildCheckoutPayload(form: HTMLFormElement, items: CartItem[]) {
+function buildCheckoutPayload(form: HTMLFormElement, items: CartItem[], voucherCode?: string) {
   const data = new FormData(form);
   return {
     items,
@@ -26,15 +27,17 @@ function buildCheckoutPayload(form: HTMLFormElement, items: CartItem[]) {
     email: String(data.get("email") ?? "").trim(),
     phone: String(data.get("phone") ?? "").trim(),
     notes: String(data.get("notes") ?? "").trim(),
-    purchaseTrackingConsent: data.get("purchaseTrackingConsent") === "on"
+    purchaseTrackingConsent: data.get("purchaseTrackingConsent") === "on",
+    voucherCode: voucherCode?.trim() || undefined
   };
 }
 
-export function PayPalCheckoutButton({ items, formRef, onCompleted, onStatus, disabled }: Props) {
+export function PayPalCheckoutButton({ items, formRef, onCompleted, onStatus, disabled, voucherCode }: Props) {
   const { text } = useSitePreferences();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const completedRef = useRef<Props["onCompleted"]>(undefined);
   const statusRef = useRef<Props["onStatus"]>(undefined);
+  const localOrderIdRef = useRef<string | null>(null);
   const [ready, setReady] = useState(false);
   const [loadError, setLoadError] = useState("");
 
@@ -68,7 +71,7 @@ export function PayPalCheckoutButton({ items, formRef, onCompleted, onStatus, di
             throw new Error(text({ ar: "يرجى إكمال بيانات الشراء أولًا", en: "Please complete the purchase details first" }));
           }
 
-          const payload = buildCheckoutPayload(form, items);
+          const payload = buildCheckoutPayload(form, items, voucherCode);
           if (!payload.customerName || !payload.email) {
             throw new Error(text({ ar: "يرجى إدخال الاسم والبريد الإلكتروني", en: "Please enter your name and email" }));
           }
@@ -82,6 +85,7 @@ export function PayPalCheckoutButton({ items, formRef, onCompleted, onStatus, di
           });
           const data = await response.json().catch(() => ({}));
           if (!response.ok) throw new Error(data?.error || text({ ar: "تعذر إنشاء طلب الدفع", en: "Unable to create payment order" }));
+          localOrderIdRef.current = typeof data?.localOrderId === "string" ? data.localOrderId : null;
           return data.orderId as string;
         },
         onApprove: async (data: { orderID: string }) => {
@@ -94,15 +98,26 @@ export function PayPalCheckoutButton({ items, formRef, onCompleted, onStatus, di
           });
           const result = await response.json().catch(() => ({}));
           if (!response.ok) throw new Error(result?.error || text({ ar: "تعذر إتمام عملية الدفع", en: "Unable to complete payment" }));
+          localOrderIdRef.current = null;
           completedRef.current?.({
             orderId: result.orderId as string,
             claimToken: typeof result.claimToken === "string" ? result.claimToken : null
           });
         },
         onCancel: () => {
+          const localOrderId = localOrderIdRef.current;
+          localOrderIdRef.current = null;
+          if (localOrderId) {
+            void fetch(`/api/order/cancel?order=${encodeURIComponent(localOrderId)}`, { credentials: "include" });
+          }
           statusRef.current?.(text({ ar: "تم إلغاء عملية الدفع", en: "Payment was cancelled" }));
         },
         onError: (error: any) => {
+          const localOrderId = localOrderIdRef.current;
+          localOrderIdRef.current = null;
+          if (localOrderId) {
+            void fetch(`/api/order/cancel?order=${encodeURIComponent(localOrderId)}`, { credentials: "include" });
+          }
           statusRef.current?.(error?.message || text({ ar: "حدث خطأ في PayPal", en: "A PayPal error occurred" }));
         }
       });
@@ -139,7 +154,7 @@ export function PayPalCheckoutButton({ items, formRef, onCompleted, onStatus, di
       cancelled = true;
       window.clearInterval(timer);
     };
-  }, [formRef, items, text]);
+  }, [formRef, items, text, voucherCode]);
 
   if (disabled) {
     return <div className="rounded-lg border border-dashed border-qatar-200 bg-white p-5 text-sm text-zinc-500">{text({ ar: "أضف عناصر إلى السلة لتفعيل الدفع.", en: "Add items to the cart to enable payment." })}</div>;

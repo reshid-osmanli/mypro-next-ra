@@ -25,6 +25,9 @@ NEXT_PUBLIC_PAYPAL_ENV
 NEXT_PUBLIC_PAYPAL_CLIENT_ID
 PAYPAL_CLIENT_SECRET
 NEXT_PUBLIC_PAYPAL_CURRENCY
+STRIPE_SECRET_KEY
+STRIPE_CURRENCY
+NEXT_PUBLIC_STRIPE_CURRENCY
 CLOUDINARY_CLOUD_NAME
 CLOUDINARY_API_KEY
 CLOUDINARY_API_SECRET
@@ -51,6 +54,9 @@ GOOGLE_TOKEN_ENCRYPTION_KEY
 - `NEXT_PUBLIC_PAYPAL_CLIENT_ID`: PayPal public client id.
 - `PAYPAL_CLIENT_SECRET`: PayPal private secret.
 - `NEXT_PUBLIC_PAYPAL_CURRENCY`: `USD`.
+- `STRIPE_SECRET_KEY`: Stripe secret key. Keep server-side only.
+- `STRIPE_CURRENCY`: lowercase Stripe currency, for example `usd`.
+- `NEXT_PUBLIC_STRIPE_CURRENCY`: storefront currency label, for example `USD`.
 - `CLOUDINARY_CLOUD_NAME`: Cloudinary product environment cloud name from Console API Keys.
 - `CLOUDINARY_API_KEY`: Cloudinary API key.
 - `CLOUDINARY_API_SECRET`: Cloudinary API secret. Keep server-side only.
@@ -109,3 +115,17 @@ git push -u origin main
 ```
 
 Do not run `git add .env`; real secrets must stay out of GitHub.
+
+
+## Public Site vs Admin Protection
+
+The app code protects only private user/admin areas. Public storefront pages such as `/`, `/products`, `/library`, and content pages are not blocked by app middleware.
+
+If the whole site asks visitors to sign in with the Vercel account email, that is deployment-level protection outside this repository. Disable Vercel Authentication / Deployment Protection for the public production deployment, and keep `/admin` protected by the app admin login.
+
+Private routes kept protected in code:
+
+- `/admin` and `/admin/*` through the admin session guard.
+- `/purchases` and purchase/Drive APIs through Google login, because they expose a user’s private purchases.
+
+After changing Vercel project protection settings, redeploy the production deployment and test from an incognito browser that is not signed in to Vercel.

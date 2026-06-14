@@ -1,4 +1,5 @@
 import { prisma } from "./db";
+import type { ProductCardModel } from "@/components/product-card";
 
 export type CatalogSubject = { id: string; name: string; motionLogo: string | null; sortOrder: number };
 export type GradeCatalogItem = { id: string; grade: string; sortOrder: number; subjects: CatalogSubject[] };
@@ -73,9 +74,9 @@ async function withSubjectMotionLogos<T extends { grade: string; subject: string
   }));
 }
 
-export async function getProducts(where?: { grade?: string; subject?: string; featured?: boolean }) {
+export async function getProducts(where?: { grade?: string; subject?: string; featured?: boolean }): Promise<ProductCardModel[]> {
   try {
-    const products = await prisma.product.findMany({
+    const products = (await prisma.product.findMany({
       where: {
         status: "published",
         ...(where?.grade ? { grade: where.grade } : {}),
@@ -84,7 +85,7 @@ export async function getProducts(where?: { grade?: string; subject?: string; fe
       },
       include: { files: true },
       orderBy: [{ featured: "desc" }, { sortOrder: "desc" }, { createdAt: "desc" }]
-    });
+    })) as ProductCardModel[];
     return withSubjectMotionLogos(products);
   } catch (error) {
     console.warn("[catalog] Database unavailable for products", error);
@@ -92,13 +93,13 @@ export async function getProducts(where?: { grade?: string; subject?: string; fe
   }
 }
 
-export async function getAllProducts() {
+export async function getAllProducts(): Promise<ProductCardModel[]> {
   try {
-    const products = await prisma.product.findMany({
+    const products = (await prisma.product.findMany({
       where: { status: "published" },
       include: { files: true },
       orderBy: [{ featured: "desc" }, { sortOrder: "desc" }, { createdAt: "desc" }]
-    });
+    })) as ProductCardModel[];
     return withSubjectMotionLogos(products);
   } catch (error) {
     console.warn("[catalog] Database unavailable for all products", error);
@@ -107,10 +108,10 @@ export async function getAllProducts() {
 }
 
 export async function getProductBySlug(slug: string) {
-  const product = await prisma.product.findUnique({
+  const product = (await prisma.product.findUnique({
     where: { slug, status: "published" },
     include: { files: true }
-  });
+  })) as ProductCardModel | null;
   if (!product) return null;
   const [enriched] = await withSubjectMotionLogos([product]);
   return enriched;

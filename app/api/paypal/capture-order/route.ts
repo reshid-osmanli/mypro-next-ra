@@ -11,7 +11,8 @@ import {
 } from "@/lib/order-access";
 import { rejectUntrustedOrigin } from "@/lib/request-security";
 import { getRequestIp, isRateLimited } from "@/lib/rate-limit";
-import { reportApiFailure, reportCaughtError, routeContext } from "@/lib/report-caught-error";
+import { reportCaughtError, routeContext } from "@/lib/report-caught-error";
+import { applyVoucher, captureWalletReservation } from "@/lib/wallet";
 
 const schema = z.object({
   orderId: z.string().trim().min(1).max(128)
@@ -100,8 +101,15 @@ async function issuePaidDownloadSession(localOrderId: string, captureId?: string
       downloadSessionExpiresAt: new Date(Date.now() + DOWNLOAD_SESSION_TTL_MS),
       downloadSessionUsedAt: null
     },
-    select: { id: true, providerCaptureId: true }
+    select: { id: true, email: true, voucherId: true, walletUsed: true, providerCaptureId: true }
   });
+
+  if (order.voucherId) {
+    await applyVoucher(order.voucherId, order.email, order.id).catch(() => null);
+  }
+  if (order.walletUsed > 0) {
+    await captureWalletReservation(order.id, `خصم محفظة على الطلب #${order.id.slice(-8)}`).catch(() => null);
+  }
 
   const response = NextResponse.json({
     ok: true,

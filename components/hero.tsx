@@ -15,6 +15,10 @@ type HeroProps = {
   description?: LocalizedTextValue;
   primaryColor?: string;
   secondaryColor?: string;
+  primaryCtaLabel?: LocalizedTextValue;
+  primaryCtaHref?: string;
+  secondaryCtaLabel?: LocalizedTextValue;
+  secondaryCtaHref?: string;
 };
 
 const quickLinks = [
@@ -37,7 +41,11 @@ function Hero({
     en: "Kutubi combines a polished storefront, grade-and-subject browsing, and secure admin tools for digital teaching files."
   },
   primaryColor = "#8a1538",
-  secondaryColor = "#0f766e"
+  secondaryColor = "#0f766e",
+  primaryCtaLabel = { ar: "تصفح المنتجات", en: "Browse products" },
+  primaryCtaHref = "/products",
+  secondaryCtaLabel = { ar: "عرض المكتبة", en: "View library" },
+  secondaryCtaHref = "/library"
 }: HeroProps) {
   const router = useRouter();
   const { text } = useSitePreferences();
@@ -94,6 +102,16 @@ function Hero({
                 </Link>
               </div>
             </form>
+
+            <div className="flex flex-wrap gap-3">
+              <Link href={primaryCtaHref} className="btn-primary px-5 py-3">
+                {text(primaryCtaLabel)}
+                <ArrowLeft size={16} />
+              </Link>
+              <Link href={secondaryCtaHref} className="btn-secondary px-5 py-3">
+                {text(secondaryCtaLabel)}
+              </Link>
+            </div>
 
             <div className="flex flex-wrap gap-3">
               {quickLinks.map((item) => (

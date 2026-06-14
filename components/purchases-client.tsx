@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { Cloud, HardDrive, Loader2, LogIn, RefreshCw, ShieldCheck, Wallet, History, Gift, CheckCircle } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { currencyLabel, formatBytes } from "@/lib/utils";
+import { currencyLabel, dateLabel, formatBytes, numberLabel } from "@/lib/utils";
 import { useSitePreferences } from "./site-preferences";
 
 type WalletTransaction = {
@@ -82,8 +82,10 @@ export function PurchasesClient({ initialLibrary }: Props) {
       if (!res.ok) throw new Error(data?.error || text({ ar: "تعذر الحفظ في Google Drive", en: "Unable to save to Google Drive" }));
       const refreshed = await fetch("/api/purchases").then((response) => response.json());
       setLibrary(refreshed);
-      const baseMsg = text({ ar: `تم حفظ ${data.uploaded ?? 0} ملف في Google Drive.`, en: `${data.uploaded ?? 0} file(s) saved to Google Drive.` });
-      const failedMsg = data.failed?.length ? text({ ar: ` فشل إرفاق ${data.failed.length} ملف.`, en: ` ${data.failed.length} file(s) failed to upload.` }) : "";
+      const uploadedCount = numberLabel(Number(data.uploaded ?? 0));
+      const failedCount = numberLabel(Number(data.failed?.length ?? 0));
+      const baseMsg = text({ ar: `تم حفظ ${uploadedCount} ملف في Google Drive.`, en: `${uploadedCount} file(s) saved to Google Drive.` });
+      const failedMsg = data.failed?.length ? text({ ar: ` فشل إرفاق ${failedCount} ملف.`, en: ` ${failedCount} file(s) failed to upload.` }) : "";
       setMessage(baseMsg + failedMsg);
     } catch (error) {
       if (error instanceof Error && error.message.includes("429")) {
@@ -126,14 +128,21 @@ export function PurchasesClient({ initialLibrary }: Props) {
         <div className="flex flex-wrap items-start justify-between gap-5">
           <div>
             <div className="inline-flex items-center gap-2 rounded-full bg-qatar-50 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-qatar-800">
-              <ShieldCheck size={14} /> {library.email}
+              <ShieldCheck size={14} /> {text({ ar: "حساب مشتريات آمن", en: "Secure purchase account" })}
             </div>
             <h1 className="mt-4 text-3xl font-black text-zinc-950">{text({ ar: "مشترياتك المحفوظة", en: "Saved purchases" })}</h1>
+            <div className="mt-4 inline-flex max-w-full items-center gap-3 rounded-2xl border border-qatar-100 bg-white px-4 py-3 shadow-sm">
+              <span className="grid h-9 w-9 place-items-center rounded-xl bg-qatar-700 text-sm font-black text-white">@</span>
+              <span className="min-w-0 text-left" dir="ltr">
+                <span className="block text-[11px] font-black uppercase tracking-[0.18em] text-zinc-400">Google email</span>
+                <span className="block truncate text-sm font-black text-zinc-950">{library.email}</span>
+              </span>
+            </div>
             <p className="mt-2 leading-8 text-zinc-600">{text({ ar: "هذه الصفحة تعرض فقط الطلبات التي وافقت على حفظها أثناء الدفع.", en: "This page shows only orders you agreed to save during checkout." })}</p>
           </div>
           <div className="grid gap-2 sm:grid-cols-3">
-            <div className="rounded-lg bg-qatar-50 px-4 py-3"><p className="text-xs text-qatar-700">{text({ ar: "الطلبات", en: "Orders" })}</p><p className="text-xl font-black text-qatar-900">{totals.orders}</p></div>
-            <div className="rounded-lg bg-zinc-50 px-4 py-3"><p className="text-xs text-zinc-500">{text({ ar: "الملفات", en: "Files" })}</p><p className="text-xl font-black text-zinc-950">{totals.files}</p></div>
+            <div className="rounded-lg bg-qatar-50 px-4 py-3"><p className="text-xs text-qatar-700">{text({ ar: "الطلبات", en: "Orders" })}</p><p className="text-xl font-black text-qatar-900">{numberLabel(totals.orders)}</p></div>
+            <div className="rounded-lg bg-zinc-50 px-4 py-3"><p className="text-xs text-zinc-500">{text({ ar: "الملفات", en: "Files" })}</p><p className="text-xl font-black text-zinc-950">{numberLabel(totals.files)}</p></div>
             <div className="rounded-lg bg-emerald-50 px-4 py-3"><p className="text-xs text-emerald-700">{text({ ar: "الإجمالي", en: "Total" })}</p><p className="text-xl font-black text-emerald-800">{currencyLabel(totals.total)}</p></div>
           </div>
         </div>
@@ -180,7 +189,7 @@ export function PurchasesClient({ initialLibrary }: Props) {
                     <span className={`font-bold ${tx.type === "credit" ? "text-emerald-700" : "text-sky-700"}`}>
                       {tx.type === "credit" ? "+" : "-"}{currencyLabel(tx.amount)}
                     </span>
-                    <span className="text-xs text-zinc-500">{new Date(tx.createdAt).toLocaleDateString("ar-QA")}</span>
+                    <span className="text-xs text-zinc-500">{dateLabel(tx.createdAt)}</span>
                   </div>
                 </div>
               ))}
@@ -189,10 +198,20 @@ export function PurchasesClient({ initialLibrary }: Props) {
         ) : null}
       </div>
 
-      <div className="panel p-6">
-        <div className="flex flex-wrap items-center justify-between gap-4">
+      <div className="panel overflow-hidden p-0">
+        <div className="border-b border-qatar-100 bg-gradient-to-l from-qatar-50 to-white px-6 py-5">
+          <div className="flex items-center gap-3">
+            <div className="grid h-12 w-12 place-items-center rounded-2xl bg-white shadow-sm">
+              <HardDrive size={20} className="text-qatar-700" />
+            </div>
+            <div>
+              <h2 className="text-xl font-black text-zinc-950">{text({ ar: "Google Drive", en: "Google Drive" })}</h2>
+              <p className="mt-1 text-xs font-bold text-zinc-500">{text({ ar: "حفظ اختياري ومنظّم للملفات المشتراة", en: "Optional organized backup for purchased files" })}</p>
+            </div>
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-4 p-6">
           <div>
-            <h2 className="text-xl font-black text-zinc-950">{text({ ar: "Google Drive", en: "Google Drive" })}</h2>
             <p className="mt-1 text-sm leading-7 text-zinc-600">
               {library.drive.connected
                 ? text({ ar: "الحساب مربوط. يمكنك حفظ الملفات التي لم تحفظ من قبل.", en: "Connected. You can save files that were not synced before." })
@@ -205,13 +224,13 @@ export function PurchasesClient({ initialLibrary }: Props) {
               {text({ ar: "حفظ في Drive", en: "Save to Drive" })}
             </button>
           ) : (
-            <button type="button" onClick={() => window.location.assign("/api/purchases/drive/start")} className="btn-secondary">
+            <button type="button" onClick={() => window.location.assign("/api/purchases/drive/start")} className="btn-secondary border-qatar-200 bg-white">
               <HardDrive size={16} />
-              {text({ ar: "ربط Google Drive", en: "Connect Google Drive" })}
+              {text({ ar: "ربط Google Drive بأمان", en: "Securely connect Google Drive" })}
             </button>
           )}
         </div>
-        {message ? <div className="mt-4 rounded-lg border border-qatar-100 bg-qatar-50 px-4 py-3 text-sm text-qatar-800">{message}</div> : null}
+        {message ? <div className="mx-6 mb-6 rounded-lg border border-qatar-100 bg-qatar-50 px-4 py-3 text-sm text-qatar-800">{message}</div> : null}
       </div>
 
       <div className="space-y-4">
@@ -228,7 +247,7 @@ export function PurchasesClient({ initialLibrary }: Props) {
           <div key={order.id} className="panel p-5">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.18em] text-qatar-700">{new Date(order.createdAt).toLocaleDateString("ar-QA")}</p>
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-qatar-700">{dateLabel(order.createdAt)}</p>
                 <h3 className="mt-1 text-lg font-black text-zinc-950">{text({ ar: "طلب", en: "Order" })} #{order.id.slice(-8)}</h3>
               </div>
               <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700">{currencyLabel(order.total)}</span>

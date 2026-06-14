@@ -34,6 +34,11 @@ export type ProductCardModel = {
   motionScale?: number | null;
   motionRotation?: number | null;
   motionSrc?: string | null;
+  featured?: boolean;
+  sortOrder?: number;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
+  status?: string;
 };
 
 function ProductCard({ product }: { product: ProductCardModel }) {

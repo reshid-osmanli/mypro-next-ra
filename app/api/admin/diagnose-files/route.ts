@@ -17,13 +17,13 @@ export async function GET(req: NextRequest) {
             include: { product: true }
         });
 
-        const results = [];
+        const results: Array<{ id: string; title: string; url: string; mimeType: string; size: number; productTitle?: string | null; isCloudinary: boolean; isLocal: boolean; reachable: boolean; error: string | null; actualSize: number }> = [];
         for (const file of files) {
             const isCloudinary = isSafeCloudinaryStoredUrl(file.url);
             const isLocal = file.url.startsWith("/private-uploads/");
 
             let reachable = false;
-            let error = null;
+            let error: string | null = null;
             let fileSize = 0;
 
             try {

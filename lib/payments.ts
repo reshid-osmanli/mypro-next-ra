@@ -133,14 +133,27 @@ export type PaypalOrderInput = {
   amount: number;
   currency?: string;
   items: { title: string; price: number; quantity: number }[];
+  discountAmount?: number;
   customer?: { name?: string; email?: string; phone?: string; notes?: string };
 };
 
 export async function createPaypalOrder(input: PaypalOrderInput) {
   const accessToken = await getPaypalAccessToken();
   const currency = (input.currency ?? process.env.NEXT_PUBLIC_PAYPAL_CURRENCY ?? "USD").toUpperCase();
-  const total = input.amount.toFixed(2);
+  const amount = Math.max(0, input.amount);
+  const discountAmount = Math.max(0, input.discountAmount ?? 0);
+  const itemTotal = input.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const total = amount.toFixed(2);
   const description = (input.customer?.notes || "Order from Kutubi").slice(0, 127);
+
+  const amountBreakdown = discountAmount > 0
+    ? {
+        item_total: { currency_code: currency, value: itemTotal.toFixed(2) },
+        discount: { currency_code: currency, value: Math.min(discountAmount, itemTotal).toFixed(2) }
+      }
+    : {
+        item_total: { currency_code: currency, value: itemTotal.toFixed(2) }
+      };
 
   const res = await fetch(`${paypalBaseUrl}/v2/checkout/orders`, {
     method: "POST",
@@ -159,12 +172,7 @@ export async function createPaypalOrder(input: PaypalOrderInput) {
           amount: {
             currency_code: currency,
             value: total,
-            breakdown: {
-              item_total: {
-                currency_code: currency,
-                value: total
-              }
-            }
+            breakdown: amountBreakdown
           },
           items: input.items.map((item) => ({
             name: item.title.slice(0, 127),

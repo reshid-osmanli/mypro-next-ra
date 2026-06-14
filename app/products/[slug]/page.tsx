@@ -18,6 +18,8 @@ export default async function ProductDetailsPage({ params }: { params: Promise<{
   const product = await getProductBySlug(slug);
   if (!product) return notFound();
 
+  const productFiles = product.files ?? [];
+
   const item = {
     id: product.id,
     slug: product.slug,
@@ -107,9 +109,9 @@ export default async function ProductDetailsPage({ params }: { params: Promise<{
           <div>
             <LocalizedText as="h2" className="text-xl font-black text-zinc-950" value={{ ar: "الملفات المرتبطة", en: "Attached files" }} />
             <MotionShowcase variant="product" compact className="mb-4 mt-4" />
-            {product.files.length ? (
+            {productFiles.length ? (
               <div className="space-y-3">
-                {product.files.map((file) => (
+                {productFiles.map((file) => (
                   <div key={file.id} className="flex items-center justify-between rounded-lg border border-pearl-200 bg-pearl-50 px-4 py-3">
                     <span className="inline-flex items-center gap-2 text-sm font-bold text-zinc-800">
                       <FileText size={16} className="text-qatar-700" /> {file.title}

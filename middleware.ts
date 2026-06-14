@@ -66,7 +66,8 @@ function loginRedirect(req: NextRequest) {
 }
 
 function isProtectedPage(pathname: string) {
-  return pathname.startsWith("/purchases") || pathname.startsWith("/library");
+  // Public storefront/library pages stay open. Only personal purchase pages require login here.
+  return pathname.startsWith("/purchases");
 }
 
 function isProtectedApi(pathname: string) {

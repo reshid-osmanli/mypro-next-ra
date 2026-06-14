@@ -14,6 +14,14 @@ export default async function HomePage() {
     getSiteSettings()
   ]);
 
+  const productLimit = Math.min(12, Math.max(1, Number(settings.homepageProductLimit || 4)));
+  const productDateMs = (value?: Date | string) => (value ? new Date(value).getTime() : 0);
+  const orderedFeatured = [...featured].sort((a, b) => {
+    if (settings.homepageProductOrder === "newest") return productDateMs(b.createdAt) - productDateMs(a.createdAt);
+    if (settings.homepageProductOrder === "manual") return (b.sortOrder ?? 0) - (a.sortOrder ?? 0);
+    return Number(b.featured) - Number(a.featured) || (b.sortOrder ?? 0) - (a.sortOrder ?? 0);
+  });
+
   const formats = [
     {
       icon: Presentation,
@@ -43,7 +51,19 @@ export default async function HomePage() {
         }}
         primaryColor={settings.primaryColor}
         secondaryColor={settings.secondaryColor}
+        primaryCtaLabel={{ ar: settings.heroPrimaryCtaLabel, en: "Browse products" }}
+        primaryCtaHref={settings.heroPrimaryCtaHref}
+        secondaryCtaLabel={{ ar: settings.heroSecondaryCtaLabel, en: "View library" }}
+        secondaryCtaHref={settings.heroSecondaryCtaHref}
       />
+
+      {settings.announcementEnabled === "true" && settings.announcementText ? (
+        <section className="mx-auto max-w-7xl px-4 pt-6 lg:px-8">
+          <Link href={settings.announcementHref} className="block rounded-2xl border border-qatar-100 bg-qatar-50 px-5 py-4 text-center text-sm font-black text-qatar-900 shadow-sm transition hover:-translate-y-0.5 hover:bg-qatar-100">
+            {settings.announcementText}
+          </Link>
+        </section>
+      ) : null}
 
       <section className="mx-auto max-w-7xl px-4 py-12 lg:px-8">
         <div className="grid gap-4 md:grid-cols-3">
@@ -84,6 +104,40 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {(settings.promoTitle || settings.promoDescription) ? (
+        <section className="mx-auto max-w-7xl px-4 py-8 lg:px-8">
+          <div className="grid overflow-hidden rounded-3xl border border-pearl-200 bg-white shadow-[0_24px_80px_rgba(60,32,18,0.08)] lg:grid-cols-[1fr_0.8fr]">
+            <div className="p-6 md:p-10">
+              <div className="inline-flex rounded-full bg-qatar-50 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-qatar-800">عرض مميز</div>
+              <h2 className="mt-5 text-3xl font-black text-zinc-950 md:text-4xl">{settings.promoTitle}</h2>
+              <p className="mt-4 max-w-2xl leading-8 text-zinc-600">{settings.promoDescription}</p>
+              {settings.promoCtaLabel ? (
+                <Link href={settings.promoCtaHref} className="btn-primary mt-6 inline-flex">
+                  {settings.promoCtaLabel}
+                  <ArrowLeft size={16} />
+                </Link>
+              ) : null}
+            </div>
+            <div className="min-h-[18rem] bg-qatar-50">
+              {settings.promoImageUrl ? (
+                settings.promoImageUrl.match(/\.(mp4|webm|mov)(\?|$)/i) ? (
+                  <video src={settings.promoImageUrl} className="h-full w-full object-cover" muted loop playsInline autoPlay />
+                ) : (
+                  <img src={settings.promoImageUrl} alt="promo" className="h-full w-full object-cover" />
+                )
+              ) : (
+                <div className="grid h-full place-items-center p-8 text-center text-qatar-800">
+                  <div>
+                    <Presentation className="mx-auto" size={42} />
+                    <p className="mt-4 text-sm font-black">أضف صورة جذابة من لوحة التحكم</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+      ) : null}
+
       <section className="mx-auto max-w-7xl px-4 py-14 lg:px-8">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <SectionHeading
@@ -100,7 +154,7 @@ export default async function HomePage() {
           </Link>
         </div>
         <div className="mt-8 grid gap-6 xl:grid-cols-2">
-          {featured.slice(0, 4).map((product) => <ProductCard key={product.id} product={product} />)}
+          {orderedFeatured.slice(0, productLimit).map((product) => <ProductCard key={product.id} product={product} />)}
         </div>
       </section>
 

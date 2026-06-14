@@ -8,10 +8,24 @@ export type SiteSettings = {
   heroEyebrow: string;
   heroTitle: string;
   heroDescription: string;
+  heroPrimaryCtaLabel: string;
+  heroPrimaryCtaHref: string;
+  heroSecondaryCtaLabel: string;
+  heroSecondaryCtaHref: string;
   checkoutNote: string;
   primaryColor: string;
   secondaryColor: string;
   logoUrl: string | null;
+  announcementEnabled: string;
+  announcementText: string;
+  announcementHref: string;
+  promoTitle: string;
+  promoDescription: string;
+  promoImageUrl: string;
+  promoCtaLabel: string;
+  promoCtaHref: string;
+  homepageProductLimit: string;
+  homepageProductOrder: string;
 };
 
 export const siteSettingDefaults: SiteSettings = {
@@ -23,10 +37,24 @@ export const siteSettingDefaults: SiteSettings = {
   heroTitle: "متجر رقمي احترافي لبيع عروض البوربوينت وأوراق العمل",
   heroDescription:
     "واجهة عربية أنيقة مع متجر واضح، مكتبة مرتبة حسب الصف والمادة، ولوحة إدارة آمنة لإضافة المنتجات والملفات والأسعار وصور الأغلفة.",
+  heroPrimaryCtaLabel: "تصفح المنتجات",
+  heroPrimaryCtaHref: "/products",
+  heroSecondaryCtaLabel: "عرض المكتبة",
+  heroSecondaryCtaHref: "/library",
   checkoutNote: "الملفات الرقمية تُسلّم مباشرة بعد الدفع عبر روابط تحميل مؤقتة وآمنة.",
   primaryColor: "#8a1538",
   secondaryColor: "#0f766e",
-  logoUrl: null
+  logoUrl: null,
+  announcementEnabled: "true",
+  announcementText: "عروض رقمية جاهزة للتدريس مع دفع آمن وتحميل فوري.",
+  announcementHref: "/products",
+  promoTitle: "رتّب واجهة موقعك من لوحة التحكم",
+  promoDescription: "غيّر الشعار، البنر، العروض، ترتيب المنتجات، وصور الحملة بدون تعديل الكود.",
+  promoImageUrl: "",
+  promoCtaLabel: "اكتشف العروض",
+  promoCtaHref: "/products",
+  homepageProductLimit: "4",
+  homepageProductOrder: "featured"
 };
 
 function normalizeSettings(rows: { key: string; value: string }[]): SiteSettings {
@@ -47,7 +75,6 @@ export async function getSiteSettings(): Promise<SiteSettings> {
 }
 
 export async function saveSiteSettings(input: Partial<SiteSettings>) {
-  // Only persist known keys and coerce values to strings to avoid schema issues
   const allowedKeys = new Set(Object.keys(siteSettingDefaults));
   const entries = Object.entries(input)
     .filter(([key]) => allowedKeys.has(key))

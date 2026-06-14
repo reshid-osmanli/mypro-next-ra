@@ -2,7 +2,7 @@
 
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { CheckCircle, CreditCard, Gift, Loader2, Mail, Phone, ShieldCheck, Ticket, User2 } from "lucide-react";
+import { CheckCircle, CreditCard, Gift, Loader2, Mail, Phone, ShieldCheck, Ticket, User2, WalletCards } from "lucide-react";
 import { useSession } from "next-auth/react";
 import Script from "next/script";
 import { useCart } from "./cart-provider";
@@ -47,6 +47,7 @@ export function CheckoutForm() {
   const [voucherDiscount, setVoucherDiscount] = useState<number | null>(null);
   const [voucherError, setVoucherError] = useState<string | null>(null);
   const [availableVouchers, setAvailableVouchers] = useState<AvailableVoucher[]>([]);
+  const [walletBalance, setWalletBalance] = useState(0);
   const [showVoucherSelector, setShowVoucherSelector] = useState(false);
   const [purchaseTrackingConsent, setPurchaseTrackingConsent] = useState(false);
   const signedInEmail = session?.user?.email?.trim() ?? "";
@@ -60,8 +61,19 @@ export function CheckoutForm() {
     if (signedInEmail) {
       setPurchaseTrackingConsent(true);
       loadAvailableVouchers();
+      loadWalletBalance();
     }
   }, [signedInEmail]);
+
+  async function loadWalletBalance() {
+    try {
+      const res = await fetch("/api/wallet", { credentials: "include" });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && Number.isFinite(Number(data.balance))) setWalletBalance(Math.max(0, Number(data.balance)));
+    } catch {
+      setWalletBalance(0);
+    }
+  }
 
   async function loadAvailableVouchers() {
     try {
@@ -75,9 +87,11 @@ export function CheckoutForm() {
     }
   }
 
+  const walletDiscount = useMemo(() => Math.min(walletBalance, Math.max(0, total - (voucherDiscount ?? 0))), [total, voucherDiscount, walletBalance]);
+
   const finalTotal = useMemo(() => {
-    return Math.max(0, total - (voucherDiscount ?? 0));
-  }, [total, voucherDiscount]);
+    return Math.max(0, total - (voucherDiscount ?? 0) - walletDiscount);
+  }, [total, voucherDiscount, walletDiscount]);
 
   async function validateVoucher(code?: string) {
     const codeToValidate = code ?? voucherCode.trim();
@@ -278,6 +292,23 @@ export function CheckoutForm() {
         )}
       </div>
 
+      {signedInEmail && walletBalance > 0 ? (
+        <div className="rounded-lg border border-emerald-100 bg-emerald-50 p-4 text-sm text-emerald-900">
+          <div className="flex items-center justify-between gap-4">
+            <span className="inline-flex items-center gap-2 font-black">
+              <WalletCards size={16} />
+              {text({ ar: "رصيد المحفظة المتاح", en: "Available wallet balance" })}
+            </span>
+            <span className="font-black">{currencyLabel(walletBalance)}</span>
+          </div>
+          {walletDiscount > 0 ? (
+            <p className="mt-2 leading-7">
+              {text({ ar: "سيُحجز هذا الرصيد مؤقتًا أثناء الدفع ويُخصم فقط بعد نجاح العملية:", en: "This balance is reserved during checkout and captured only after payment succeeds:" })} {currencyLabel(walletDiscount)}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
       <div className="space-y-3">
         <p className="text-sm font-semibold text-zinc-700">{text({ ar: "طريقة الدفع", en: "Payment method" })}</p>
         <div className="grid gap-3 sm:grid-cols-2">
@@ -313,10 +344,11 @@ export function CheckoutForm() {
         <div className="flex items-center justify-between gap-4">
           <div>
             <span className="text-sm text-zinc-600">{voucherDiscount ? text({ ar: "الإجمالي بعد الخصم", en: "Total after discount" }) : text({ ar: "الإجمالي التقريبي", en: "Estimated total" })}</span>
-            {voucherDiscount ? (
-              <div className="mt-1 space-x-2">
-                <span className="text-xs text-zinc-400 line-through">{currencyLabel(total)}</span>
-                <span className="text-xs text-emerald-600">{text({ ar: "خصم", en: "Discount" })}: -{currencyLabel(voucherDiscount)}</span>
+            {voucherDiscount || walletDiscount ? (
+              <div className="mt-1 flex flex-wrap gap-2 text-xs">
+                <span className="text-zinc-400 line-through">{currencyLabel(total)}</span>
+                {voucherDiscount ? <span className="text-emerald-600">{text({ ar: "قسيمة", en: "Voucher" })}: -{currencyLabel(voucherDiscount)}</span> : null}
+                {walletDiscount ? <span className="text-sky-700">{text({ ar: "محفظة", en: "Wallet" })}: -{currencyLabel(walletDiscount)}</span> : null}
               </div>
             ) : null}
           </div>
@@ -339,6 +371,7 @@ export function CheckoutForm() {
               items={items}
               formRef={formRef}
               disabled={!items.length}
+              voucherCode={voucherDiscount ? voucherCode.trim() : undefined}
               onStatus={setMessage}
               onCompleted={({ orderId, claimToken }) => {
                 clearCart();

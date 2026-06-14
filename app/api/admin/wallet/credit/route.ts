@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
   const { emails, amount, description, expiresAt } = parsed.data;
 
   const descriptionWithExpiry = expiresAt
-    ? `${description} (تنتهي: ${new Date(expiresAt).toLocaleDateString("ar-QA")})`
+    ? `${description} (تنتهي: ${new Date(expiresAt).toLocaleDateString("en-GB")})`
     : description;
 
   await prisma.$transaction(async (tx) => {

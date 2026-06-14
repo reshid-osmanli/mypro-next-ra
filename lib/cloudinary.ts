@@ -78,7 +78,7 @@ export async function uploadToCloudinary(params: {
   policy: UploadPolicy;
 }): Promise<CloudinaryUploadResult> {
   const config = requireCloudinaryConfig();
-  const resourceType = params.policy.private ? "raw" : "image";
+  const resourceType = params.policy.private ? "raw" : params.mimeType.startsWith("video/") ? "video" : "image";
   const timestamp = Math.floor(Date.now() / 1000);
   const folder = uploadFolder(params.policy);
   const publicId = safePublicId(params.fileName);
@@ -130,7 +130,7 @@ export function generateSignedUploadParams(params: {
   policy: UploadPolicy;
 }): { uploadUrl: string; formData: Record<string, string> } {
   const config = requireCloudinaryConfig();
-  const resourceType = params.policy.private ? "raw" : "image";
+  const resourceType = params.policy.private ? "raw" : params.mimeType.startsWith("video/") ? "video" : "image";
   const publicId = safePublicId(params.fileName);
   const folder = uploadFolder(params.policy);
   const timestamp = Math.floor(Date.now() / 1000);

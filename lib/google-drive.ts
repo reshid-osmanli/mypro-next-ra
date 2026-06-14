@@ -21,12 +21,21 @@ type GoogleTokenResponse = {
 const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
 const DRIVE_FOLDER_NAME = "Kutubi Purchases";
 
+function requireSecret(value: string | undefined, name: string, fallback: string) {
+  const secret = value?.trim();
+  if (secret) return secret;
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(`${name} is required in production`);
+  }
+  return fallback;
+}
+
 function getStateSecret() {
-  return process.env.ADMIN_SESSION_SECRET || "kutubi-dev-session-secret";
+  return requireSecret(process.env.ADMIN_SESSION_SECRET || process.env.AUTH_SECRET, "ADMIN_SESSION_SECRET or AUTH_SECRET", "kutubi-dev-session-secret");
 }
 
 function getEncryptionSecret() {
-  return process.env.GOOGLE_TOKEN_ENCRYPTION_KEY || process.env.ADMIN_SESSION_SECRET || "kutubi-dev-token-secret";
+  return requireSecret(process.env.GOOGLE_TOKEN_ENCRYPTION_KEY || process.env.ADMIN_SESSION_SECRET || process.env.AUTH_SECRET, "GOOGLE_TOKEN_ENCRYPTION_KEY", "kutubi-dev-token-secret");
 }
 
 function encryptionKey() {

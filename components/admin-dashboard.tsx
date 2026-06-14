@@ -22,7 +22,7 @@ import {
   AlertCircle,
   Ticket
 } from "lucide-react";
-import { currencyLabel, formatBytes } from "@/lib/utils";
+import { currencyLabel, dateLabel, formatBytes, numberLabel } from "@/lib/utils";
 import { describeAllowedPrivateUploads, MAX_UPLOAD_BYTES, PRIVATE_UPLOAD_ACCEPT } from "@/lib/upload-policy";
 import { useSitePreferences } from "./site-preferences";
 import type { ProductCardModel } from "./product-card";
@@ -65,10 +65,24 @@ type SiteSettings = {
   heroEyebrow: string;
   heroTitle: string;
   heroDescription: string;
+  heroPrimaryCtaLabel: string;
+  heroPrimaryCtaHref: string;
+  heroSecondaryCtaLabel: string;
+  heroSecondaryCtaHref: string;
   checkoutNote: string;
   primaryColor: string;
   secondaryColor: string;
   logoUrl: string | null;
+  announcementEnabled: string;
+  announcementText: string;
+  announcementHref: string;
+  promoTitle: string;
+  promoDescription: string;
+  promoImageUrl: string;
+  promoCtaLabel: string;
+  promoCtaHref: string;
+  homepageProductLimit: string;
+  homepageProductOrder: string;
 };
 
 type AdminStats = {
@@ -698,7 +712,7 @@ function VouchersTab() {
                   <td className="py-3 pr-4 font-medium text-zinc-900">{voucher.code}</td>
                   <td className="py-3 pr-4 text-zinc-700">{currencyLabel(voucher.amount)}</td>
                   <td className="py-3 pr-4 text-zinc-700">{voucher.usedCount} / {voucher.maxUses}</td>
-                  <td className="py-3 pr-4 text-zinc-500">{voucher.expiresAt ? new Date(voucher.expiresAt).toLocaleDateString("ar-QA") : "—"}</td>
+                  <td className="py-3 pr-4 text-zinc-500">{voucher.expiresAt ? dateLabel(voucher.expiresAt) : "—"}</td>
                   <td className="py-3 pr-4">
                     <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${voucher.isActive ? "bg-emerald-50 text-emerald-700" : "bg-zinc-100 text-zinc-600"}`}>
                       {voucher.isActive ? text({ ar: "فعال", en: "Active" }) : text({ ar: "غير فعال", en: "Inactive" })}
@@ -1082,115 +1096,32 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
     } catch (error) { showMessage(error instanceof Error ? error.message : "حدث خطأ أثناء حذف الملف", "error"); }
     finally { setBusy(false); }
   }
+  async function uploadAdminFile(file: File, fallback: string) {
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await fetch("/api/admin/uploads", { method: "POST", body: formData });
+    const data = await res.json().catch(() => ({}));
+    const upload = requireUploadData(data, fallback);
+    if (!res.ok) throw new Error(typeof (data as { error?: unknown }).error === "string" ? (data as { error: string }).error : fallback);
+    return upload;
+  }
+
+  function validatePublicVisual(file: File, label: string, allowGif = true) {
+    const validExtensions = allowGif ? /\.(?:png|jpe?g|webp|gif|mp4|webm|mov)$/i : /\.(?:png|jpe?g|webp)$/i;
+    const validMimeTypes = allowGif
+      ? ["image/png", "image/jpeg", "image/webp", "image/gif", "video/mp4", "video/webm", "video/quicktime"]
+      : ["image/png", "image/jpeg", "image/webp"];
+    const mimeOk = validMimeTypes.includes(file.type) || validExtensions.test(file.name);
+    if (!mimeOk) throw new Error(`${label} يجب أن يكون بصيغة مسموحة`);
+    if (file.size <= 0 || file.size > MAX_UPLOAD_BYTES) throw new Error(`حجم ${label} يجب ألا يتجاوز ${formatBytes(MAX_UPLOAD_BYTES)}`);
+  }
+
   async function uploadCoverImage(file: File | null) {
     if (!file) return;
-    if (!isAllowedImageFile(file, false)) {
-      showMessage("يرجى اختيار صورة غلاف بصيغة PNG أو JPG أو WEBP", "error");
-      return;
-    }
-    if (file.size <= 0 || file.size > MAX_UPLOAD_BYTES) {
-      showMessage(`حجم صورة الغلاف يجب ألا يتجاوز ${formatBytes(MAX_UPLOAD_BYTES)}`, "error");
-      return;
-    }
     setBusy(true); clearMessage();
     try {
-      const direct = await uploadFileDirect(file, false);
-      if (direct.url.includes("cloudinary") && direct.url.includes("/raw/")) {
-        throw new Error("صورة الغلاف يجب أن تكون صورة عامة قابلة للعرض");
-      }
-      setProductForm((current) => ({ ...current, coverImage: direct.url }));
-      showMessage("تم رفع صورة الغلاف بنجاح", "success");
-    } catch (error) {
-      showMessage(error instanceof Error ? error.message : "حدث خطأ أثناء رفع صورة الغلاف", "error");
-  } finally {
-    setBusy(false);
-  }
-  }
-
-  async function handleCoverImageUpload(file: File) {
-    if (file.size <= 0 || file.size > MAX_UPLOAD_BYTES) {
-      showMessage(`حجم ملف اللغو يجب ألا يتجاوز ${formatBytes(MAX_UPLOAD_BYTES)}`, "error");
-      return;
-    }
-    setBusy(true); clearMessage();
-    try {
-      const direct = await uploadFileDirect(file, false);
-      if (direct.url.includes("cloudinary") && direct.url.includes("/raw/")) {
-        throw new Error("ملف اللغو يجب أن يكون عامًا قابلًا للعرض");
-      }
-      setProductForm((current) => ({ ...current, motionEnabled: true, motionSrc: direct.url }));
-      showMessage("تم رفع ملف اللغو المتحرك بنجاح", "success");
-    } catch (error) {
-      showMessage(error instanceof Error ? error.message : "حدث خطأ أثناء رفع ملف اللغو", "error");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function uploadSubjectMotionLogo(file: File | null) {
-    if (!file) return;
-    const validExtensions = /\.(?:png|jpe?g|webp|gif|mp4|webm|mov)$/i;
-    const validMimeTypes = ["image/png", "image/jpeg", "image/webp", "image/gif", "video/mp4", "video/webm", "video/quicktime"];
-    const mimeOk = validMimeTypes.includes(file.type) || validExtensions.test(file.name);
-    if (!mimeOk) {
-      showMessage("يرجى اختيار صورة أو فيديو لشعار المادة", "error");
-      return;
-    }
-    if (file.size <= 0 || file.size > MAX_UPLOAD_BYTES) {
-      showMessage(`حجم شعار المادة يجب ألا يتجاوز ${formatBytes(MAX_UPLOAD_BYTES)}`, "error");
-      return;
-    }
-    setBusy(true); clearMessage();
-    try {
-      const direct = await uploadFileDirect(file, false);
-      if (direct.url.includes("cloudinary") && direct.url.includes("/raw/")) {
-        throw new Error("شعار المادة يجب أن يكون عامًا قابلًا للعرض");
-      }
-      setSubjectForm((current) => ({ ...current, motionLogo: direct.url }));
-      showMessage("تم رفع شعار المادة المتحرك بنجاح", "success");
-    } catch (error) {
-      showMessage(error instanceof Error ? error.message : "حدث خطأ أثناء رفع شعار المادة", "error");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function uploadLogo(file: File | null) {
-    if (!file) return;
-    const validExtensions = /\.(?:png|jpe?g|webp|gif|mp4|webm|mov)$/i;
-    const validMimeTypes = ["image/png", "image/jpeg", "image/webp", "image/gif", "video/mp4", "video/webm", "video/quicktime"];
-    const mimeOk = validMimeTypes.includes(file.type) || validExtensions.test(file.name);
-    if (!mimeOk) {
-      showMessage("يرجى اختيار صورة أو فيديو لشعار الموقع", "error");
-      return;
-    }
-    if (file.size <= 0 || file.size > MAX_UPLOAD_BYTES) {
-      showMessage(`حجم شعار الموقع يجب ألا يتجاوز ${formatBytes(MAX_UPLOAD_BYTES)}`, "error");
-      return;
-    }
-    setBusy(true); clearMessage();
-    try {
-      const direct = await uploadFileDirect(file, false);
-      setSettingsForm((current) => ({ ...current, logoUrl: direct.url }));
-      showMessage("تم رفع شعار الموقع بنجاح", "success");
-    } catch (error) {
-      showMessage(error instanceof Error ? error.message : "حدث خطأ أثناء رفع شعار الموقع", "error");
-    } finally {
-      setBusy(false);
-    }
-  }
-    if (file.size <= 0 || file.size > MAX_UPLOAD_BYTES) {
-      showMessage(`حجم صورة الغلاف يجب ألا يتجاوز ${formatBytes(MAX_UPLOAD_BYTES)}`, "error");
-      return;
-    }
-    setBusy(true); clearMessage();
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-      const res = await fetch("/api/admin/uploads", { method: "POST", body: formData });
-      const data = await res.json().catch(() => ({}));
-      const upload = requireUploadData(data, "فشل رفع صورة الغلاف");
-      if (!res.ok) throw new Error("فشل رفع صورة الغلاف");
+      validatePublicVisual(file, "صورة الغلاف", false);
+      const upload = await uploadAdminFile(file, "فشل رفع صورة الغلاف");
       if (upload.private || upload.kind !== "image") throw new Error("صورة الغلاف يجب أن تكون صورة عامة قابلة للعرض");
       setProductForm((current) => ({ ...current, coverImage: upload.url }));
       showMessage("تم رفع صورة الغلاف بنجاح", "success");
@@ -1203,22 +1134,13 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
 
   async function uploadAdditionalImages(files: FileList | null) {
     if (!files?.length) return;
-    const invalidFile = Array.from(files).find((file) => !isAllowedImageFile(file, true));
-    if (invalidFile) {
-      showMessage("يرجى اختيار صور بصيغة PNG أو JPG أو WEBP أو GIF فقط", "error");
-      return;
-    }
     setBusy(true); clearMessage();
     try {
       const results: string[] = [];
       for (const file of Array.from(files)) {
-        const formData = new FormData();
-        formData.append("file", file);
-        const res = await fetch("/api/admin/uploads", { method: "POST", body: formData });
-        const data = await res.json().catch(() => ({}));
-        const upload = requireUploadData(data, "فشل رفع الصورة الإضافية");
-        if (!res.ok) throw new Error("فشل رفع الصورة الإضافية");
-        if (upload.private || upload.kind !== "image") throw new Error("الصور الإضافية يجب أن تكون صور عامة قابلة للعرض");
+        validatePublicVisual(file, "الصورة الإضافية", true);
+        const upload = await uploadAdminFile(file, "فشل رفع الصورة الإضافية");
+        if (upload.private || upload.kind !== "image") throw new Error("الصور الإضافية يجب أن تكون عامة قابلة للعرض");
         results.push(upload.url);
       }
       setProductForm((current) => ({ ...current, additionalImages: [...current.additionalImages, ...results] }));
@@ -1232,30 +1154,15 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
 
   async function uploadMotionSrc(file: File | null) {
     if (!file) return;
-    const validExtensions = /\.(?:png|jpe?g|webp|gif|mp4|webm|mov)$/i;
-    const validMimeTypes = ["image/png", "image/jpeg", "image/webp", "image/gif", "video/mp4", "video/webm", "video/quicktime"];
-    const mimeOk = validMimeTypes.includes(file.type) || validExtensions.test(file.name);
-    if (!mimeOk) {
-      showMessage("يرجى اختيار صورة أو فيديو للغو المتحرك", "error");
-      return;
-    }
-    if (file.size <= 0 || file.size > MAX_UPLOAD_BYTES) {
-      showMessage(`حجم ملف اللغو يجب ألا يتجاوز ${formatBytes(MAX_UPLOAD_BYTES)}`, "error");
-      return;
-    }
     setBusy(true); clearMessage();
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      const res = await fetch("/api/admin/uploads", { method: "POST", body: formData });
-      const data = await res.json().catch(() => ({}));
-      const upload = requireUploadData(data, "فشل رفع ملف اللغو");
-      if (!res.ok) throw new Error("فشل رفع ملف اللغو");
-      if (upload.private) throw new Error("ملف اللغو يجب أن يكون عامًا قابلًا للعرض");
+      validatePublicVisual(file, "ملف اللوغو المتحرك", true);
+      const upload = await uploadAdminFile(file, "فشل رفع ملف اللوغو");
+      if (upload.private) throw new Error("ملف اللوغو يجب أن يكون عامًا قابلًا للعرض");
       setProductForm((current) => ({ ...current, motionEnabled: true, motionSrc: upload.url }));
-      showMessage("تم رفع ملف اللغو المتحرك بنجاح", "success");
+      showMessage("تم رفع ملف اللوغو المتحرك بنجاح", "success");
     } catch (error) {
-      showMessage(error instanceof Error ? error.message : "حدث خطأ أثناء رفع ملف اللغو", "error");
+      showMessage(error instanceof Error ? error.message : "حدث خطأ أثناء رفع ملف اللوغو", "error");
     } finally {
       setBusy(false);
     }
@@ -1263,25 +1170,10 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
 
   async function uploadSubjectMotionLogo(file: File | null) {
     if (!file) return;
-    const validExtensions = /\.(?:png|jpe?g|webp|gif|mp4|webm|mov)$/i;
-    const validMimeTypes = ["image/png", "image/jpeg", "image/webp", "image/gif", "video/mp4", "video/webm", "video/quicktime"];
-    const mimeOk = validMimeTypes.includes(file.type) || validExtensions.test(file.name);
-    if (!mimeOk) {
-      showMessage("يرجى اختيار صورة أو فيديو لشعار المادة", "error");
-      return;
-    }
-    if (file.size <= 0 || file.size > MAX_UPLOAD_BYTES) {
-      showMessage(`حجم شعار المادة يجب ألا يتجاوز ${formatBytes(MAX_UPLOAD_BYTES)}`, "error");
-      return;
-    }
     setBusy(true); clearMessage();
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      const res = await fetch("/api/admin/uploads", { method: "POST", body: formData });
-      const data = await res.json().catch(() => ({}));
-      const upload = requireUploadData(data, "فشل رفع شعار المادة");
-      if (!res.ok) throw new Error("فشل رفع شعار المادة");
+      validatePublicVisual(file, "شعار المادة", true);
+      const upload = await uploadAdminFile(file, "فشل رفع شعار المادة");
       if (upload.private) throw new Error("شعار المادة يجب أن يكون عامًا قابلًا للعرض");
       setSubjectForm((current) => ({ ...current, motionLogo: upload.url }));
       showMessage("تم رفع شعار المادة المتحرك بنجاح", "success");
@@ -1294,29 +1186,15 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
 
   async function uploadLogo(file: File | null) {
     if (!file) return;
-    const validExtensions = /\.(?:png|jpe?g|webp|gif|mp4|webm|mov)$/i;
-    const validMimeTypes = ["image/png", "image/jpeg", "image/webp", "image/gif", "video/mp4", "video/webm", "video/quicktime"];
-    const mimeOk = validMimeTypes.includes(file.type) || validExtensions.test(file.name);
-    if (!mimeOk) {
-      showMessage("يرجى اختيار صورة أو فيديو للشعار (PNG, JPG, GIF, MP4, WEBM, MOV)", "error");
-      return;
-    }
-    if (file.size <= 0 || file.size > MAX_UPLOAD_BYTES) {
-      showMessage(`حجم الشعار يجب ألا يتجاوز ${formatBytes(MAX_UPLOAD_BYTES)}`, "error");
-      return;
-    }
     setBusy(true); clearMessage();
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      const res = await fetch("/api/admin/uploads", { method: "POST", body: formData });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || "فشل رفع الشعار");
-      if (data.private) throw new Error("الشعار يجب أن يكون عامًا قابلًا للعرض");
-      setSettingsForm((current) => ({ ...current, logoUrl: data.url }));
+      validatePublicVisual(file, "شعار الموقع", true);
+      const upload = await uploadAdminFile(file, "فشل رفع شعار الموقع");
+      if (upload.private) throw new Error("شعار الموقع يجب أن يكون عامًا قابلًا للعرض");
+      setSettingsForm((current) => ({ ...current, logoUrl: upload.url }));
       showMessage("تم رفع شعار الموقع بنجاح", "success");
     } catch (error) {
-      showMessage(error instanceof Error ? error.message : "حدث خطأ أثناء رفع الشعار", "error");
+      showMessage(error instanceof Error ? error.message : "حدث خطأ أثناء رفع شعار الموقع", "error");
     } finally {
       setBusy(false);
     }
@@ -1362,10 +1240,10 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
 
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {[
-               { label: "المنتجات", value: localProducts.length.toString(), icon: Layers3 },
-              { label: "الصفحات", value: pages.length.toString(), icon: BookText },
-              { label: "الصفوف", value: catalog.length.toString(), icon: Layers3 },
-              { label: "الملفات المرفوعة", value: uploadedFiles.length.toString(), icon: FolderUp }
+               { label: "المنتجات", value: numberLabel(localProducts.length), icon: Layers3 },
+              { label: "الصفحات", value: numberLabel(pages.length), icon: BookText },
+              { label: "الصفوف", value: numberLabel(catalog.length), icon: Layers3 },
+              { label: "الملفات المرفوعة", value: numberLabel(uploadedFiles.length), icon: FolderUp }
             ].map((item) => (
               <motion.div key={item.label} whileHover={{ y: -3 }} className="rounded-[1.4rem] border border-white/70 bg-white p-4 shadow-[0_14px_40px_rgba(15,23,42,0.05)]">
                 <item.icon className="text-qatar-700" size={18} />
@@ -1706,7 +1584,7 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
                   <div key={order.id} className="rounded-lg border border-qatar-100 bg-white p-4">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
-                        <p className="text-xs font-bold uppercase tracking-[0.16em] text-qatar-700">{new Date(order.createdAt).toLocaleDateString("ar-QA")}</p>
+                        <p className="text-xs font-bold uppercase tracking-[0.16em] text-qatar-700">{dateLabel(order.createdAt)}</p>
                         <h4 className="mt-1 font-black text-zinc-950">{order.customerName}</h4>
                         <p className="text-sm text-zinc-500">{order.email}</p>
                       </div>
@@ -1747,7 +1625,11 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
               <label className="space-y-2 sm:col-span-2"><span className="text-sm font-semibold text-zinc-700">سطر التمهيد</span><input className="input" value={settingsForm.heroEyebrow} onChange={(e) => setSettingsForm((c) => ({ ...c, heroEyebrow: e.target.value }))} /></label>
               <label className="space-y-2 sm:col-span-2"><span className="text-sm font-semibold text-zinc-700">عنوان البطل</span><input className="input" value={settingsForm.heroTitle} onChange={(e) => setSettingsForm((c) => ({ ...c, heroTitle: e.target.value }))} /></label>
               <label className="space-y-2 sm:col-span-2"><span className="text-sm font-semibold text-zinc-700">وصف البطل</span><textarea className="textarea" value={settingsForm.heroDescription} onChange={(e) => setSettingsForm((c) => ({ ...c, heroDescription: e.target.value }))} /></label>
-<label className="space-y-2 sm:col-span-2"><span className="text-sm font-semibold text-zinc-700">ملاحظة الدفع</span><input className="input" value={settingsForm.checkoutNote} onChange={(e) => setSettingsForm((c) => ({ ...c, checkoutNote: e.target.value }))} /></label>
+              <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">زر رئيسي</span><input className="input" value={settingsForm.heroPrimaryCtaLabel} onChange={(e) => setSettingsForm((c) => ({ ...c, heroPrimaryCtaLabel: e.target.value }))} /></label>
+              <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">رابط الزر الرئيسي</span><input className="input" value={settingsForm.heroPrimaryCtaHref} onChange={(e) => setSettingsForm((c) => ({ ...c, heroPrimaryCtaHref: e.target.value }))} /></label>
+              <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">زر ثانوي</span><input className="input" value={settingsForm.heroSecondaryCtaLabel} onChange={(e) => setSettingsForm((c) => ({ ...c, heroSecondaryCtaLabel: e.target.value }))} /></label>
+              <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">رابط الزر الثانوي</span><input className="input" value={settingsForm.heroSecondaryCtaHref} onChange={(e) => setSettingsForm((c) => ({ ...c, heroSecondaryCtaHref: e.target.value }))} /></label>
+              <label className="space-y-2 sm:col-span-2"><span className="text-sm font-semibold text-zinc-700">ملاحظة الدفع</span><input className="input" value={settingsForm.checkoutNote} onChange={(e) => setSettingsForm((c) => ({ ...c, checkoutNote: e.target.value }))} /></label>
                <label className="space-y-2 sm:col-span-2">
                  <span className="text-sm font-semibold text-zinc-700">شعار الموقع (صور أو فيديو)</span>
                  <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-center">
@@ -1773,6 +1655,20 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
                    </div>
                  ) : null}
                </label>
+               <div className="sm:col-span-2 rounded-2xl border border-qatar-100 bg-qatar-50/50 p-4">
+                 <h4 className="text-base font-black text-zinc-950">الواجهة، الإعلانات، وترتيب العروض</h4>
+                 <p className="mt-1 text-xs leading-6 text-zinc-500">تحكم بما يظهر أعلى الموقع، حملة العرض، وعدد المنتجات في الصفحة الرئيسية.</p>
+               </div>
+               <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">إظهار الإعلان العلوي</span><select className="input" value={settingsForm.announcementEnabled} onChange={(e) => setSettingsForm((c) => ({ ...c, announcementEnabled: e.target.value }))}><option value="true">مفعل</option><option value="false">مخفي</option></select></label>
+               <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">رابط الإعلان</span><input className="input" value={settingsForm.announcementHref} onChange={(e) => setSettingsForm((c) => ({ ...c, announcementHref: e.target.value }))} /></label>
+               <label className="space-y-2 sm:col-span-2"><span className="text-sm font-semibold text-zinc-700">نص الإعلان العلوي</span><input className="input" value={settingsForm.announcementText} onChange={(e) => setSettingsForm((c) => ({ ...c, announcementText: e.target.value }))} /></label>
+               <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">عنوان حملة العرض</span><input className="input" value={settingsForm.promoTitle} onChange={(e) => setSettingsForm((c) => ({ ...c, promoTitle: e.target.value }))} /></label>
+               <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">رابط صورة الحملة</span><input className="input" value={settingsForm.promoImageUrl} onChange={(e) => setSettingsForm((c) => ({ ...c, promoImageUrl: e.target.value }))} /></label>
+               <label className="space-y-2 sm:col-span-2"><span className="text-sm font-semibold text-zinc-700">وصف حملة العرض</span><textarea className="textarea" value={settingsForm.promoDescription} onChange={(e) => setSettingsForm((c) => ({ ...c, promoDescription: e.target.value }))} /></label>
+               <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">زر الحملة</span><input className="input" value={settingsForm.promoCtaLabel} onChange={(e) => setSettingsForm((c) => ({ ...c, promoCtaLabel: e.target.value }))} /></label>
+               <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">رابط زر الحملة</span><input className="input" value={settingsForm.promoCtaHref} onChange={(e) => setSettingsForm((c) => ({ ...c, promoCtaHref: e.target.value }))} /></label>
+               <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">عدد المنتجات بالصفحة الرئيسية</span><input type="number" min="1" max="12" className="input" value={settingsForm.homepageProductLimit} onChange={(e) => setSettingsForm((c) => ({ ...c, homepageProductLimit: e.target.value }))} /></label>
+               <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">ترتيب العروض</span><select className="input" value={settingsForm.homepageProductOrder} onChange={(e) => setSettingsForm((c) => ({ ...c, homepageProductOrder: e.target.value }))}><option value="featured">المميزة أولًا</option><option value="newest">الأحدث أولًا</option><option value="manual">حسب ترتيب المنتج</option></select></label>
                <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">لون أساسي</span><input className="input" value={settingsForm.primaryColor} onChange={(e) => setSettingsForm((c) => ({ ...c, primaryColor: e.target.value }))} /></label>
               <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">لون ثانوي</span><input className="input" value={settingsForm.secondaryColor} onChange={(e) => setSettingsForm((c) => ({ ...c, secondaryColor: e.target.value }))} /></label>
             </div>

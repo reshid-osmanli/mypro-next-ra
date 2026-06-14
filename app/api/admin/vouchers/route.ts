@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "البيانات غير صالحة" }, { status: 400 });
   }
 
-  const code = parsed.data.code || generateVoucherCode();
+  const code = (parsed.data.code || generateVoucherCode()).trim().toUpperCase().replace(/\s+/g, "");
   const expiresAt = parsed.data.expiresAt ? new Date(parsed.data.expiresAt) : null;
 
   const existing = await prisma.giftVoucher.findUnique({

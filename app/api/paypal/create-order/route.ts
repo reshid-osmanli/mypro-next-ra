@@ -8,6 +8,7 @@ import { getRequestIp, isRateLimited } from "@/lib/rate-limit";
 import { validateCheckoutReadiness } from "@/lib/checkout-readiness";
 import { checkoutItemsSchema } from "@/lib/security-validation";
 import { reportCaughtError, routeContext } from "@/lib/report-caught-error";
+import { getOrCreateWallet, reserveWalletBalance, releaseWalletReservation, validateVoucher } from "@/lib/wallet";
 
 const schema = z.object({
   items: checkoutItemsSchema,
@@ -15,7 +16,8 @@ const schema = z.object({
   email: z.string().trim().email().max(160),
   phone: z.string().trim().max(40).optional(),
   notes: z.string().trim().max(1000).optional(),
-  purchaseTrackingConsent: z.boolean().optional().default(false)
+  purchaseTrackingConsent: z.boolean().optional().default(false),
+  voucherCode: z.string().trim().optional()
 });
 
 export async function POST(req: Request) {
@@ -58,10 +60,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: readiness.error }, { status: 400 });
   }
 
-  const products = await prisma.product.findMany({
+  const products = (await prisma.product.findMany({
     where: { id: { in: productIds }, status: "published" },
     select: { id: true, title: true, price: true }
-  });
+  })) as Array<{ id: string; title: string; price: number }>;
 
   const productMap = new Map(products.map((product) => [product.id, product]));
   const normalizedItems = parsed.data.items.map((item) => {
@@ -75,6 +77,29 @@ export async function POST(req: Request) {
   });
 
   const total = normalizedItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  let voucherDiscount = 0;
+  let voucherCode: string | null = null;
+
+  if (parsed.data.voucherCode) {
+    const voucherResult = await validateVoucher(parsed.data.voucherCode, orderEmail);
+    if (!voucherResult.valid) {
+      return NextResponse.json({ error: voucherResult.error || "القسيمة غير صالحة" }, { status: 400 });
+    }
+    if (voucherResult.voucher) {
+      voucherDiscount = Math.min(total, voucherResult.voucher.amount);
+      voucherCode = voucherResult.voucher.code;
+    }
+  }
+
+  const wallet = await getOrCreateWallet(orderEmail);
+  const walletDiscount = Math.min(wallet.balance, Math.max(0, total - voucherDiscount));
+  const finalDiscount = Math.min(total, voucherDiscount + walletDiscount);
+  const finalTotal = Math.max(0, total - finalDiscount);
+
+  if (finalTotal <= 0) {
+    return NextResponse.json({ error: "استخدم Stripe لإتمام الطلبات المغطاة بالكامل بالقسائم أو المحفظة." }, { status: 400 });
+  }
+
   const localOrder = await prisma.order.create({
     data: {
       customerName: parsed.data.customerName,
@@ -82,9 +107,11 @@ export async function POST(req: Request) {
       phone: parsed.data.phone,
       notes: parsed.data.notes,
       purchaseTrackingConsent,
-      total,
+      total: finalTotal,
       status: "pending",
       paymentMethod: "paypal",
+      voucherId: voucherCode,
+      walletUsed: walletDiscount,
       items: {
         create: parsed.data.items.map((item) => ({
           productId: item.id,
@@ -97,9 +124,14 @@ export async function POST(req: Request) {
   });
 
   try {
+    if (walletDiscount > 0) {
+      await reserveWalletBalance(orderEmail, walletDiscount, localOrder.id);
+    }
+
     const paypalOrder = await createPaypalOrder({
       orderReference: localOrder.id,
-      amount: total,
+      amount: finalTotal,
+      discountAmount: finalDiscount,
       items: normalizedItems,
       customer: {
         name: parsed.data.customerName,
@@ -113,6 +145,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ orderId: paypalOrder.id, localOrderId: localOrder.id });
   } catch (error) {
     await reportCaughtError(error, { ...routeContext(req, "payments"), statusCode: 500 });
+    await releaseWalletReservation(localOrder.id).catch(() => null);
     await prisma.order.update({ where: { id: localOrder.id }, data: { status: "failed" } }).catch(() => null);
     return NextResponse.json({ error: error instanceof Error ? error.message : "تعذر إنشاء الطلب" }, { status: 500 });
   }

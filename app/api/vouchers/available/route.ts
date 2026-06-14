@@ -4,25 +4,29 @@ import { auth } from "@/auth";
 
 export const runtime = "nodejs";
 
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
   const session = await auth();
   const email = session?.user?.email?.trim().toLowerCase();
 
   const vouchers = await prisma.giftVoucher.findMany({
-    where: {
-      isActive: true,
-      usedCount: { lt: prisma.giftVoucher.fields.maxUses }
-    },
+    where: { isActive: true },
     orderBy: { createdAt: "desc" },
-    take: 20
+    take: 100
   });
+
+  const usedVoucherIds = email
+    ? new Set((await prisma.voucherUsage.findMany({ where: { email }, select: { voucherId: true } })).map((usage) => usage.voucherId))
+    : new Set<string>();
 
   const now = new Date();
   const validVouchers = vouchers
-    .filter((v) => !v.expiresAt || v.expiresAt > now)
-    .map((v) => ({
-      code: v.code,
-      amount: v.amount
+    .filter((voucher) => voucher.usedCount < voucher.maxUses)
+    .filter((voucher) => !voucher.expiresAt || voucher.expiresAt > now)
+    .filter((voucher) => !usedVoucherIds.has(voucher.id))
+    .slice(0, 20)
+    .map((voucher) => ({
+      code: voucher.code,
+      amount: voucher.amount
     }));
 
   return NextResponse.json({ vouchers: validVouchers });
