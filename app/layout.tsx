@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale, getMessages } from "next-intl/server";
 import "./globals.css";
 import { CartProvider } from "@/components/cart-provider";
 import { SiteShell } from "@/components/site-shell";
 import { SitePreferenceProvider } from "@/components/site-preferences";
 import { AuthSessionProvider } from "@/components/auth-session-provider";
-
 import { getSiteSettings } from "@/lib/site-settings";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -24,18 +25,26 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const settings = await getSiteSettings();
+  const [settings, locale, messages] = await Promise.all([
+    getSiteSettings(),
+    getLocale(),
+    getMessages()
+  ]);
 
   return (
-    <html lang="ar" dir="rtl" suppressHydrationWarning>
+    <html lang={locale === "en" ? "en" : "ar"} dir={locale === "en" ? "ltr" : "rtl"} suppressHydrationWarning>
       <body className="min-h-screen antialiased">
-        <SitePreferenceProvider>
-          <AuthSessionProvider>
-            <CartProvider>
-              <SiteShell brandName={settings.brandName} logoUrl={settings.logoUrl}>{children}</SiteShell>
-            </CartProvider>
-          </AuthSessionProvider>
-        </SitePreferenceProvider>
+        <NextIntlClientProvider messages={messages}>
+          <SitePreferenceProvider>
+            <AuthSessionProvider>
+              <CartProvider>
+                <SiteShell brandName={settings.brandName} logoUrl={settings.logoUrl}>
+                  {children}
+                </SiteShell>
+              </CartProvider>
+            </AuthSessionProvider>
+          </SitePreferenceProvider>
+        </NextIntlClientProvider>
       </body>
     </html>
   );

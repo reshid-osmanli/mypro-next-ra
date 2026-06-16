@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { CheckCircle2, Download, RefreshCw } from "lucide-react";
+import { CheckCircle2, Download } from "lucide-react";
 import { cookies } from "next/headers";
 import { OrderDownloadGate } from "@/components/order-download-gate";
+import { RetryDownloadButton } from "@/components/retry-download-button";
 import { ConfettiCelebration } from "@/components/confetti-celebration";
 import { LocalizedText } from "@/components/site-preferences";
 import { MotionShowcase } from "@/components/motion-showcase";
@@ -62,14 +63,7 @@ export default async function ThankYouPage({ searchParams }: { searchParams?: Pr
         {showError && errorReason && !order ? (
           <div className="mt-4 rounded-lg border border-rose-200 bg-rose-50 p-5 text-sm text-rose-700">
             <p className="mb-3">{errorReason}</p>
-            <button
-              type="button"
-              onClick={() => window.location.reload()}
-              className="inline-flex items-center gap-2 rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700"
-            >
-              <RefreshCw size={16} />
-              <LocalizedText value={{ ar: "لم يتم التنزيل اضغط هنا للمحاولة مرة أخرى", en: "Download did not start. Click to retry." }} />
-            </button>
+            <RetryDownloadButton />
           </div>
         ) : null}
 

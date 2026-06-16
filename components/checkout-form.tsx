@@ -12,6 +12,8 @@ import { subtotal } from "@/lib/site-math";
 import { calculateBundleDiscount, bundleDiscountLabel } from "@/lib/bundle-discounts";
 import { currencyLabel } from "@/lib/utils";
 import { useSitePreferences } from "./site-preferences";
+import { HoneypotFields } from "./honeypot-fields";
+import { getCsrfToken } from "./csrf-provider";
 
 const providers = [
   {
@@ -30,8 +32,12 @@ const providers = [
 
 type AvailableVoucher = { code: string; amount: number };
 
+const CSRF_HEADER = "x-csrf-token";
+
 export function CheckoutForm() {
   const formRef = useRef<HTMLFormElement>(null);
+  // Track when the form was first rendered — used for honeypot timing check
+  const renderedAtRef = useRef<number>(Date.now());
   const { data: session } = useSession();
   const { items, clearCart } = useCart();
   const { text } = useSitePreferences();
@@ -134,7 +140,7 @@ export function CheckoutForm() {
         setVoucherCode(codeToValidate);
         setShowVoucherSelector(false);
       }
-    } catch (error) {
+    } catch {
       setVoucherError(text({ ar: "فشل التحقق من القسيمة", en: "Failed to validate voucher" }));
       setVoucherDiscount(null);
     } finally {
@@ -146,10 +152,24 @@ export function CheckoutForm() {
     if (!items.length) return;
     setLoading(true);
     setMessage("");
+
+    // Extract honeypot fields from form — bots fill these, humans don't
+    const honeypotWebsite = String(formData.get("website") ?? "");
+    const honeypotEmailConfirm = String(formData.get("email_confirm") ?? "");
+    const honeypotPhoneUrl = String(formData.get("phone_url") ?? "");
+    const renderedAt = renderedAtRef.current;
+
+    // Get CSRF token from cookie
+    const csrfToken = getCsrfToken();
+
     try {
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (csrfToken) headers[CSRF_HEADER] = csrfToken;
+
       const response = await fetch("/api/checkout", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        headers,
         body: JSON.stringify({
           items,
           customerName: String(formData.get("customerName") ?? ""),
@@ -159,7 +179,12 @@ export function CheckoutForm() {
           purchaseTrackingConsent: formData.get("purchaseTrackingConsent") === "on",
           paymentMethod: "stripe",
           voucherCode: voucherDiscount ? voucherCode.trim() : undefined,
-          walletAmountToUse: Number(walletAmountToUse) || 0
+          walletAmountToUse: Number(walletAmountToUse) || 0,
+          // Honeypot fields
+          website: honeypotWebsite,
+          email_confirm: honeypotEmailConfirm,
+          phone_url: honeypotPhoneUrl,
+          renderedAt
         })
       });
 
@@ -200,6 +225,9 @@ export function CheckoutForm() {
         />
       ) : null}
 
+      {/* Honeypot anti-bot fields — invisible to humans, filled by bots */}
+      <HoneypotFields renderedAt={renderedAtRef.current} />
+
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="block space-y-2">
           <span className="text-sm font-semibold text-zinc-700">{text({ ar: "الاسم الكامل", en: "Full name" })}</span>
@@ -228,34 +256,20 @@ export function CheckoutForm() {
 
       <label className="block space-y-2">
         <span className="text-sm font-semibold text-zinc-700">{text({ ar: "ملاحظات", en: "Notes" })}</span>
-        <textarea name="notes" className="textarea" placeholder={text({ ar: "أي تفاصيل إضافية للطلب...", en: "Any extra order details..." })} />
+        <textarea name="notes" className="textarea" placeholder={text({ ar: "أي ملاحظات إضافية حول الطلب...", en: "Any additional notes about the order..." })} />
       </label>
 
-      {bundleDiscount.discount > 0 ? (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-7 text-amber-900">
-          <strong>{bundleDiscountLabel()}:</strong> تم تفعيل خصم تلقائي بقيمة {currencyLabel(bundleDiscount.discount)} لأن السلة تحتوي على حقيبة مادة كاملة.
-        </div>
-      ) : items.length > 0 ? (
-        <div className="rounded-lg border border-dashed border-qatar-200 bg-qatar-50 px-4 py-3 text-sm leading-7 text-qatar-900">
-          أضف 3 منتجات أو أكثر من نفس الصف والمادة لتفعيل خصم حقيبة الفصل تلقائيًا.
-        </div>
+      {signedInEmail ? (
+        <label className="flex cursor-pointer items-start gap-3">
+          <input type="checkbox" name="purchaseTrackingConsent" checked={purchaseTrackingConsent} onChange={(e) => setPurchaseTrackingConsent(e.target.checked)} className="mt-1 h-5 w-5 shrink-0 cursor-pointer rounded border-pearl-300 text-qatar-600 focus:ring-qatar-200" />
+          <span className="text-sm leading-7 text-zinc-600">
+            {text({
+              ar: "أوافق على حفظ مشترياتي ضمن بريدي الإلكتروني以便 later viewing وإرفاقها اختيارياً بحساب Google Drive.",
+              en: "I agree to save my purchases under my email so I can view them later and optionally connect Google Drive."
+            })}
+          </span>
+        </label>
       ) : null}
-
-      <label className="flex items-start gap-3 rounded-lg border border-qatar-100 bg-white px-4 py-3 text-sm leading-7 text-zinc-700">
-        <input
-          name="purchaseTrackingConsent"
-          type="checkbox"
-          className="mt-1 h-4 w-4 rounded border-qatar-300 text-qatar-700"
-          checked={purchaseTrackingConsent}
-          onChange={(event) => setPurchaseTrackingConsent(event.target.checked)}
-        />
-        <span>
-          {text({
-            ar: "أوافق على حفظ مشترياتي على بريدي الإلكتروني حتى أستطيع عرضها لاحقاً وربطها اختيارياً بحساب Google Drive.",
-            en: "I agree to save my purchases under my email so I can view them later and optionally connect Google Drive."
-          })}
-        </span>
-      </label>
 
       <div className="space-y-3">
         <div className="flex items-center justify-between">
@@ -294,10 +308,6 @@ export function CheckoutForm() {
           </div>
         ) : !voucherDiscount && signedInEmail ? (
           <p className="text-sm text-zinc-500">{text({ ar: "لا يوجد قسائم متاحة لك حالياً", en: "No available vouchers right now" })}</p>
-        ) : null}
-
-        {voucherError ? (
-          <p className="text-sm text-rose-600">{voucherError}</p>
         ) : voucherDiscount ? (
           <p className="text-sm text-emerald-700">
             <CheckCircle size={14} className="inline-block mr-1" />
@@ -320,18 +330,18 @@ export function CheckoutForm() {
           </div>
           <div className="mt-3 flex items-center gap-2">
             <span className="text-sm font-semibold">{text({ ar: "الخصم من المحفظة:", en: "Use from wallet:" })}</span>
-            <input 
-              type="number" 
+            <input
+              type="number"
               name="walletAmountToUse"
-              className="input max-w-[120px] text-sm bg-white" 
+              className="input max-w-[120px] text-sm bg-white"
               placeholder="0"
               value={walletAmountToUse}
               onChange={(e) => setWalletAmountToUse(e.target.value === "" ? "" : Number(e.target.value))}
               max={Math.min(walletBalance, Math.max(0, total - bundleDiscount.discount - (voucherDiscount ?? 0)))}
               min="0"
             />
-            <button 
-              type="button" 
+            <button
+              type="button"
               onClick={() => setWalletAmountToUse(Math.min(walletBalance, Math.max(0, total - bundleDiscount.discount - (voucherDiscount ?? 0))))}
               className="text-xs font-bold text-emerald-700 hover:underline"
             >

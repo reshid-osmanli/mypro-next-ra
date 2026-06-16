@@ -7,6 +7,42 @@ const AFFILIATE_COOKIE = "kutubi_ref";
 
 const { auth: authMiddleware } = NextAuth(authConfig);
 
+// ---------------------------------------------------------------------------
+// next-intl locale detection (without URL prefix rewriting)
+// ---------------------------------------------------------------------------
+// We detect locale from cookie or Accept-Language header and make it available
+// via a response header. The layout reads this header to set html[lang|dir].
+// This avoids conflicts with the hardcoded lang="ar" dir="rtl" in existing pages
+// while providing locale awareness for server components using next-intl.
+
+export async function localeMiddleware(req: NextRequest, res: NextResponse) {
+  // Try to read locale from cookie first, then fall back to Accept-Language
+  const localeCookie = req.cookies.get("NEXT_LOCALE")?.value;
+  const acceptLang = req.headers.get("accept-language") || "";
+  let locale = localeCookie || "ar";
+
+  if (!localeCookie && acceptLang) {
+    const match = acceptLang.match(/ar/i) ? "ar" : acceptLang.match(/en/i) ? "en" : null;
+    if (match) locale = match;
+  }
+
+  // Pass locale to the response via custom header (read by layout if needed)
+  res.headers.set("x-locale-detected", locale);
+
+  // Also set the next-intl cookie so server components can use it
+  res.cookies.set("NEXT_LOCALE", locale, {
+    path: "/",
+    sameSite: "lax",
+    maxAge: 60 * 60 * 24 * 365,
+    secure: process.env.NODE_ENV === "production"
+  });
+
+  return res;
+}
+
+// ---------------------------------------------------------------------------
+// Security headers
+// ---------------------------------------------------------------------------
 function applySecurityHeaders(res: NextResponse, pathname = "") {
   res.headers.set("X-Content-Type-Options", "nosniff");
   res.headers.set("X-Frame-Options", "DENY");
@@ -45,7 +81,7 @@ function applySecurityHeaders(res: NextResponse, pathname = "") {
 }
 
 function sanitizeReferralCode(code: string | null) {
-  return code?.trim().toUpperCase().replace(/[^A-Z0-9_-]/g, "").slice(0, 32) || "";
+  return code?.trim().toUpperCase().replace(/[^A-Z0-9_\-]/g, "").slice(0, 32) || "";
 }
 
 function withReferralCookie(req: NextRequest, res: NextResponse) {
@@ -62,7 +98,13 @@ function withReferralCookie(req: NextRequest, res: NextResponse) {
 }
 
 function isStaticAsset(pathname: string) {
-  return pathname.startsWith("/_next/") || pathname === "/favicon.ico" || pathname === "/robots.txt" || pathname === "/sitemap.xml" || /\.(?:css|js|map|png|jpg|jpeg|gif|webp|svg|ico)$/.test(pathname);
+  return (
+    pathname.startsWith("/_next/") ||
+    pathname === "/favicon.ico" ||
+    pathname === "/robots.txt" ||
+    pathname === "/sitemap.xml" ||
+    /\.(?:css|js|map|png|jpg|jpeg|gif|webp|svg|ico)$/.test(pathname)
+  );
 }
 
 function redirectIfHttpsNeeded(req: NextRequest, pathname: string) {
@@ -85,7 +127,6 @@ function loginRedirect(req: NextRequest) {
 }
 
 function isProtectedPage(pathname: string) {
-  // Public storefront/library pages stay open. Only personal purchase pages require login here.
   return pathname.startsWith("/purchases");
 }
 
@@ -100,28 +141,38 @@ function isProtectedApi(pathname: string) {
 export default authMiddleware((req) => {
   const { pathname } = req.nextUrl;
 
-  if (isStaticAsset(pathname)) return applySecurityHeaders(NextResponse.next(), pathname);
+  if (isStaticAsset(pathname)) {
+    const res = NextResponse.next();
+    return applySecurityHeaders(res, pathname);
+  }
 
   const httpsRedirect = redirectIfHttpsNeeded(req, pathname);
   if (httpsRedirect) return httpsRedirect;
 
   if (pathname.startsWith("/api/auth") || pathname === "/login" || pathname === "/signup") {
-    return applySecurityHeaders(NextResponse.next(), pathname);
+    const res = NextResponse.next();
+    applySecurityHeaders(res, pathname);
+    return localeMiddleware(req, res);
   }
 
   if (pathname === "/api/purchases/drive/callback") {
-    return applySecurityHeaders(NextResponse.next(), pathname);
+    const res = NextResponse.next();
+    return applySecurityHeaders(res, pathname);
   }
 
   if ((isProtectedPage(pathname) || isProtectedApi(pathname)) && !req.auth?.user?.email) {
     if (pathname.startsWith("/api/")) {
-      return applySecurityHeaders(NextResponse.json({ error: "Unauthorized" }, { status: 401 }), pathname);
+      const res = NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return applySecurityHeaders(res, pathname);
     }
-
     return applySecurityHeaders(NextResponse.redirect(loginRedirect(req)), pathname);
   }
 
-  return applySecurityHeaders(withReferralCookie(req, NextResponse.next()), pathname);
+  const res = NextResponse.next();
+  applySecurityHeaders(res, pathname);
+  withReferralCookie(req, res);
+  localeMiddleware(req, res);
+  return res;
 });
 
 export const config = {

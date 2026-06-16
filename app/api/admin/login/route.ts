@@ -46,7 +46,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "بيانات الدخول غير صحيحة" }, { status: 401 });
   }
 
-  const ok = verifyAdminPassword(password, admin);
+  // Use async bcrypt comparison (falls back to legacy scrypt for migration)
+  const ok = await verifyAdminPassword(password, admin);
   if (!ok) {
     return NextResponse.json({ error: "بيانات الدخول غير صحيحة" }, { status: 401 });
   }
@@ -68,7 +69,7 @@ export async function POST(req: Request) {
     ok: true,
     requiresVerification: true,
     email: admin.email,
-    ...("dev" in emailResult && emailResult.dev ? { devCode: challenge.code } : {})
+    ...("dev" in (emailResult as { dev?: unknown }) && (emailResult as { dev?: unknown }).dev ? { devCode: challenge.code } : {})
   });
   clearAdminLoginChallengeCookie(res);
   setAdminLoginChallengeCookie(res, challenge.token);

@@ -15,6 +15,7 @@ import { checkoutItemsSchema } from "@/lib/security-validation";
 import { reportApiFailure, reportCaughtError, routeContext } from "@/lib/report-caught-error";
 import { DOWNLOAD_SESSION_COOKIE, DOWNLOAD_SESSION_TTL_MS, createSecureToken, hashToken } from "@/lib/order-access";
 import { verifyHoneypot } from "@/lib/security/honeypot";
+import { assertCsrf, CsrfError } from "@/lib/security/csrf";
 
 const schema = z.object({
   items: checkoutItemsSchema,
@@ -102,6 +103,17 @@ export async function POST(req: Request) {
   if (!hp.ok) {
     // Respond as if invalid to confuse bots; actually block
     return NextResponse.json({ error: "البيانات غير صالحة" }, { status: 400 });
+  }
+
+  // CSRF token verification — reject requests without valid HMAC token
+  try {
+    await assertCsrf();
+  } catch (err) {
+    if (err instanceof CsrfError) {
+      console.warn("[checkout] CSRF validation failed", { ip });
+      return NextResponse.json({ error: "البيانات غير صالحة" }, { status: 400 });
+    }
+    throw err;
   }
 
   const session = await auth();
