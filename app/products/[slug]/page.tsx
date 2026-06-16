@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, CheckCircle2, FileText } from "lucide-react";
@@ -6,12 +7,29 @@ import { ProductVisual } from "@/components/product-visual";
 import { ProductGallery } from "@/components/product-gallery";
 import { LocalizedText } from "@/components/site-preferences";
 import { MotionShowcase } from "@/components/motion-showcase";
-import { getAllProducts, getProductBySlug } from "@/lib/catalog";
+import { ProductPreviewGallery } from "@/components/product-preview-gallery";
+import { ProductReviews } from "@/components/product-reviews";
+import { auth } from "@/auth";
+import { getProductBySlug } from "@/lib/catalog";
 import { currencyLabel } from "@/lib/utils";
+import { getProductReviews, userCanReviewProduct } from "@/lib/reviews";
+import { resolveSiteUrl } from "@/lib/site-url";
 
-export async function generateStaticParams() {
-  const products = await getAllProducts();
-  return products.map((product) => ({ slug: product.slug }));
+export const dynamic = "force-dynamic";
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const product = await getProductBySlug(slug);
+  if (!product) return { title: "منتج غير موجود" };
+  return {
+    title: product.title,
+    description: product.excerpt,
+    openGraph: {
+      title: product.title,
+      description: product.excerpt,
+      images: product.coverImage ? [product.coverImage] : undefined
+    }
+  };
 }
 
 export default async function ProductDetailsPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -20,6 +38,37 @@ export default async function ProductDetailsPage({ params }: { params: Promise<{
   if (!product) return notFound();
 
   const productFiles = product.files ?? [];
+  const previewImages = [product.coverImage, ...(product.additionalImages ?? [])].filter(Boolean) as string[];
+  const session = await auth();
+  const [reviews, canReview] = await Promise.all([
+    getProductReviews(product.id),
+    userCanReviewProduct(product.id, session?.user?.email)
+  ]);
+  const siteUrl = resolveSiteUrl() || process.env.NEXT_PUBLIC_SITE_URL || "";
+  const productUrl = siteUrl ? `${siteUrl}/products/${product.slug}` : `/products/${product.slug}`;
+  const schemaData = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.title,
+    description: product.excerpt,
+    image: previewImages.length ? previewImages : undefined,
+    url: productUrl,
+    brand: { "@type": "Brand", name: "Kutubi" },
+    offers: {
+      "@type": "Offer",
+      price: product.price,
+      priceCurrency: (process.env.NEXT_PUBLIC_STRIPE_CURRENCY || "USD").toUpperCase(),
+      availability: "https://schema.org/InStock",
+      url: productUrl
+    },
+    aggregateRating: product.reviewCount
+      ? {
+          "@type": "AggregateRating",
+          ratingValue: product.averageRating,
+          reviewCount: product.reviewCount
+        }
+      : undefined
+  };
 
   const item = {
     id: product.id,
@@ -34,28 +83,10 @@ export default async function ProductDetailsPage({ params }: { params: Promise<{
     accentB: product.accentB
   } as const;
 
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "Product",
-    "name": product.title,
-    "description": product.description || product.excerpt,
-    "image": product.coverImage ? [product.coverImage] : [],
-    "category": product.category,
-    "offers": {
-      "@type": "Offer",
-      "price": (product.price / 100).toFixed(2),
-      "priceCurrency": "USD",
-      "availability": "https://schema.org/InStock",
-      "url": `https://kutubi.qa/products/${product.slug}`
-    }
-  };
 
   return (
     <section className="mx-auto max-w-6xl px-4 py-12 lg:px-8">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schemaData) }} />
       <Link href="/products" className="inline-flex items-center gap-2 text-sm font-bold text-qatar-700">
         <ArrowLeft size={16} /> <LocalizedText value={{ ar: "العودة إلى المتجر", en: "Back to store" }} />
       </Link>
@@ -112,6 +143,8 @@ export default async function ProductDetailsPage({ params }: { params: Promise<{
           </div>
         </div>
 
+        <ProductPreviewGallery title={product.title} images={previewImages} />
+
         <div className="grid gap-8 border-t border-pearl-200 p-6 md:p-10 lg:grid-cols-[1.1fr_0.9fr]">
           <div>
             <LocalizedText as="h2" className="text-xl font-black text-zinc-950" value={{ ar: "ماذا ستحصل عليه؟", en: "What you get" }} />
@@ -150,6 +183,14 @@ export default async function ProductDetailsPage({ params }: { params: Promise<{
             )}
           </div>
         </div>
+
+        <ProductReviews
+          productId={product.id}
+          initialReviews={reviews}
+          canReview={canReview}
+          averageRating={product.averageRating ?? 0}
+          reviewCount={product.reviewCount ?? 0}
+        />
       </div>
     </section>
   );

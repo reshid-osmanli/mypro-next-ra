@@ -1,5 +1,6 @@
 import { prisma } from "./db";
 import type { Product, ProductCardModel } from "@/components/product-card";
+import { summarizeRatings } from "./reviews";
 
 export type CatalogSubject = { id: string; name: string; motionLogo: string | null; sortOrder: number };
 export type GradeCatalogItem = { id: string; grade: string; sortOrder: number; subjects: CatalogSubject[] };
@@ -57,7 +58,7 @@ export async function getGradeSubjectMap(): Promise<GradeCatalogItem[]> {
   }));
 }
 
-async function withSubjectMotionLogos<T extends { grade: string; subject: string }>(products: T[]): Promise<Array<T & { subjectMotionLogo: string | null; additionalImages?: string[]; motionEnabled?: boolean; motionPosition?: string | null; motionScale?: number | null; motionRotation?: number | null; motionSrc?: string | null }>> {
+async function withSubjectMotionLogos<T extends { grade: string; subject: string; reviews?: { rating: number }[] }>(products: T[]): Promise<Array<T & { subjectMotionLogo: string | null; additionalImages?: string[]; motionEnabled?: boolean; motionPosition?: string | null; motionScale?: number | null; motionRotation?: number | null; motionSrc?: string | null; averageRating?: number; reviewCount?: number; reviews?: { rating: number }[] }>> {
   if (!products.length) return [];
 
   const dbMap = await getDbGradeMap();
@@ -68,10 +69,15 @@ async function withSubjectMotionLogos<T extends { grade: string; subject: string
     }
   }
 
-  return products.map((product) => ({
-    ...product,
-    subjectMotionLogo: logoMap.get(`${product.grade}\u0000${product.subject}`) ?? null
-  }));
+  return products.map((product) => {
+    const reviewSummary = summarizeRatings(Array.isArray(product.reviews) ? product.reviews : []);
+    return {
+      ...product,
+      averageRating: reviewSummary.averageRating,
+      reviewCount: reviewSummary.reviewCount,
+      subjectMotionLogo: logoMap.get(`${product.grade}\u0000${product.subject}`) ?? null
+    };
+  });
 }
 
 export async function getProducts(where?: { grade?: string; subject?: string; featured?: boolean }): Promise<ProductCardModel[]> {
@@ -83,7 +89,7 @@ export async function getProducts(where?: { grade?: string; subject?: string; fe
         ...(where?.subject ? { subject: where.subject } : {}),
         ...(typeof where?.featured === "boolean" ? { featured: where.featured } : {})
       },
-      include: { files: true },
+      include: { files: true, reviews: { where: { approved: true }, select: { rating: true } } },
       orderBy: [{ featured: "desc" }, { sortOrder: "desc" }, { createdAt: "desc" }]
     })) as ProductCardModel[];
     return withSubjectMotionLogos(products);
@@ -97,7 +103,7 @@ export async function getAllProducts(): Promise<Product[]> {
   try {
     const products = (await prisma.product.findMany({
       where: { status: "published" },
-      include: { files: true },
+      include: { files: true, reviews: { where: { approved: true }, select: { rating: true } } },
       orderBy: [{ featured: "desc" }, { sortOrder: "desc" }, { createdAt: "desc" }]
     }));
     return withSubjectMotionLogos(
@@ -127,9 +133,9 @@ export async function getAllProducts(): Promise<Product[]> {
 }
 
 export async function getProductBySlug(slug: string) {
-  const product = (await prisma.product.findUnique({
+  const product = (await prisma.product.findFirst({
     where: { slug, status: "published" },
-    include: { files: true }
+    include: { files: true, reviews: { where: { approved: true }, select: { rating: true } } }
   })) as ProductCardModel | null;
   if (!product) return null;
   const [enriched] = await withSubjectMotionLogos([product]);

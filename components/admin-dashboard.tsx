@@ -85,6 +85,11 @@ type AdminStats = {
     consentedEmails: number;
     driveConnections: number;
   };
+  salesSeries: {
+    daily: Array<{ label: string; revenue: number; orders: number }>;
+    monthly: Array<{ label: string; revenue: number; orders: number }>;
+  };
+  topProducts: Array<{ title: string; quantity: number; revenue: number }>;
   customers: Array<{
     email: string;
     orders: number;
@@ -100,6 +105,8 @@ type AdminStats = {
     paymentMethod: string;
     purchaseTrackingConsent: boolean;
     driveSyncConsent: boolean;
+    affiliateEmail: string | null;
+    affiliateCommission: number;
     createdAt: string;
     items: Array<{ productTitle: string; quantity: number; price: number }>;
   }>;
@@ -798,6 +805,8 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
   const subjectsForPage = useMemo(() => catalog.find((item) => item.grade === pageForm.grade)?.subjects.map((s) => s.name) ?? [], [catalog, pageForm.grade]);
   const groupedProducts = useMemo(() => catalog.map((item) => ({ grade: item.grade, items: localProducts.filter((product) => product.grade === item.grade) })).filter((group) => group.items.length > 0), [localProducts, catalog]);
   const selectedGrade = useMemo(() => catalog.find((item) => item.id === subjectForm.gradeId) ?? catalog[0], [catalog, subjectForm.gradeId]);
+  const dailySalesMax = Math.max(1, ...adminStats.salesSeries.daily.map((item) => item.revenue));
+  const monthlySalesMax = Math.max(1, ...adminStats.salesSeries.monthly.map((item) => item.revenue));
 
   function resetProductForm() { setProductForm(productDefaults); setEditingProductId(null); setUploadedFiles([]); }
   function resetPageForm() { setPageForm(pageDefaults); setEditingPageId(null); }
@@ -1565,6 +1574,69 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
                 <p className="mt-2 text-2xl font-black text-qatar-800">{item.value}</p>
               </div>
             ))}
+          </div>
+
+          <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+            <div className="panel p-6 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-2xl font-black text-zinc-950">تحليلات المبيعات</h3>
+                  <p className="mt-1 text-sm text-zinc-500">رسم بياني مبسط لآخر 30 يومًا وآخر 12 شهرًا.</p>
+                </div>
+                <a href="/api/admin/orders/export" className="btn-secondary">تصدير CSV</a>
+              </div>
+              <div className="mt-6 space-y-6">
+                <div>
+                  <div className="mb-2 flex items-center justify-between text-sm font-bold text-zinc-700">
+                    <span>آخر 30 يومًا</span>
+                    <span>{currencyLabel(adminStats.salesSeries.daily.reduce((sum, item) => sum + item.revenue, 0))}</span>
+                  </div>
+                  <div className="flex h-40 items-end gap-1 rounded-lg border border-qatar-100 bg-qatar-50 p-3">
+                    {adminStats.salesSeries.daily.map((item) => (
+                      <div key={item.label} className="group relative flex flex-1 items-end justify-center">
+                        <div className="w-full rounded-t bg-qatar-700/80 transition group-hover:bg-qatar-900" style={{ height: `${Math.max(3, (item.revenue / dailySalesMax) * 100)}%` }} />
+                        <span className="pointer-events-none absolute bottom-full mb-2 hidden rounded-md bg-zinc-950 px-2 py-1 text-[10px] font-bold text-white group-hover:block">
+                          {item.label}: {currencyLabel(item.revenue)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <div className="mb-2 flex items-center justify-between text-sm font-bold text-zinc-700">
+                    <span>آخر 12 شهرًا</span>
+                    <span>{currencyLabel(adminStats.salesSeries.monthly.reduce((sum, item) => sum + item.revenue, 0))}</span>
+                  </div>
+                  <div className="flex h-36 items-end gap-2 rounded-lg border border-emerald-100 bg-emerald-50 p-3">
+                    {adminStats.salesSeries.monthly.map((item) => (
+                      <div key={item.label} className="group relative flex flex-1 flex-col items-center justify-end gap-1">
+                        <div className="w-full rounded-t bg-emerald-700/80 transition group-hover:bg-emerald-900" style={{ height: `${Math.max(3, (item.revenue / monthlySalesMax) * 100)}%` }} />
+                        <span className="text-[10px] font-bold text-emerald-900">{item.label.slice(5)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="panel p-6 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
+              <h3 className="text-2xl font-black text-zinc-950">أكثر المنتجات مبيعًا</h3>
+              <div className="mt-5 space-y-3">
+                {adminStats.topProducts.map((product, index) => (
+                  <div key={product.title} className="rounded-lg border border-qatar-100 bg-white p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-xs font-black text-qatar-700">#{index + 1}</p>
+                        <p className="mt-1 font-bold text-zinc-950">{product.title}</p>
+                        <p className="text-xs text-zinc-500">{product.quantity} مبيعات</p>
+                      </div>
+                      <p className="font-black text-qatar-800">{currencyLabel(product.revenue)}</p>
+                    </div>
+                  </div>
+                ))}
+                {!adminStats.topProducts.length ? <p className="rounded-lg border border-dashed border-zinc-300 p-6 text-center text-sm text-zinc-500">لا توجد مبيعات مدفوعة بعد.</p> : null}
+              </div>
+            </div>
           </div>
 
           <div className="grid gap-6 xl:grid-cols-[0.85fr_1.15fr]">

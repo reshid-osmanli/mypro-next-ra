@@ -13,6 +13,11 @@ const defaultGrades = [
 ];
 
 async function main() {
+  await prisma.productReview.deleteMany();
+  await prisma.blogPost.deleteMany();
+  await prisma.affiliateCommission.deleteMany();
+  await prisma.affiliateProfile.deleteMany();
+  await prisma.abandonedCart.deleteMany();
   await prisma.productFile.deleteMany();
   await prisma.siteSetting.deleteMany();
   await prisma.orderItem.deleteMany();
@@ -86,6 +91,30 @@ async function main() {
         featured: true,
         accentA: "#0f172a",
         accentB: "#8a1538"
+      }
+    ]
+  });
+
+  const arabicProduct = await prisma.product.findUnique({ where: { slug: "grade1-arabic-lettering" } });
+  const mathProduct = await prisma.product.findUnique({ where: { slug: "grade1-math-basics" } });
+
+  await prisma.blogPost.createMany({
+    data: [
+      {
+        slug: "ideas-for-teaching-arabic-letters-grade-one",
+        title: "أفكار سريعة لشرح الحروف للصف الأول",
+        excerpt: "خطة قصيرة لتحويل درس الحروف إلى تجربة بصرية وتفاعلية مع رابط لعرض بوربوينت جاهز.",
+        body: "ابدأ الدرس بصورة كبيرة للحرف ثم اربطه بكلمة مألوفة من بيئة الطالب.\n\nاستخدم شرائح قصيرة لا تتجاوز فكرة واحدة في كل مرة، ثم انتقل إلى تدريب تمييز الحرف في بداية ووسط ونهاية الكلمة.\n\nيمكن إنهاء الدرس بنشاط قراءة جماعي أو بطاقة خروج صغيرة تقيس فهم الطالب. العرض الجاهز يوفر عليك وقت التصميم ويترك لك مساحة أكبر للتفاعل داخل الصف.",
+        relatedProductId: arabicProduct?.id ?? null,
+        sortOrder: 10
+      },
+      {
+        slug: "math-worksheets-upsell-grade-one",
+        title: "كيف تثبت مهارات العد والجمع بأوراق عمل قصيرة؟",
+        excerpt: "طريقة عملية لاستخدام أوراق العمل بعد شرح المفهوم حتى يصبح التعلم قابلًا للقياس.",
+        body: "بعد شرح العد أو الجمع الأولي، قدّم للطلاب ورقة عمل قصيرة بثلاثة مستويات: تهيئة، تدريب، وتحدٍ بسيط.\n\nاحرص على أن يكون التصميم واضحًا وبمساحات كافية للكتابة، لأن ازدحام الصفحة يقلل التركيز.\n\nالملف الجاهز المرتبط بالمقال يتضمن تدريبات قابلة للطباعة ويمكن استخدامه كواجب منزلي أو نشاط ختامي.",
+        relatedProductId: mathProduct?.id ?? null,
+        sortOrder: 8
       }
     ]
   });

@@ -9,6 +9,7 @@ import { useCart } from "./cart-provider";
 import { PayPalCheckoutButton } from "./paypal-checkout-button";
 import { paypalSdkScriptUrl } from "@/lib/paypal-client";
 import { subtotal } from "@/lib/site-math";
+import { calculateBundleDiscount, bundleDiscountLabel } from "@/lib/bundle-discounts";
 import { currencyLabel } from "@/lib/utils";
 import { useSitePreferences } from "./site-preferences";
 
@@ -35,6 +36,7 @@ export function CheckoutForm() {
   const { items, clearCart } = useCart();
   const { text } = useSitePreferences();
   const total = useMemo(() => subtotal(items), [items]);
+  const bundleDiscount = useMemo(() => calculateBundleDiscount(items), [items]);
   const paypalEnabled = providers.find((provider) => provider.id === "paypal")?.enabled ?? false;
   const paypalClientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID ?? "";
   const [loading, setLoading] = useState(false);
@@ -66,6 +68,23 @@ export function CheckoutForm() {
     }
   }, [signedInEmail]);
 
+  useEffect(() => {
+    if (!items.length || !customerEmail.includes("@")) return;
+    const timer = window.setTimeout(() => {
+      void fetch("/api/abandoned-carts", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: customerEmail,
+          customerName,
+          items
+        })
+      }).catch(() => null);
+    }, 1200);
+    return () => window.clearTimeout(timer);
+  }, [items, customerEmail, customerName]);
+
   async function loadWalletBalance() {
     try {
       const res = await fetch("/api/wallet", { credentials: "include" });
@@ -88,11 +107,11 @@ export function CheckoutForm() {
     }
   }
 
-  const walletDiscount = useMemo(() => Math.min(Number(walletAmountToUse) || 0, walletBalance, Math.max(0, total - (voucherDiscount ?? 0))), [total, voucherDiscount, walletBalance, walletAmountToUse]);
+  const walletDiscount = useMemo(() => Math.min(Number(walletAmountToUse) || 0, walletBalance, Math.max(0, total - bundleDiscount.discount - (voucherDiscount ?? 0))), [total, bundleDiscount.discount, voucherDiscount, walletBalance, walletAmountToUse]);
 
   const finalTotal = useMemo(() => {
-    return Math.max(0, total - (voucherDiscount ?? 0) - walletDiscount);
-  }, [total, voucherDiscount, walletDiscount]);
+    return Math.max(0, total - bundleDiscount.discount - (voucherDiscount ?? 0) - walletDiscount);
+  }, [total, bundleDiscount.discount, voucherDiscount, walletDiscount]);
 
   async function validateVoucher(code?: string) {
     const codeToValidate = code ?? voucherCode.trim();
@@ -212,6 +231,16 @@ export function CheckoutForm() {
         <textarea name="notes" className="textarea" placeholder={text({ ar: "أي تفاصيل إضافية للطلب...", en: "Any extra order details..." })} />
       </label>
 
+      {bundleDiscount.discount > 0 ? (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-7 text-amber-900">
+          <strong>{bundleDiscountLabel()}:</strong> تم تفعيل خصم تلقائي بقيمة {currencyLabel(bundleDiscount.discount)} لأن السلة تحتوي على حقيبة مادة كاملة.
+        </div>
+      ) : items.length > 0 ? (
+        <div className="rounded-lg border border-dashed border-qatar-200 bg-qatar-50 px-4 py-3 text-sm leading-7 text-qatar-900">
+          أضف 3 منتجات أو أكثر من نفس الصف والمادة لتفعيل خصم حقيبة الفصل تلقائيًا.
+        </div>
+      ) : null}
+
       <label className="flex items-start gap-3 rounded-lg border border-qatar-100 bg-white px-4 py-3 text-sm leading-7 text-zinc-700">
         <input
           name="purchaseTrackingConsent"
@@ -232,6 +261,21 @@ export function CheckoutForm() {
         <div className="flex items-center justify-between">
           <p className="text-sm font-semibold text-zinc-700">{text({ ar: "قسيمة الخصم", en: "Voucher code" })}</p>
         </div>
+
+        {!voucherDiscount && signedInEmail ? (
+          <div className="flex flex-wrap gap-2">
+            <input
+              className="input min-w-[220px] flex-1"
+              value={voucherCode}
+              onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
+              placeholder={text({ ar: "أدخل كود القسيمة", en: "Enter voucher code" })}
+            />
+            <button type="button" disabled={validatingVoucher || !voucherCode.trim()} onClick={() => validateVoucher()} className="btn-secondary disabled:opacity-60">
+              {validatingVoucher ? <Loader2 size={16} className="animate-spin" /> : <Ticket size={16} />}
+              {text({ ar: "تطبيق", en: "Apply" })}
+            </button>
+          </div>
+        ) : null}
 
         {availableVouchers.length > 0 && !voucherDiscount && signedInEmail ? (
           <div className="max-h-40 overflow-y-auto rounded-lg border border-qatar-100 bg-white p-2">
@@ -283,12 +327,12 @@ export function CheckoutForm() {
               placeholder="0"
               value={walletAmountToUse}
               onChange={(e) => setWalletAmountToUse(e.target.value === "" ? "" : Number(e.target.value))}
-              max={Math.min(walletBalance, Math.max(0, total - (voucherDiscount ?? 0)))}
+              max={Math.min(walletBalance, Math.max(0, total - bundleDiscount.discount - (voucherDiscount ?? 0)))}
               min="0"
             />
             <button 
               type="button" 
-              onClick={() => setWalletAmountToUse(Math.min(walletBalance, Math.max(0, total - (voucherDiscount ?? 0))))}
+              onClick={() => setWalletAmountToUse(Math.min(walletBalance, Math.max(0, total - bundleDiscount.discount - (voucherDiscount ?? 0))))}
               className="text-xs font-bold text-emerald-700 hover:underline"
             >
               {text({ ar: "تطبيق الأقصى", en: "Apply max" })}
@@ -336,10 +380,11 @@ export function CheckoutForm() {
       <div className="rounded-lg border border-qatar-100 bg-qatar-50 p-5">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <span className="text-sm text-zinc-600">{voucherDiscount ? text({ ar: "الإجمالي بعد الخصم", en: "Total after discount" }) : text({ ar: "الإجمالي التقريبي", en: "Estimated total" })}</span>
-            {voucherDiscount || walletDiscount ? (
+            <span className="text-sm text-zinc-600">{voucherDiscount || walletDiscount || bundleDiscount.discount ? text({ ar: "الإجمالي بعد الخصم", en: "Total after discount" }) : text({ ar: "الإجمالي التقريبي", en: "Estimated total" })}</span>
+            {voucherDiscount || walletDiscount || bundleDiscount.discount ? (
               <div className="mt-1 flex flex-wrap gap-2 text-xs">
                 <span className="text-zinc-400 line-through">{currencyLabel(total)}</span>
+                {bundleDiscount.discount ? <span className="text-amber-700">{bundleDiscountLabel()}: -{currencyLabel(bundleDiscount.discount)}</span> : null}
                 {voucherDiscount ? <span className="text-emerald-600">{text({ ar: "قسيمة", en: "Voucher" })}: -{currencyLabel(voucherDiscount)}</span> : null}
                 {walletDiscount ? <span className="text-sky-700">{text({ ar: "محفظة", en: "Wallet" })}: -{currencyLabel(walletDiscount)}</span> : null}
               </div>

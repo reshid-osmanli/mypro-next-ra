@@ -13,6 +13,7 @@ import { rejectUntrustedOrigin } from "@/lib/request-security";
 import { getRequestIp, isRateLimited } from "@/lib/rate-limit";
 import { reportCaughtError, routeContext } from "@/lib/report-caught-error";
 import { applyVoucher, captureWalletReservation } from "@/lib/wallet";
+import { applyAffiliateCommission } from "@/lib/affiliates";
 
 const schema = z.object({
   orderId: z.string().trim().min(1).max(128)
@@ -37,6 +38,13 @@ type PaypalCapture = {
     };
   }>;
 };
+
+async function markAbandonedCartsConverted(email: string) {
+  await prisma.abandonedCart.updateMany({
+    where: { email, status: { in: ["active", "reminded"] } },
+    data: { status: "converted", convertedAt: new Date() }
+  }).catch(() => null);
+}
 
 function expectedMoneyValue(amount: number) {
   return Number(amount).toFixed(2);
@@ -110,8 +118,10 @@ async function issuePaidDownloadSession(localOrderId: string, captureId?: string
   if (order.walletUsed > 0) {
     await captureWalletReservation(order.id, `خصم محفظة على الطلب #${order.id.slice(-8)}`).catch(() => null);
   }
+  await applyAffiliateCommission(order.id).catch(() => null);
+  await markAbandonedCartsConverted(order.email);
 
-  const response = NextResponse.json({
+  const response = NextResponse.json({ 
     ok: true,
     orderId: order.id,
     captureId: captureId ?? order.providerCaptureId,

@@ -3,6 +3,8 @@ import { z } from "zod";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { createPaypalOrder } from "@/lib/payments";
+import { calculateBundleDiscount } from "@/lib/bundle-discounts";
+import { getAffiliateAttributionFromRequest } from "@/lib/affiliates";
 import { rejectUntrustedOrigin } from "@/lib/request-security";
 import { getRequestIp, isRateLimited } from "@/lib/rate-limit";
 import { validateCheckoutReadiness } from "@/lib/checkout-readiness";
@@ -63,8 +65,8 @@ export async function POST(req: Request) {
 
   const products = (await prisma.product.findMany({
     where: { id: { in: productIds }, status: "published" },
-    select: { id: true, title: true, price: true }
-  })) as Array<{ id: string; title: string; price: number }>;
+    select: { id: true, title: true, price: true, grade: true, subject: true }
+  })) as Array<{ id: string; title: string; price: number; grade: string; subject: string }>;
 
   const productMap = new Map(products.map((product) => [product.id, product]));
   const normalizedItems = parsed.data.items.map((item) => {
@@ -73,11 +75,14 @@ export async function POST(req: Request) {
     return {
       title: product.title,
       price: product.price,
-      quantity: item.quantity
+      quantity: item.quantity,
+      grade: product.grade,
+      subject: product.subject
     };
   });
 
   const total = normalizedItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const bundleDiscount = Math.min(total, calculateBundleDiscount(normalizedItems).discount);
   let voucherDiscount = 0;
   let voucherCode: string | null = null;
 
@@ -87,16 +92,18 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: voucherResult.error || "القسيمة غير صالحة" }, { status: 400 });
     }
     if (voucherResult.voucher) {
-      voucherDiscount = Math.min(total, voucherResult.voucher.amount);
+      voucherDiscount = Math.min(Math.max(0, total - bundleDiscount), voucherResult.voucher.amount);
       voucherCode = voucherResult.voucher.code;
     }
   }
 
   const wallet = await getOrCreateWallet(orderEmail);
   const requestedWalletUse = parsed.data.walletAmountToUse || 0;
-  const walletDiscount = Math.min(requestedWalletUse, wallet.balance, Math.max(0, total - voucherDiscount));
-  const finalDiscount = Math.min(total, voucherDiscount + walletDiscount);
+  const walletDiscount = Math.min(requestedWalletUse, wallet.balance, Math.max(0, total - voucherDiscount - bundleDiscount));
+  const finalDiscount = Math.min(total, bundleDiscount + voucherDiscount + walletDiscount);
   const finalTotal = Math.max(0, total - finalDiscount);
+
+  const affiliateAttribution = await getAffiliateAttributionFromRequest(req, orderEmail).catch(() => null);
 
   if (finalTotal <= 0) {
     return NextResponse.json({ error: "استخدم Stripe لإتمام الطلبات المغطاة بالكامل بالقسائم أو المحفظة." }, { status: 400 });
@@ -112,6 +119,8 @@ export async function POST(req: Request) {
       total: finalTotal,
       status: "pending",
       paymentMethod: "paypal",
+      affiliateCode: affiliateAttribution?.affiliateCode,
+      affiliateEmail: affiliateAttribution?.affiliateEmail,
       voucherId: voucherCode,
       walletUsed: walletDiscount,
       items: {

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, BadgeCheck, BookOpen, Layers3 } from "lucide-react";
+import { ArrowLeft, BadgeCheck, BookOpen, Layers3, Star } from "lucide-react";
 import { motion } from "framer-motion";
 import { AddToCartButton } from "./add-to-cart-button";
 import { currencyLabel } from "@/lib/utils";
@@ -29,6 +29,9 @@ export type ProductCardModel = {
   additionalImages?: string[];
   subjectMotionLogo?: string | null;
   files?: { id: string; url: string; title: string; mimeType?: string; size?: number }[];
+  reviews?: { rating: number }[];
+  averageRating?: number;
+  reviewCount?: number;
   motionEnabled?: boolean;
   motionPosition?: string | null;
   motionScale?: number | null;
@@ -95,6 +98,14 @@ function ProductCard({ product }: { product: ProductCardModel }) {
               {tag}
             </span>
           ))}
+        </div>
+
+        <div className="flex items-center gap-2 text-sm font-bold text-zinc-700">
+          <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-3 py-1 text-amber-700">
+            <Star size={15} className="fill-current" />
+            {product.reviewCount ? `${product.averageRating?.toFixed(1) ?? "0.0"} / 5` : text({ ar: "لا تقييمات بعد", en: "No reviews yet" })}
+          </span>
+          {product.reviewCount ? <span className="text-xs text-zinc-500">{product.reviewCount} {text({ ar: "تقييم", en: "reviews" })}</span> : null}
         </div>
 
         <p className="max-w-2xl text-sm leading-7 text-zinc-600" style={{ display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" as const }}>{product.excerpt}</p>

@@ -9,112 +9,74 @@ datasource db {
 }
 
 model Product {
-  id              String       @id @default(cuid())
-  slug            String       @unique
-  title           String
-  excerpt         String
-  description     String
-  price           Int
-  compareAt       Int?
-  badge           String
-  grade           String
-  subject         String
-  category        String
-  format          String
-  pages           String
-  level           String
-  featured        Boolean      @default(false)
-  status          String       @default("published")
-  accentA         String       @default("#8a1538")
-  accentB         String       @default("#5f1029")
-  coverImage      String?
-  additionalImages String[]     @default([])
-  motionEnabled   Boolean      @default(false)
-  motionPosition  String?
-  motionScale     Float?       @default(1)
-  motionRotation  Float?       @default(0)
-  motionSrc       String?
-  sortOrder       Int          @default(0)
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
-  files           ProductFile[]
-  orderItems      OrderItem[]
-  reviews         Review[]
-  upsellProducts  String[]     @default([])
-}
-
-model Review {
-  id        String   @id @default(cuid())
-  productId String
-  email     String
-  userName  String
-  rating    Int
-  comment   String?
-  status    String   @default("approved")
-  createdAt DateTime @default(now())
-
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-  
-  @@index([productId])
-  @@index([email])
-}
-
-model AffiliateProfile {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  name         String
-  code         String   @unique
-  commissionRate Float  @default(0.10) // 10%
-  totalEarned  Int      @default(0)
-  createdAt    DateTime @default(now())
-}
-
-model AbandonedCart {
-  id           String   @id @default(cuid())
-  email        String
-  cartData     String   // JSON string of cart items
-  notified     Boolean  @default(false)
-  recovered    Boolean  @default(false)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  @@index([email])
+  id               String          @id @default(cuid())
+  slug             String          @unique
+  title            String
+  excerpt          String
+  description      String
+  price            Int
+  compareAt        Int?
+  badge            String
+  grade            String
+  subject          String
+  category         String
+  format           String
+  pages            String
+  level            String
+  featured         Boolean         @default(false)
+  status           String          @default("published")
+  accentA          String          @default("#8a1538")
+  accentB          String          @default("#5f1029")
+  coverImage       String?
+  additionalImages String[]        @default([])
+  motionEnabled    Boolean         @default(false)
+  motionPosition   String?
+  motionScale      Float?          @default(1)
+  motionRotation   Float?          @default(0)
+  motionSrc        String?
+  sortOrder        Int             @default(0)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  files            ProductFile[]
+  orderItems       OrderItem[]
+  reviews          ProductReview[]
+  blogPosts        BlogPost[]
 }
 
 model ProductFile {
-  id         String   @id @default(cuid())
-  productId  String
-  title      String
-  url        String
-  mimeType   String
-  size       Int
-  createdAt  DateTime @default(now())
+  id        String   @id @default(cuid())
+  productId String
+  title     String
+  url       String
+  mimeType  String
+  size      Int
+  createdAt DateTime @default(now())
 
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product        Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
   downloadTokens DownloadToken[]
 }
 
 model ContentPage {
-  id         String   @id @default(cuid())
-  slug       String   @unique
-  grade      String
-  subject    String
-  title      String
-  intro      String
-  body       String
-  heroLabel  String   @default("صفحة مادة")
-  published  Boolean  @default(true)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  grade     String
+  subject   String
+  title     String
+  intro     String
+  body      String
+  heroLabel String   @default("صفحة مادة")
+  published Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Grade {
-  id         String    @id @default(cuid())
-  name       String    @unique
-  sortOrder  Int       @default(0)
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-  subjects   Subject[]
+  id        String    @id @default(cuid())
+  name      String    @unique
+  sortOrder Int       @default(0)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  subjects  Subject[]
 }
 
 model Subject {
@@ -123,8 +85,8 @@ model Subject {
   name       String
   motionLogo String?
   sortOrder  Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   grade Grade @relation(fields: [gradeId], references: [id], onDelete: Cascade)
 
@@ -138,7 +100,6 @@ model SiteSetting {
   updatedAt DateTime @updatedAt
 }
 
-
 model AdminUser {
   id           String   @id @default(cuid())
   email        String   @unique
@@ -150,57 +111,62 @@ model AdminUser {
 }
 
 model Order {
-  id                    String            @id @default(cuid())
-  customerName          String
-  email                 String
-  phone                 String?
-  notes                 String?
-  total                 Int
-  status                String            @default("pending")
-  paymentMethod         String
-  providerOrderId       String?           @unique
-  providerCaptureId     String?
-  purchaseTrackingConsent Boolean          @default(false)
-  driveSyncConsent      Boolean           @default(false)
-  voucherId             String?
-  walletUsed            Int               @default(0)
-  downloadClaimHash     String?
-  downloadClaimExpiresAt DateTime?
-  downloadClaimUsedAt   DateTime?
-  downloadSessionHash   String?
+  id                       String          @id @default(cuid())
+  customerName             String
+  email                    String
+  phone                    String?
+  notes                    String?
+  total                    Int
+  status                   String          @default("pending")
+  paymentMethod            String
+  providerOrderId          String?         @unique
+  providerCaptureId        String?
+  purchaseTrackingConsent  Boolean         @default(false)
+  driveSyncConsent         Boolean         @default(false)
+  voucherId                String?
+  walletUsed               Int             @default(0)
+  downloadClaimHash        String?
+  downloadClaimExpiresAt   DateTime?
+  downloadClaimUsedAt      DateTime?
+  downloadSessionHash      String?
   downloadSessionExpiresAt DateTime?
-  downloadSessionUsedAt DateTime?
-  createdAt             DateTime          @default(now())
-  items                 OrderItem[]
-  downloadTokens        DownloadToken[]
+  downloadSessionUsedAt    DateTime?
+  createdAt                DateTime        @default(now())
+  items                    OrderItem[]
+  downloadTokens           DownloadToken[]
+  reviews                  ProductReview[]
+  affiliateCode            String?
+  affiliateEmail           String?
+  affiliateCommission      Int             @default(0)
 
   @@index([email])
   @@index([status])
   @@index([purchaseTrackingConsent])
+  @@index([affiliateEmail])
 }
 
 model OrderItem {
-  id            String   @id @default(cuid())
-  orderId       String?
-  productId     String
-  productTitle  String
-  price         Int
-  quantity      Int
+  id           String  @id @default(cuid())
+  orderId      String?
+  productId    String
+  productTitle String
+  price        Int
+  quantity     Int
 
-  order   Order?   @relation(fields: [orderId], references: [id], onDelete: SetNull)
-  product Product  @relation(fields: [productId], references: [id])
+  order   Order?  @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  product Product @relation(fields: [productId], references: [id])
 }
 
 model DownloadToken {
-  id         String   @id @default(cuid())
-  orderId    String
-  fileId     String
-  tokenHash  String   @unique
-  expiresAt   DateTime
-  usedAt     DateTime?
-  createdAt  DateTime @default(now())
+  id        String    @id @default(cuid())
+  orderId   String
+  fileId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
 
-  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  order Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
   file  ProductFile @relation(fields: [fileId], references: [id], onDelete: Cascade)
 }
 
@@ -284,11 +250,11 @@ model VerificationToken {
 }
 
 model UserWallet {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  balance      Int      @default(0)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id        String   @id @default(cuid())
+  email     String   @unique
+  balance   Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   transactions WalletTransaction[]
 
@@ -296,25 +262,25 @@ model UserWallet {
 }
 
 model GiftVoucher {
-  id          String    @id @default(cuid())
-  code        String    @unique
-  amount      Int
-  maxUses     Int       @default(1)
-  usedCount   Int       @default(0)
-  createdBy   String?
-  createdAt   DateTime  @default(now())
-  expiresAt   DateTime?
-  isActive    Boolean   @default(true)
+  id        String    @id @default(cuid())
+  code      String    @unique
+  amount    Int
+  maxUses   Int       @default(1)
+  usedCount Int       @default(0)
+  createdBy String?
+  createdAt DateTime  @default(now())
+  expiresAt DateTime?
+  isActive  Boolean   @default(true)
 
   usages VoucherUsage[]
 }
 
 model VoucherUsage {
-  id         String   @id @default(cuid())
-  voucherId  String
-  email      String
-  orderId    String?  @unique
-  usedAt     DateTime @default(now())
+  id        String   @id @default(cuid())
+  voucherId String
+  email     String
+  orderId   String?  @unique
+  usedAt    DateTime @default(now())
 
   voucher GiftVoucher @relation(fields: [voucherId], references: [id], onDelete: Cascade)
 
@@ -354,3 +320,89 @@ model WalletReservation {
   @@index([status])
 }
 
+model ProductReview {
+  id           String   @id @default(cuid())
+  productId    String
+  orderId      String?
+  email        String
+  customerName String?
+  rating       Int
+  comment      String
+  approved     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  order   Order?  @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
+  @@unique([productId, email])
+  @@index([productId])
+  @@index([email])
+  @@index([approved])
+}
+
+model AbandonedCart {
+  id             String    @id @default(cuid())
+  email          String
+  customerName   String?
+  itemsJson      String
+  subtotal       Int
+  cartHash       String
+  status         String    @default("active")
+  reminderSentAt DateTime?
+  convertedAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@unique([email, cartHash])
+  @@index([email])
+  @@index([status, updatedAt])
+}
+
+model AffiliateProfile {
+  id             String   @id @default(cuid())
+  email          String   @unique
+  code           String   @unique
+  commissionRate Int      @default(10)
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  commissions AffiliateCommission[]
+}
+
+model AffiliateCommission {
+  id          String   @id @default(cuid())
+  affiliateId String
+  orderId     String   @unique
+  orderEmail  String
+  amount      Int
+  rate        Int
+  status      String   @default("credited")
+  createdAt   DateTime @default(now())
+
+  affiliate AffiliateProfile @relation(fields: [affiliateId], references: [id], onDelete: Cascade)
+
+  @@index([affiliateId])
+  @@index([orderEmail])
+  @@index([createdAt])
+}
+
+model BlogPost {
+  id               String   @id @default(cuid())
+  slug             String   @unique
+  title            String
+  excerpt          String
+  body             String
+  coverImage       String?
+  published        Boolean  @default(true)
+  sortOrder        Int      @default(0)
+  relatedProductId String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  relatedProduct Product? @relation(fields: [relatedProductId], references: [id], onDelete: SetNull)
+
+  @@index([published])
+  @@index([relatedProductId])
+}

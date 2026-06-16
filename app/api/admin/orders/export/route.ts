@@ -4,47 +4,70 @@ import { requireAdminRequest } from "@/lib/admin-auth";
 
 export const runtime = "nodejs";
 
+function csvCell(value: unknown) {
+  const text = value == null ? "" : String(value);
+  return `"${text.replace(/"/g, '""')}"`;
+}
+
 export async function GET(req: NextRequest) {
   const authError = await requireAdminRequest(req);
   if (authError) return authError;
 
-  try {
-    const orders = await prisma.order.findMany({
-      orderBy: { createdAt: "desc" },
-      include: { items: true }
-    });
-
-    const csvRows = [
-      ["Order ID", "Date", "Customer Name", "Email", "Phone", "Status", "Payment Method", "Total (USD)", "Items", "Voucher Used", "Wallet Used"]
-    ];
-
-    for (const order of orders) {
-      const itemsString = order.items.map((i) => `${i.quantity}x ${i.productTitle}`).join(" | ");
-      csvRows.push([
-        order.id,
-        order.createdAt.toISOString(),
-        order.customerName,
-        order.email,
-        order.phone || "",
-        order.status,
-        order.paymentMethod,
-        (order.total / 100).toFixed(2),
-        itemsString,
-        order.voucherId || "",
-        (order.walletUsed / 100).toFixed(2)
-      ]);
-    }
-
-    const csvContent = csvRows
-      .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
-      .join("\n");
-
-    const headers = new Headers();
-    headers.set("Content-Type", "text/csv; charset=utf-8");
-    headers.set("Content-Disposition", `attachment; filename="orders-${new Date().toISOString().split("T")[0]}.csv"`);
-
-    return new NextResponse(csvContent, { status: 200, headers });
-  } catch (error) {
-    return NextResponse.json({ error: "Failed to export orders" }, { status: 500 });
+  const month = req.nextUrl.searchParams.get("month");
+  const where: { createdAt?: { gte: Date; lt: Date } } = {};
+  if (month && /^\d{4}-\d{2}$/.test(month)) {
+    const start = new Date(`${month}-01T00:00:00.000Z`);
+    const end = new Date(start);
+    end.setUTCMonth(end.getUTCMonth() + 1);
+    where.createdAt = { gte: start, lt: end };
   }
+
+  const orders = await prisma.order.findMany({
+    where,
+    orderBy: { createdAt: "desc" },
+    include: { items: true }
+  });
+
+  const header = [
+    "orderId",
+    "createdAt",
+    "status",
+    "customerName",
+    "email",
+    "phone",
+    "paymentMethod",
+    "total",
+    "walletUsed",
+    "voucherCode",
+    "affiliateEmail",
+    "affiliateCommission",
+    "items"
+  ];
+
+  const rows = orders.map((order) => [
+    order.id,
+    order.createdAt.toISOString(),
+    order.status,
+    order.customerName,
+    order.email,
+    order.phone ?? "",
+    order.paymentMethod,
+    order.total,
+    order.walletUsed,
+    order.voucherId ?? "",
+    order.affiliateEmail ?? "",
+    order.affiliateCommission,
+    order.items.map((item) => `${item.productTitle} x${item.quantity} @ ${item.price}`).join(" | ")
+  ]);
+
+  const csv = [header, ...rows].map((row) => row.map(csvCell).join(",")).join("\n");
+  const filename = `kutubi-orders-${month || new Date().toISOString().slice(0, 7)}.csv`;
+
+  return new NextResponse(`\uFEFF${csv}`, {
+    headers: {
+      "Content-Type": "text/csv; charset=utf-8",
+      "Content-Disposition": `attachment; filename="${filename}"`,
+      "Cache-Control": "no-store"
+    }
+  });
 }

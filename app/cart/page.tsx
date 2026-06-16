@@ -2,8 +2,13 @@ import Link from "next/link";
 import { PageHero } from "@/components/page-hero";
 import { CartClient } from "@/components/cart-client";
 import { LocalizedText } from "@/components/site-preferences";
+import { getAllProducts } from "@/lib/catalog";
 
-export default function CartPage() {
+export const dynamic = "force-dynamic";
+
+export default async function CartPage() {
+  const products = await getAllProducts();
+
   return (
     <section className="mx-auto max-w-7xl px-4 py-12 lg:px-8">
       <PageHero
@@ -17,7 +22,7 @@ export default function CartPage() {
         motion="cart"
       />
       <div className="mt-8">
-        <CartClient />
+        <CartClient products={products} />
       </div>
     </section>
   );

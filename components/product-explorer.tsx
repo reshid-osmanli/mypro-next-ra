@@ -96,6 +96,10 @@ export function ProductExplorer({ products, grades, subjects, initialSearch = ""
   const [search, setSearch] = useState(initialSearch);
   const [grade, setGrade] = useState(initialGrade);
   const [subject, setSubject] = useState(initialSubject);
+  const [format, setFormat] = useState(ALL);
+  const [minRating, setMinRating] = useState(0);
+  const [maxPrice, setMaxPrice] = useState(0);
+  const [sort, setSort] = useState<"recommended" | "price-asc" | "price-desc" | "rating-desc">("recommended");
   const [view, setView] = useState<"grid" | "list">("grid");
 
   const subjectsForGrade = useMemo(() => {
@@ -103,15 +107,29 @@ export function ProductExplorer({ products, grades, subjects, initialSearch = ""
     return Array.from(new Set(products.filter((product) => product.grade === grade).map((product) => product.subject)));
   }, [grade, products, subjects]);
 
+  const formats = useMemo(() => Array.from(new Set(products.flatMap((product) => product.format.split(/[+،,\/]/).map((item) => item.trim()).filter(Boolean)))).sort(), [products]);
+  const highestPrice = useMemo(() => Math.max(0, ...products.map((product) => product.price)), [products]);
+  const effectiveMaxPrice = maxPrice > 0 ? maxPrice : highestPrice;
+
   const filtered = useMemo(() => {
-    return products.filter((product) => {
-      const text = `${product.title} ${product.excerpt} ${product.grade} ${product.subject} ${product.category}`.toLowerCase();
+    const matches = products.filter((product) => {
+      const text = `${product.title} ${product.excerpt} ${product.grade} ${product.subject} ${product.category} ${product.format}`.toLowerCase();
       const matchesSearch = text.includes(search.toLowerCase());
       const matchesGrade = grade === ALL || product.grade === grade;
       const matchesSubject = subject === ALL || product.subject === subject;
-      return matchesSearch && matchesGrade && matchesSubject;
+      const matchesFormat = format === ALL || product.format.toLowerCase().includes(format.toLowerCase());
+      const matchesRating = (product.averageRating ?? 0) >= minRating;
+      const matchesPrice = effectiveMaxPrice <= 0 || product.price <= effectiveMaxPrice;
+      return matchesSearch && matchesGrade && matchesSubject && matchesFormat && matchesRating && matchesPrice;
     });
-  }, [products, search, grade, subject]);
+
+    return matches.sort((a, b) => {
+      if (sort === "price-asc") return a.price - b.price;
+      if (sort === "price-desc") return b.price - a.price;
+      if (sort === "rating-desc") return (b.averageRating ?? 0) - (a.averageRating ?? 0) || (b.reviewCount ?? 0) - (a.reviewCount ?? 0);
+      return Number(Boolean(b.featured)) - Number(Boolean(a.featured)) || (b.sortOrder ?? 0) - (a.sortOrder ?? 0);
+    });
+  }, [products, search, grade, subject, format, minRating, effectiveMaxPrice, sort]);
 
   return (
     <div className="space-y-6">
@@ -146,13 +164,17 @@ export function ProductExplorer({ products, grades, subjects, initialSearch = ""
         <span>{text({ ar: "الصفوف", en: "Grades" })}: {grades.length}</span>
         <span className="text-zinc-300">·</span>
         <span>{text({ ar: "المواد", en: "Subjects" })}: {subjects.length}</span>
-        {(grade !== ALL || subject !== ALL || search) ? (
+        {(grade !== ALL || subject !== ALL || format !== ALL || minRating > 0 || maxPrice > 0 || sort !== "recommended" || search) ? (
           <button
             type="button"
             onClick={() => {
               setSearch("");
               setGrade(ALL);
               setSubject(ALL);
+              setFormat(ALL);
+              setMinRating(0);
+              setMaxPrice(0);
+              setSort("recommended");
             }}
             className="chip border-qatar-100 bg-qatar-50 px-3 py-1.5 text-qatar-800 hover:bg-qatar-100"
           >
@@ -161,31 +183,74 @@ export function ProductExplorer({ products, grades, subjects, initialSearch = ""
         ) : null}
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        <select className="input max-w-[14rem]" value={grade} onChange={(e) => {
-          setGrade(e.target.value);
-          setSubject(ALL);
-        }}>
-          <option value={ALL}>{text({ ar: "كل الصفوف", en: "All grades" })}</option>
-          {grades.map((item) => <option key={item} value={item}>{item}</option>)}
-        </select>
-        <select className="input max-w-[14rem]" value={subject} onChange={(e) => setSubject(e.target.value)}>
-          <option value={ALL}>{text({ ar: "كل المواد", en: "All subjects" })}</option>
-          {subjectsForGrade.map((item) => <option key={item} value={item}>{item}</option>)}
-        </select>
-      </div>
+      <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
+        <aside className="h-fit rounded-lg border border-pearl-200 bg-white p-5 shadow-sm lg:sticky lg:top-28">
+          <div className="flex items-center gap-2 text-lg font-black text-zinc-950">
+            <SlidersHorizontal size={18} className="text-qatar-700" />
+            {text({ ar: "بحث متقدم", en: "Advanced filters" })}
+          </div>
+          <div className="mt-5 space-y-4">
+            <label className="block space-y-2">
+              <span className="text-sm font-bold text-zinc-700">{text({ ar: "الصف", en: "Grade" })}</span>
+              <select className="input" value={grade} onChange={(e) => {
+                setGrade(e.target.value);
+                setSubject(ALL);
+              }}>
+                <option value={ALL}>{text({ ar: "كل الصفوف", en: "All grades" })}</option>
+                {grades.map((item) => <option key={item} value={item}>{item}</option>)}
+              </select>
+            </label>
+            <label className="block space-y-2">
+              <span className="text-sm font-bold text-zinc-700">{text({ ar: "المادة", en: "Subject" })}</span>
+              <select className="input" value={subject} onChange={(e) => setSubject(e.target.value)}>
+                <option value={ALL}>{text({ ar: "كل المواد", en: "All subjects" })}</option>
+                {subjectsForGrade.map((item) => <option key={item} value={item}>{item}</option>)}
+              </select>
+            </label>
+            <label className="block space-y-2">
+              <span className="text-sm font-bold text-zinc-700">{text({ ar: "نوع الملف", en: "File type" })}</span>
+              <select className="input" value={format} onChange={(e) => setFormat(e.target.value)}>
+                <option value={ALL}>{text({ ar: "كل الصيغ", en: "All formats" })}</option>
+                {formats.map((item) => <option key={item} value={item}>{item}</option>)}
+              </select>
+            </label>
+            <label className="block space-y-2">
+              <span className="text-sm font-bold text-zinc-700">{text({ ar: "السعر الأعلى", en: "Max price" })}: {currencyLabel(effectiveMaxPrice || 0)}</span>
+              <input type="range" min="0" max={highestPrice || 0} value={effectiveMaxPrice || 0} onChange={(e) => setMaxPrice(Number(e.target.value))} className="w-full accent-qatar-700" />
+              <button type="button" onClick={() => setMaxPrice(0)} className="text-xs font-bold text-qatar-700 hover:underline">{text({ ar: "كل الأسعار", en: "All prices" })}</button>
+            </label>
+            <label className="block space-y-2">
+              <span className="text-sm font-bold text-zinc-700">{text({ ar: "التقييم الأدنى", en: "Minimum rating" })}</span>
+              <select className="input" value={minRating} onChange={(e) => setMinRating(Number(e.target.value))}>
+                <option value={0}>{text({ ar: "أي تقييم", en: "Any rating" })}</option>
+                <option value={4}>4★+</option>
+                <option value={3}>3★+</option>
+              </select>
+            </label>
+            <label className="block space-y-2">
+              <span className="text-sm font-bold text-zinc-700">{text({ ar: "الترتيب", en: "Sort" })}</span>
+              <select className="input" value={sort} onChange={(e) => setSort(e.target.value as typeof sort)}>
+                <option value="recommended">{text({ ar: "الموصى به", en: "Recommended" })}</option>
+                <option value="rating-desc">{text({ ar: "الأعلى تقييمًا", en: "Top rated" })}</option>
+                <option value="price-asc">{text({ ar: "السعر الأقل", en: "Lowest price" })}</option>
+                <option value="price-desc">{text({ ar: "السعر الأعلى", en: "Highest price" })}</option>
+              </select>
+            </label>
+          </div>
+        </aside>
 
-      <AnimatePresence mode="popLayout">
-        {view === "grid" ? (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="grid gap-6 xl:grid-cols-2">
-            {filtered.map((product) => <ProductCard key={product.id} product={product} />)}
-          </motion.div>
-        ) : (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-5">
-            {filtered.map((product) => <ListProductCard key={product.id} product={product} />)}
-          </motion.div>
-        )}
-      </AnimatePresence>
+        <AnimatePresence mode="popLayout">
+          {view === "grid" ? (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="grid gap-6 xl:grid-cols-2">
+              {filtered.map((product) => <ProductCard key={product.id} product={product} />)}
+            </motion.div>
+          ) : (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-5">
+              {filtered.map((product) => <ListProductCard key={product.id} product={product} />)}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
 
       {!filtered.length ? (
         <div className="rounded-lg border border-dashed border-zinc-300 bg-white p-10 text-center text-zinc-600">

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { DOWNLOAD_SESSION_COOKIE, DOWNLOAD_SESSION_TTL_MS, createSecureToken, hashToken } from "@/lib/order-access";
 import { expectedStripeCurrency, retrieveStripeCheckoutSession } from "@/lib/payments";
 import { applyVoucher, captureWalletReservation } from "@/lib/wallet";
+import { applyAffiliateCommission } from "@/lib/affiliates";
 import { getRequestIp, isRateLimited } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
@@ -16,6 +17,13 @@ function redirect(req: NextRequest, path: string) {
   const response = NextResponse.redirect(new URL(path, req.url), 303);
   response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, private");
   return response;
+}
+
+async function markAbandonedCartsConverted(email: string) {
+  await prisma.abandonedCart.updateMany({
+    where: { email, status: { in: ["active", "reminded"] } },
+    data: { status: "converted", convertedAt: new Date() }
+  }).catch(() => null);
 }
 
 function getPaymentIntentId(paymentIntent: unknown) {
@@ -94,6 +102,8 @@ export async function GET(req: NextRequest) {
     if (order.walletUsed > 0) {
       await captureWalletReservation(order.id, `خصم محفظة على الطلب #${order.id.slice(-8)}`).catch(() => null);
     }
+    await applyAffiliateCommission(order.id).catch(() => null);
+    await markAbandonedCartsConverted(order.email);
 
     const response = redirect(req, `/thank-you?order=${encodeURIComponent(order.id)}`);
     response.cookies.set(DOWNLOAD_SESSION_COOKIE, sessionToken, {

@@ -3,6 +3,8 @@ import type { NextRequest } from "next/server";
 import NextAuth from "next-auth";
 import authConfig from "@/auth.config";
 
+const AFFILIATE_COOKIE = "kutubi_ref";
+
 const { auth: authMiddleware } = NextAuth(authConfig);
 
 function applySecurityHeaders(res: NextResponse, pathname = "") {
@@ -39,6 +41,23 @@ function applySecurityHeaders(res: NextResponse, pathname = "") {
     res.headers.set("Content-Security-Policy", csp);
   }
 
+  return res;
+}
+
+function sanitizeReferralCode(code: string | null) {
+  return code?.trim().toUpperCase().replace(/[^A-Z0-9_-]/g, "").slice(0, 32) || "";
+}
+
+function withReferralCookie(req: NextRequest, res: NextResponse) {
+  const code = sanitizeReferralCode(req.nextUrl.searchParams.get("ref"));
+  if (code) {
+    res.cookies.set(AFFILIATE_COOKIE, code, {
+      path: "/",
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 60 * 60 * 24 * 30
+    });
+  }
   return res;
 }
 
@@ -102,7 +121,7 @@ export default authMiddleware((req) => {
     return applySecurityHeaders(NextResponse.redirect(loginRedirect(req)), pathname);
   }
 
-  return applySecurityHeaders(NextResponse.next(), pathname);
+  return applySecurityHeaders(withReferralCookie(req, NextResponse.next()), pathname);
 });
 
 export const config = {
