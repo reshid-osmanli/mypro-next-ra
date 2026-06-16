@@ -17,7 +17,8 @@ const schema = z.object({
   phone: z.string().trim().max(40).optional(),
   notes: z.string().trim().max(1000).optional(),
   purchaseTrackingConsent: z.boolean().optional().default(false),
-  voucherCode: z.string().trim().optional()
+  voucherCode: z.string().trim().optional(),
+  walletAmountToUse: z.number().min(0).optional()
 });
 
 export async function POST(req: Request) {
@@ -92,7 +93,8 @@ export async function POST(req: Request) {
   }
 
   const wallet = await getOrCreateWallet(orderEmail);
-  const walletDiscount = Math.min(wallet.balance, Math.max(0, total - voucherDiscount));
+  const requestedWalletUse = parsed.data.walletAmountToUse || 0;
+  const walletDiscount = Math.min(requestedWalletUse, wallet.balance, Math.max(0, total - voucherDiscount));
   const finalDiscount = Math.min(total, voucherDiscount + walletDiscount);
   const finalTotal = Math.max(0, total - finalDiscount);
 

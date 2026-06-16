@@ -28,7 +28,8 @@ function buildCheckoutPayload(form: HTMLFormElement, items: CartItem[], voucherC
     phone: String(data.get("phone") ?? "").trim(),
     notes: String(data.get("notes") ?? "").trim(),
     purchaseTrackingConsent: data.get("purchaseTrackingConsent") === "on",
-    voucherCode: voucherCode?.trim() || undefined
+    voucherCode: voucherCode?.trim() || undefined,
+    walletAmountToUse: Number(data.get("walletAmountToUse")) || 0
   };
 }
 

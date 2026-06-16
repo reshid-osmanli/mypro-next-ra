@@ -48,6 +48,7 @@ export function CheckoutForm() {
   const [voucherError, setVoucherError] = useState<string | null>(null);
   const [availableVouchers, setAvailableVouchers] = useState<AvailableVoucher[]>([]);
   const [walletBalance, setWalletBalance] = useState(0);
+  const [walletAmountToUse, setWalletAmountToUse] = useState<number | "">("");
   const [showVoucherSelector, setShowVoucherSelector] = useState(false);
   const [purchaseTrackingConsent, setPurchaseTrackingConsent] = useState(false);
   const signedInEmail = session?.user?.email?.trim() ?? "";
@@ -87,7 +88,7 @@ export function CheckoutForm() {
     }
   }
 
-  const walletDiscount = useMemo(() => Math.min(walletBalance, Math.max(0, total - (voucherDiscount ?? 0))), [total, voucherDiscount, walletBalance]);
+  const walletDiscount = useMemo(() => Math.min(Number(walletAmountToUse) || 0, walletBalance, Math.max(0, total - (voucherDiscount ?? 0))), [total, voucherDiscount, walletBalance, walletAmountToUse]);
 
   const finalTotal = useMemo(() => {
     return Math.max(0, total - (voucherDiscount ?? 0) - walletDiscount);
@@ -138,7 +139,8 @@ export function CheckoutForm() {
           notes: String(formData.get("notes") ?? ""),
           purchaseTrackingConsent: formData.get("purchaseTrackingConsent") === "on",
           paymentMethod: "stripe",
-          voucherCode: voucherDiscount ? voucherCode.trim() : undefined
+          voucherCode: voucherDiscount ? voucherCode.trim() : undefined,
+          walletAmountToUse: Number(walletAmountToUse) || 0
         })
       });
 
@@ -271,6 +273,26 @@ export function CheckoutForm() {
               {text({ ar: "رصيد المحفظة المتاح", en: "Available wallet balance" })}
             </span>
             <span className="font-black">{currencyLabel(walletBalance)}</span>
+          </div>
+          <div className="mt-3 flex items-center gap-2">
+            <span className="text-sm font-semibold">{text({ ar: "الخصم من المحفظة:", en: "Use from wallet:" })}</span>
+            <input 
+              type="number" 
+              name="walletAmountToUse"
+              className="input max-w-[120px] text-sm bg-white" 
+              placeholder="0"
+              value={walletAmountToUse}
+              onChange={(e) => setWalletAmountToUse(e.target.value === "" ? "" : Number(e.target.value))}
+              max={Math.min(walletBalance, Math.max(0, total - (voucherDiscount ?? 0)))}
+              min="0"
+            />
+            <button 
+              type="button" 
+              onClick={() => setWalletAmountToUse(Math.min(walletBalance, Math.max(0, total - (voucherDiscount ?? 0))))}
+              className="text-xs font-bold text-emerald-700 hover:underline"
+            >
+              {text({ ar: "تطبيق الأقصى", en: "Apply max" })}
+            </button>
           </div>
           {walletDiscount > 0 ? (
             <p className="mt-2 leading-7">
