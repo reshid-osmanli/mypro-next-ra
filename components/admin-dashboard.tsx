@@ -20,7 +20,8 @@ import {
   HardDrive,
   RotateCcw,
   AlertCircle,
-  Ticket
+  Ticket,
+  WalletCards
 } from "lucide-react";
 import { currencyLabel, dateLabel, formatBytes, numberLabel } from "@/lib/utils";
 import { describeAllowedPrivateUploads, MAX_UPLOAD_BYTES, PRIVATE_UPLOAD_ACCEPT } from "@/lib/upload-policy";
@@ -522,37 +523,37 @@ function VouchersTab() {
     }
   }
 
-  async function creditWallets(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
+  async function manageWallets(type: "credit" | "debit") {
     if (selectedEmails.size === 0) {
       setMessage("اختر عميلًا على الأقل");
       setMessageKind("error");
       return;
     }
     if (!depositAmount || Number(depositAmount) <= 0) {
-      setMessage("أدخل قيمة الإيداع");
+      setMessage("أدخل قيمة العملية");
       setMessageKind("error");
       return;
     }
     if (!depositDescription.trim()) {
-      setMessage("أدخل وصفًا للإيداع");
+      setMessage("أدخل وصفًا للعملية");
       setMessageKind("error");
       return;
     }
     setLoading(true);
     setMessage("");
     try {
-      const res = await fetch("/api/admin/wallet/credit", {
+      const res = await fetch("/api/admin/wallet/transaction", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           emails: Array.from(selectedEmails),
           amount: Number(depositAmount),
-          description: depositDescription
+          description: depositDescription,
+          type
         })
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "فشل إيداع الأموال");
+      if (!res.ok) throw new Error(data.error || "فشل العملية");
       setMessage(data.message);
       setMessageKind("success");
       setSelectedEmails(new Set());
@@ -563,6 +564,16 @@ function VouchersTab() {
       setMessageKind("error");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleWalletSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const actionType = (e.nativeEvent as SubmitEvent).submitter?.getAttribute("value");
+    if (actionType === "debit") {
+      manageWallets("debit");
+    } else {
+      manageWallets("credit");
     }
   }
 
@@ -620,8 +631,8 @@ function VouchersTab() {
           </div>
 
           <div>
-            <h4 className="mb-3 text-lg font-black text-zinc-950">{text({ ar: "إيداع للمحفظة", en: "Deposit to Wallets" })}</h4>
-            <form onSubmit={creditWallets} className="grid gap-4 sm:grid-cols-3">
+            <h4 className="mb-3 text-lg font-black text-zinc-950">{text({ ar: "إدارة رصيد المحفظة", en: "Manage Wallets" })}</h4>
+            <form onSubmit={handleWalletSubmit} className="grid gap-4 sm:grid-cols-3">
               <label className="block space-y-2 sm:col-span-3">
                 <span className="text-sm font-semibold text-zinc-700">{text({ ar: "بحث عن العملاء", en: "Search customers" })}</span>
                 <input
@@ -669,10 +680,14 @@ function VouchersTab() {
                     ? text({ ar: `تم اختيار ${selectedEmails.size} عميل`, en: `${selectedEmails.size} customer(s) selected` })
                     : text({ ar: "لم يتم اختيار أي عميل", en: "No customers selected" })}
                 </span>
-                <button type="submit" disabled={loading || selectedEmails.size === 0} className="btn-primary disabled:opacity-60">
-                  {loading ? <Loader2 size={16} className="animate-spin" /> : <BadgeDollarSign size={16} />}
-                  {text({ ar: "إيداع", en: "Deposit" })}
-                </button>
+                  <button type="submit" name="actionType" value="credit" disabled={loading || selectedEmails.size === 0} className="btn-primary disabled:opacity-60">
+                    {loading ? <Loader2 size={16} className="animate-spin" /> : <WalletCards size={16} />}
+                    {text({ ar: "إيداع الرصيد", en: "Deposit Credit" })}
+                  </button>
+                  <button type="submit" name="actionType" value="debit" disabled={loading || selectedEmails.size === 0} className="btn-secondary border-rose-200 text-rose-700 hover:bg-rose-50 disabled:opacity-60">
+                    {loading ? <Loader2 size={16} className="animate-spin" /> : <WalletCards size={16} />}
+                    {text({ ar: "خصم الرصيد", en: "Deduct Credit" })}
+                  </button>
               </div>
             </form>
           </div>
