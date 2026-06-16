@@ -4,7 +4,7 @@
 // New file: /tests/refresh-token-rotation.test.ts
 // ============================================================================
 
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // Mock the prisma client to avoid DB hits
 const mockFamilies: any[] = [];

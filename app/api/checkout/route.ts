@@ -14,6 +14,7 @@ import { resolveSiteUrl } from "@/lib/site-url";
 import { checkoutItemsSchema } from "@/lib/security-validation";
 import { reportApiFailure, reportCaughtError, routeContext } from "@/lib/report-caught-error";
 import { DOWNLOAD_SESSION_COOKIE, DOWNLOAD_SESSION_TTL_MS, createSecureToken, hashToken } from "@/lib/order-access";
+import { verifyHoneypot } from "@/lib/security/honeypot";
 
 const schema = z.object({
   items: checkoutItemsSchema,
@@ -24,7 +25,11 @@ const schema = z.object({
   purchaseTrackingConsent: z.boolean().optional().default(false),
   paymentMethod: z.literal("stripe"),
   voucherCode: z.string().trim().optional(),
-  walletAmountToUse: z.number().min(0).optional()
+  walletAmountToUse: z.number().min(0).optional(),
+  // Honeypot fields (must be empty for legitimate users)
+  website: z.string().optional(),
+  email_confirm: z.string().optional(),
+  renderedAt: z.number().optional(),
 });
 
 async function markAbandonedCartsConverted(email: string) {
@@ -86,6 +91,16 @@ export async function POST(req: Request) {
   const parsed = schema.safeParse(body as CheckoutPayload);
 
   if (!parsed.success) {
+    return NextResponse.json({ error: "البيانات غير صالحة" }, { status: 400 });
+  }
+
+  // Honeypot + timing check (silent fail for bots)
+  const hp = await verifyHoneypot({
+    fields: { website: parsed.data.website, email_confirm: parsed.data.email_confirm },
+    renderedAt: parsed.data.renderedAt,
+  });
+  if (!hp.ok) {
+    // Respond as if invalid to confuse bots; actually block
     return NextResponse.json({ error: "البيانات غير صالحة" }, { status: 400 });
   }
 

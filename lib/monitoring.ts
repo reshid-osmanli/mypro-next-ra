@@ -15,7 +15,7 @@ const SENTRY_PROFILES_SAMPLE_RATE = Number(process.env.SENTRY_PROFILES_SAMPLE_RA
 
 export function initSentry() {
   if (!SENTRY_DSN) return;
-  if (Sentry.getCurrentHub().getClient()) return;
+  // Sentry v8: init is idempotent - safe to call once per process
 
   Sentry.init({
     dsn: SENTRY_DSN,
@@ -55,6 +55,7 @@ export type RouteContext = {
   method?: string;
   ip?: string;
   email?: string;
+  area?: string;
 };
 
 export async function reportCaughtError(

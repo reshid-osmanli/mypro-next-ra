@@ -10,6 +10,7 @@ import { currencyLabel } from "@/lib/utils";
 import { subtotal } from "@/lib/site-math";
 import { calculateBundleDiscount, bundleDiscountLabel } from "@/lib/bundle-discounts";
 import { useSitePreferences } from "./site-preferences";
+import { EmptyCart } from "./empty-states";
 
 export function CartClient({ products = [] }: { products?: ProductCardModel[] }) {
   const { items, removeItem } = useCart();
@@ -25,21 +26,7 @@ export function CartClient({ products = [] }: { products?: ProductCardModel[] })
     .slice(0, 3);
 
   if (!items.length) {
-    return (
-      <div className="panel p-10 text-center shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
-        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-lg bg-qatar-50 text-qatar-700">
-          <ShoppingCart size={28} />
-        </div>
-        <p className="mt-5 text-2xl font-black text-zinc-950">{text({ ar: "السلة فارغة حاليًا", en: "Your cart is empty" })}</p>
-        <p className="mt-2 text-sm leading-7 text-zinc-600">
-          {text({
-            ar: "أضف منتجًا من صفحة المنتجات أو من صفحة المادة ثم عد لإتمام الطلب.",
-            en: "Add a product from the store or a subject page, then return to checkout."
-          })}
-        </p>
-        <Link href="/products" className="btn-primary mt-6">{text({ ar: "تصفح المنتجات", en: "Browse products" })}</Link>
-      </div>
-    );
+    return <EmptyCart />;
   }
 
   return (

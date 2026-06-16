@@ -12,11 +12,12 @@ export const defaultLocale = "ar" as const;
 export type Locale = (typeof locales)[number];
 
 export default getRequestConfig(async ({ locale }) => {
-  if (!locales.includes(locale as Locale)) notFound();
+  const safeLocale = (locale ?? "ar") as Locale;
+  if (!locales.includes(safeLocale)) notFound();
 
-  const messages = (await import(`./messages/${locale}.json`)).default;
+  const messages = (await import(`./messages/${safeLocale}.json`)).default;
   return {
-    locale,
+    locale: safeLocale,
     messages,
     timeZone: "Asia/Riyadh",
     now: new Date(),

@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, ShoppingBag } from "lucide-react";
 import { getBlogPostBySlug, getBlogPosts } from "@/lib/blog";
 import { currencyLabel, dateLabel } from "@/lib/utils";
+import { JsonLd } from "@/components/seo/json-ld";
+import { buildBlogPostSchema, buildBreadcrumbSchema } from "@/lib/schema-markup";
 
 export const dynamic = "force-dynamic";
 
@@ -31,11 +33,26 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   const { slug } = await params;
   const post = await getBlogPostBySlug(slug);
   if (!post) return notFound();
+  const blogSchema = buildBlogPostSchema({
+    slug: post.slug,
+    title: post.title,
+    excerpt: post.excerpt,
+    body: post.body,
+    coverImage: post.coverImage,
+    createdAt: post.createdAt,
+    updatedAt: post.createdAt,
+  });
+  const blogBreadcrumbs = buildBreadcrumbSchema([
+    { label: "الرئيسية", href: "/" },
+    { label: "المدونة", href: "/blog" },
+    { label: post.title },
+  ]);
 
   const paragraphs = post.body.split(/\n{2,}/).map((item) => item.trim()).filter(Boolean);
 
   return (
     <article className="mx-auto max-w-4xl px-4 py-12 lg:px-8">
+      <JsonLd id="blog-post" data={[blogSchema, blogBreadcrumbs]} />
       <Link href="/blog" className="inline-flex items-center gap-2 text-sm font-bold text-qatar-700">
         <ArrowLeft size={16} /> العودة إلى المدونة
       </Link>

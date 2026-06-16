@@ -45,3 +45,20 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+# Test artifacts
+coverage/
+.nyc_output/
+.vitest/
+*.tsbuildinfo
+
+# Storybook
+storybook-static/
+
+# Test logs
+test-results/
+playwright-report/
+
+# Editor
+.idea/
+*.swp

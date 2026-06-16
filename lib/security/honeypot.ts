@@ -1,9 +1,7 @@
 // ============================================================================
-// lib/security/honeypot.ts — Server-side honeypot field validator
-// ----------------------------------------------------------------------------
-// New file: /lib/security/honeypot.ts
-// Use to detect bots that fill hidden form fields.
+// lib/security/honeypot.ts — Server-side honeypot field validator (logic only)
 // ============================================================================
+// The JSX component HoneypotFields lives in /components/honeypot-fields.tsx
 
 const HONEYPOT_FIELDS = [
   "website",      // commonly filled by bots
@@ -11,11 +9,11 @@ const HONEYPOT_FIELDS = [
   "email_confirm",
 ];
 
-const HONEYPOT_TIMING_MIN_MS = 800; // submitted in <800ms = bot
+const HONEYPOT_TIMING_MIN_MS = 800;
 
 export type HoneypotInput = {
   fields?: Record<string, string | undefined>;
-  renderedAt?: number; // timestamp the form was rendered (ms epoch)
+  renderedAt?: number;
 };
 
 export function isHoneypotTriggered(input: HoneypotInput): boolean {
@@ -33,27 +31,7 @@ export function isSubmittedTooFast(input: HoneypotInput): boolean {
 }
 
 export async function verifyHoneypot(input: HoneypotInput): Promise<{ ok: boolean; reason?: string }> {
-  if (isHoneypotTriggered(input)) {
-    return { ok: false, reason: "honeypot_triggered" };
-  }
-  if (isSubmittedTooFast(input)) {
-    return { ok: false, reason: "submitted_too_fast" };
-  }
+  if (isHoneypotTriggered(input)) return { ok: false, reason: "honeypot_triggered" };
+  if (isSubmittedTooFast(input)) return { ok: false, reason: "submitted_too_fast" };
   return { ok: true };
-}
-
-/** Client-side hidden field renderer. */
-export function HoneypotFields() {
-  return (
-    <div aria-hidden="true" style={{ position: "absolute", left: "-9999px", top: "-9999px" }}>
-      <label>
-        Website (do not fill)
-        <input type="text" name="website" tabIndex={-1} autoComplete="off" />
-      </label>
-      <label>
-        Confirm email (do not fill)
-        <input type="email" name="email_confirm" tabIndex={-1} autoComplete="off" />
-      </label>
-    </div>
-  );
 }

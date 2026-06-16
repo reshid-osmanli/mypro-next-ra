@@ -1,4 +1,9 @@
 import type { Metadata } from "next";
+import { buildProductSchema, buildBreadcrumbSchema, buildReviewsSchema } from "@/lib/schema-markup";
+import { JsonLd } from "@/components/seo/json-ld";
+import { ProductBadges } from "@/components/product-badges";
+import { StickyAddToCart } from "@/components/sticky-add-to-cart";
+import { Breadcrumbs } from "@/components/breadcrumbs";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, CheckCircle2, FileText } from "lucide-react";
@@ -46,29 +51,37 @@ export default async function ProductDetailsPage({ params }: { params: Promise<{
   ]);
   const siteUrl = resolveSiteUrl() || process.env.NEXT_PUBLIC_SITE_URL || "";
   const productUrl = siteUrl ? `${siteUrl}/products/${product.slug}` : `/products/${product.slug}`;
-  const schemaData = {
-    "@context": "https://schema.org",
-    "@type": "Product",
-    name: product.title,
-    description: product.excerpt,
-    image: previewImages.length ? previewImages : undefined,
-    url: productUrl,
-    brand: { "@type": "Brand", name: "Kutubi" },
-    offers: {
-      "@type": "Offer",
-      price: product.price,
-      priceCurrency: (process.env.NEXT_PUBLIC_STRIPE_CURRENCY || "USD").toUpperCase(),
-      availability: "https://schema.org/InStock",
-      url: productUrl
-    },
-    aggregateRating: product.reviewCount
-      ? {
-          "@type": "AggregateRating",
-          ratingValue: product.averageRating,
-          reviewCount: product.reviewCount
-        }
-      : undefined
-  };
+  // Build comprehensive Schema.org JSON-LD using shared generators
+  const productSchema = buildProductSchema({
+    id: product.id,
+    slug: product.slug,
+    title: product.title,
+    description: product.description ?? product.excerpt,
+    excerpt: product.excerpt,
+    price: product.price,
+    compareAt: product.compareAt,
+    coverImage: product.coverImage,
+    images: product.additionalImages ?? [],
+    averageRating: product.averageRating,
+    reviewCount: product.reviewCount,
+  });
+  const breadcrumbSchema = buildBreadcrumbSchema([
+    { label: "الرئيسية", href: "/" },
+    { label: "المتجر", href: "/products" },
+    { label: product.title },
+  ]);
+  const reviewSchema = reviews.length
+    ? buildReviewsSchema({
+        productSlug: product.slug,
+        reviews: reviews.map((r) => ({
+          id: r.id,
+          rating: r.rating,
+          comment: r.comment,
+          author: r.customerName ?? undefined,
+          createdAt: r.createdAt,
+        })),
+      })
+    : null;
 
   const item = {
     id: product.id,
@@ -86,7 +99,14 @@ export default async function ProductDetailsPage({ params }: { params: Promise<{
 
   return (
     <section className="mx-auto max-w-6xl px-4 py-12 lg:px-8">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schemaData) }} />
+      <JsonLd id="product" data={[productSchema, breadcrumbSchema, ...(reviewSchema ? [reviewSchema] : [])]} />
+      <Breadcrumbs
+        items={[
+          { href: "/", label: "الرئيسية" },
+          { href: "/products", label: "المتجر" },
+          { label: product.title }
+        ]}
+      />
       <Link href="/products" className="inline-flex items-center gap-2 text-sm font-bold text-qatar-700">
         <ArrowLeft size={16} /> <LocalizedText value={{ ar: "العودة إلى المتجر", en: "Back to store" }} />
       </Link>
@@ -117,6 +137,11 @@ export default async function ProductDetailsPage({ params }: { params: Promise<{
             <div className="flex flex-wrap items-center justify-between gap-3">
               <span className="rounded-md bg-pearl-100 px-3 py-1 text-xs font-bold text-zinc-700">{product.category}</span>
               <span className="rounded-md bg-qatar-50 px-3 py-1 text-xs font-bold text-qatar-800">{product.badge}</span>
+              <ProductBadges product={{
+                compareAt: product.compareAt,
+                price: product.price,
+                createdAt: product.createdAt,
+              }} />
             </div>
             <h1 className="mt-6 text-3xl font-black leading-tight text-zinc-950 md:text-5xl">{product.title}</h1>
             <p className="mt-4 max-w-3xl leading-8 text-zinc-600">{product.description}</p>
@@ -192,6 +217,19 @@ export default async function ProductDetailsPage({ params }: { params: Promise<{
           reviewCount={product.reviewCount ?? 0}
         />
       </div>
+    
+      <StickyAddToCart product={{
+        id: product.id,
+        slug: product.slug,
+        title: product.title,
+        price: product.price,
+        grade: product.grade,
+        subject: product.subject,
+        badge: product.badge,
+        format: product.format,
+        accentA: product.accentA,
+        accentB: product.accentB,
+      }} />
     </section>
   );
 }

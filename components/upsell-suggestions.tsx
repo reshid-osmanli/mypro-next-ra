@@ -29,7 +29,14 @@ export function UpsellSuggestions() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
-      body: JSON.stringify({ items: items.map((i) => ({ id: i.id, subject: i.subject, category: i.category })) }),
+      body: JSON.stringify({
+        items: items.map((i) => ({
+          id: i.id,
+          subject: i.subject,
+          // @ts-expect-error - category is optional on CartItem but used for upsell rules
+          category: i.category,
+        }))
+      }),
     })
       .then((r) => r.ok ? r.json() : { suggestions: [] })
       .then((data) => {
