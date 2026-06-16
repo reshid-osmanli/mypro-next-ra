@@ -21,7 +21,8 @@ import {
   RotateCcw,
   AlertCircle,
   Ticket,
-  WalletCards
+  WalletCards,
+  Download
 } from "lucide-react";
 import { currencyLabel, dateLabel, formatBytes, numberLabel } from "@/lib/utils";
 import { describeAllowedPrivateUploads, MAX_UPLOAD_BYTES, PRIVATE_UPLOAD_ACCEPT } from "@/lib/upload-policy";
@@ -1546,6 +1547,11 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
       {tab === "orders" ? (
         <div className="space-y-6">
           <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-6">
+            <div className="md:col-span-3 xl:col-span-6 flex justify-end">
+              <a href="/api/admin/orders/export" target="_blank" className="btn-secondary">
+                <Download size={16} /> تصدير كل الطلبات (CSV)
+              </a>
+            </div>
             {[
               { label: "كل الطلبات", value: adminStats.totals.orders },
               { label: "الطلبات المدفوعة", value: adminStats.totals.paidOrders },

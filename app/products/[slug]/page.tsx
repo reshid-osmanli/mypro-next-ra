@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowLeft, CheckCircle2, FileText } from "lucide-react";
 import { AddToCartButton } from "@/components/add-to-cart-button";
 import { ProductVisual } from "@/components/product-visual";
+import { ProductGallery } from "@/components/product-gallery";
 import { LocalizedText } from "@/components/site-preferences";
 import { MotionShowcase } from "@/components/motion-showcase";
 import { getAllProducts, getProductBySlug } from "@/lib/catalog";
@@ -33,8 +34,28 @@ export default async function ProductDetailsPage({ params }: { params: Promise<{
     accentB: product.accentB
   } as const;
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    "name": product.title,
+    "description": product.description || product.excerpt,
+    "image": product.coverImage ? [product.coverImage] : [],
+    "category": product.category,
+    "offers": {
+      "@type": "Offer",
+      "price": (product.price / 100).toFixed(2),
+      "priceCurrency": "USD",
+      "availability": "https://schema.org/InStock",
+      "url": `https://kutubi.qa/products/${product.slug}`
+    }
+  };
+
   return (
     <section className="mx-auto max-w-6xl px-4 py-12 lg:px-8">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <Link href="/products" className="inline-flex items-center gap-2 text-sm font-bold text-qatar-700">
         <ArrowLeft size={16} /> <LocalizedText value={{ ar: "العودة إلى المتجر", en: "Back to store" }} />
       </Link>
@@ -86,6 +107,8 @@ export default async function ProductDetailsPage({ params }: { params: Promise<{
                 <LocalizedText value={{ ar: "الانتقال إلى الدفع", en: "Go to checkout" }} />
               </Link>
             </div>
+
+            <ProductGallery title={product.title} images={product.additionalImages ?? []} />
           </div>
         </div>
 

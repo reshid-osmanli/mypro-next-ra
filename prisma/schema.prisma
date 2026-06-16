@@ -39,6 +39,46 @@ model Product {
   updatedAt       DateTime     @updatedAt
   files           ProductFile[]
   orderItems      OrderItem[]
+  reviews         Review[]
+  upsellProducts  String[]     @default([])
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  productId String
+  email     String
+  userName  String
+  rating    Int
+  comment   String?
+  status    String   @default("approved")
+  createdAt DateTime @default(now())
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  @@index([productId])
+  @@index([email])
+}
+
+model AffiliateProfile {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  code         String   @unique
+  commissionRate Float  @default(0.10) // 10%
+  totalEarned  Int      @default(0)
+  createdAt    DateTime @default(now())
+}
+
+model AbandonedCart {
+  id           String   @id @default(cuid())
+  email        String
+  cartData     String   // JSON string of cart items
+  notified     Boolean  @default(false)
+  recovered    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([email])
 }
 
 model ProductFile {
