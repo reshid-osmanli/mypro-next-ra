@@ -48,7 +48,7 @@ export function ConfettiCelebration({ fire = true }: { fire?: boolean }) {
       y: -20 - Math.random() * window.innerHeight * 0.5,
       r: Math.random() * 6 + 4,
       d: Math.random() * 3 + 2,
-      color: colors[Math.floor(Math.random() * colors.length)],
+      color: colors[Math.floor(Math.random() * colors.length)]!,
       tilt: Math.random() * 10 - 5,
       tiltAngle: Math.random() * Math.PI,
       tiltAngleIncremental: Math.random() * 0.07 + 0.05,

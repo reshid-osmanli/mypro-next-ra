@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CheckCircle2, Download } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 import { cookies } from "next/headers";
 import { OrderDownloadGate } from "@/components/order-download-gate";
 import { RetryDownloadButton } from "@/components/retry-download-button";

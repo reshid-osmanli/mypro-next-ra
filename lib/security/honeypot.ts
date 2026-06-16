@@ -1,7 +1,6 @@
 // ============================================================================
-// lib/security/honeypot.ts — Server-side honeypot field validator (logic only)
+// lib/security/honeypot.ts — Server-side honeypot field validator
 // ============================================================================
-// The JSX component HoneypotFields lives in /components/honeypot-fields.tsx
 
 const HONEYPOT_FIELDS = [
   "website",      // commonly filled by bots
@@ -13,7 +12,7 @@ const HONEYPOT_TIMING_MIN_MS = 800;
 
 export type HoneypotInput = {
   fields?: Record<string, string | undefined>;
-  renderedAt?: number;
+  renderedAt?: number;  // Optional: timestamp when form was first rendered
 };
 
 export function isHoneypotTriggered(input: HoneypotInput): boolean {
@@ -26,7 +25,7 @@ export function isHoneypotTriggered(input: HoneypotInput): boolean {
 }
 
 export function isSubmittedTooFast(input: HoneypotInput): boolean {
-  if (!input.renderedAt) return false;
+  if (input.renderedAt === undefined) return false;
   return Date.now() - input.renderedAt < HONEYPOT_TIMING_MIN_MS;
 }
 

@@ -84,10 +84,10 @@ export async function POST(req: NextRequest) {
 
   try {
     if (files.length === 1) {
-      const stored = await readStoredFile(files[0].file);
+      const stored = await readStoredFile(files[0]!.file);
       payload = stored.data;
-      fileName = files[0].file.title;
-      contentType = stored.contentType || files[0].file.mimeType;
+      fileName = files[0]!.file.title;
+      contentType = stored.contentType || files[0]!.file.mimeType;
     } else {
       const zipFiles: Array<{ name: string; data: Buffer }> = [];
       for (const item of files) {

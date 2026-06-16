@@ -13,7 +13,7 @@ type SitePreferencesContextValue = {
   setLanguage: (language: Language) => void;
   toggleLanguage: () => void;
   toggleTheme: () => void;
-  text: (value: LocalizedTextValue) => string;
+  text: (value: LocalizedTextValue | undefined | null) => string;
 };
 
 const SitePreferencesContext = createContext<SitePreferencesContextValue | null>(null);
@@ -65,6 +65,7 @@ export function SitePreferenceProvider({ children }: { children: React.ReactNode
       setThemeState((current) => (current === "dark" ? "light" : "dark"));
     },
     text(localizedValue) {
+      if (localizedValue == null) return "";
       return resolveLocalized(localizedValue, language);
     }
   }), [language, theme]);

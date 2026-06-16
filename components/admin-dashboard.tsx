@@ -793,7 +793,7 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
   }, [localProducts]);
 
   useEffect(() => {
-    if (!subjectForm.gradeId && catalog[0]?.id) setSubjectForm((c) => ({ ...c, gradeId: catalog[0].id }));
+    if (!subjectForm.gradeId && catalog[0]?.id) setSubjectForm((c) => ({ ...c, gradeId: catalog[0]!.id }));
   }, [catalog, subjectForm.gradeId]);
 
   useEffect(() => {

@@ -29,10 +29,10 @@ async function main() {
   await prisma.adminUser.deleteMany();
 
   for (let i = 0; i < defaultGrades.length; i += 1) {
-    const grade = defaultGrades[i];
+    const grade = defaultGrades[i]!;
     const created = await prisma.grade.create({ data: { name: grade.name, sortOrder: i } });
     for (let j = 0; j < grade.subjects.length; j += 1) {
-      await prisma.subject.create({ data: { gradeId: created.id, name: grade.subjects[j], sortOrder: j } });
+      await prisma.subject.create({ data: { gradeId: created.id, name: grade.subjects[j]!, sortOrder: j } });
     }
   }
 

@@ -7,7 +7,7 @@ if (siteUrl && !process.env.AUTH_URL) {
   process.env.AUTH_URL = siteUrl;
 }
 
-const authSecret = process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET ?? process.env.ADMIN_SESSION_SECRET;
+const authSecret = (process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET ?? process.env.ADMIN_SESSION_SECRET ?? "dev-secret-placeholder-change-in-production") as string;
 const googleClientId = process.env.AUTH_GOOGLE_ID ?? process.env.GOOGLE_CLIENT_ID;
 const googleClientSecret = process.env.AUTH_GOOGLE_SECRET ?? process.env.GOOGLE_CLIENT_SECRET;
 

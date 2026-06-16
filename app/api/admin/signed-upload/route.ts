@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { fileName, mimeType } = body;
+    const { fileName, mimeType } = body as { fileName: string; mimeType: string };
 
     if (!fileName || !mimeType) {
       return NextResponse.json({ error: "fileName و mimeType مطلوبان" }, { status: 400 });

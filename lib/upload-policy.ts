@@ -120,15 +120,15 @@ export function preferredUploadMimeType(policy: UploadPolicy, fileName: string, 
     ".mov": "video/quicktime"
   };
 
-  return byExtension[extension] ?? policy.mimeTypes[0];
+  return byExtension[extension] ?? policy.mimeTypes[0] ?? "application/octet-stream";
 }
 
 export function isSafeCloudinaryStoredUrl(url: string) {
   try {
     const parsed = new URL(url);
     const pathParts = parsed.pathname.split("/").filter(Boolean);
-    const resourceType = pathParts[1];
-    const deliveryType = pathParts[2];
+    const resourceType = pathParts[1]!;
+    const deliveryType = pathParts[2]!;
 
     return (
       parsed.protocol === "https:" &&
