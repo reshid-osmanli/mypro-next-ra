@@ -22,6 +22,10 @@ export type SiteSettings = {
   promoTitle: string;
   promoDescription: string;
   promoImageUrl: string;
+  promoImageScale: string;
+  promoImagePosition: string;
+  promoImageRotation: string;
+  promoMotionEnabled: string;
   promoCtaLabel: string;
   promoCtaHref: string;
   homepageProductLimit: string;
@@ -51,6 +55,10 @@ export const siteSettingDefaults: SiteSettings = {
   promoTitle: "رتّب واجهة موقعك من لوحة التحكم",
   promoDescription: "غيّر الشعار، البنر، العروض، ترتيب المنتجات، وصور الحملة بدون تعديل الكود.",
   promoImageUrl: "",
+  promoImageScale: "1",
+  promoImagePosition: "center",
+  promoImageRotation: "0",
+  promoMotionEnabled: "false",
   promoCtaLabel: "اكتشف العروض",
   promoCtaHref: "/products",
   homepageProductLimit: "4",

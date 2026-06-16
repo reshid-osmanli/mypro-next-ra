@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
@@ -229,18 +229,9 @@ export function CheckoutForm() {
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <p className="text-sm font-semibold text-zinc-700">{text({ ar: "قسيمة الخصم", en: "Voucher code" })}</p>
-          {availableVouchers.length > 0 && !voucherDiscount && signedInEmail ? (
-            <button
-              type="button"
-              onClick={() => setShowVoucherSelector(!showVoucherSelector)}
-              className="text-xs font-bold text-qatar-700 hover:underline"
-            >
-              {text({ ar: "اختر قسيمة", en: "Select voucher" })}
-            </button>
-          ) : null}
         </div>
 
-        {showVoucherSelector ? (
+        {availableVouchers.length > 0 && !voucherDiscount && signedInEmail ? (
           <div className="max-h-40 overflow-y-auto rounded-lg border border-qatar-100 bg-white p-2">
             {availableVouchers.map((voucher) => (
               <button
@@ -250,34 +241,14 @@ export function CheckoutForm() {
                 disabled={validatingVoucher}
                 className="flex w-full items-center justify-between rounded-md px-3 py-2 text-sm hover:bg-qatar-50 disabled:opacity-60"
               >
-                <span className="font-mono text-zinc-900">{voucher.code}</span>
-                <span className="font-bold text-qatar-800">{currencyLabel(voucher.amount)}</span>
+                <span className="font-mono text-zinc-900">{text({ ar: "قسيمة خصم بقيمة", en: "Voucher for" })} {currencyLabel(voucher.amount)}</span>
+                <span className="font-bold text-qatar-800">{text({ ar: "تطبيق", en: "Apply" })}</span>
               </button>
             ))}
           </div>
-        ) : (
-          <div className="flex items-start gap-2">
-            <div className="relative flex-1">
-              <Ticket size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400" />
-              <input
-                type="text"
-                className="input pr-12"
-                placeholder={text({ ar: "أدخل القسيمة هنا", en: "Enter voucher code" })}
-                value={voucherCode}
-                onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
-                disabled={!signedInEmail || !!voucherDiscount}
-              />
-            </div>
-            <button
-              type="button"
-              onClick={() => validateVoucher()}
-              disabled={!voucherCode.trim() || !signedInEmail || !!voucherDiscount || validatingVoucher}
-              className="btn-secondary disabled:opacity-60"
-            >
-              {validatingVoucher ? <Loader2 size={16} className="animate-spin" /> : <Gift size={16} />}
-            </button>
-          </div>
-        )}
+        ) : !voucherDiscount && signedInEmail ? (
+          <p className="text-sm text-zinc-500">{text({ ar: "لا يوجد قسائم متاحة لك حالياً", en: "No available vouchers right now" })}</p>
+        ) : null}
 
         {voucherError ? (
           <p className="text-sm text-rose-600">{voucherError}</p>
@@ -288,7 +259,7 @@ export function CheckoutForm() {
             {currencyLabel(voucherDiscount)}
           </p>
         ) : signedInEmail ? null : (
-          <p className="text-sm text-zinc-500">{text({ ar: "سجّل الدخول لاستخدام القسيمة", en: "Sign in to use voucher codes" })}</p>
+          <p className="text-sm text-zinc-500">{text({ ar: "سجّل الدخول لاستخدام القسائم", en: "Sign in to use vouchers" })}</p>
         )}
       </div>
 

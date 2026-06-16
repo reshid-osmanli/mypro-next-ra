@@ -64,6 +64,10 @@ type SiteSettings = {
   promoTitle: string;
   promoDescription: string;
   promoImageUrl: string;
+  promoImageScale: string;
+  promoImagePosition: string;
+  promoImageRotation: string;
+  promoMotionEnabled: string;
   promoCtaLabel: string;
   promoCtaHref: string;
   homepageProductLimit: string;
@@ -1650,6 +1654,14 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
                <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">عنوان حملة العرض</span><input className="input" value={settingsForm.promoTitle} onChange={(e) => setSettingsForm((c) => ({ ...c, promoTitle: e.target.value }))} /></label>
                <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">رابط صورة الحملة</span><input className="input" value={settingsForm.promoImageUrl} onChange={(e) => setSettingsForm((c) => ({ ...c, promoImageUrl: e.target.value }))} /></label>
                <label className="space-y-2 sm:col-span-2"><span className="text-sm font-semibold text-zinc-700">وصف حملة العرض</span><textarea className="textarea" value={settingsForm.promoDescription} onChange={(e) => setSettingsForm((c) => ({ ...c, promoDescription: e.target.value }))} /></label>
+               
+               <div className="sm:col-span-2 grid gap-4 sm:grid-cols-4 rounded-xl border border-qatar-100 bg-white p-4">
+                 <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">تفعيل الحركة (Motion)</span><select className="input" value={settingsForm.promoMotionEnabled} onChange={(e) => setSettingsForm((c) => ({ ...c, promoMotionEnabled: e.target.value }))}><option value="false">معطل</option><option value="true">مفعل</option></select></label>
+                 <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">حجم الصورة (Scale)</span><input className="input" type="number" step="0.01" value={settingsForm.promoImageScale} onChange={(e) => setSettingsForm((c) => ({ ...c, promoImageScale: e.target.value }))} /></label>
+                 <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">موضع الصورة (Position)</span><input className="input" placeholder="مثال: center 20px" value={settingsForm.promoImagePosition} onChange={(e) => setSettingsForm((c) => ({ ...c, promoImagePosition: e.target.value }))} /></label>
+                 <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">التدوير (Rotation)</span><input className="input" type="number" step="0.1" value={settingsForm.promoImageRotation} onChange={(e) => setSettingsForm((c) => ({ ...c, promoImageRotation: e.target.value }))} /></label>
+               </div>
+
                <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">زر الحملة</span><input className="input" value={settingsForm.promoCtaLabel} onChange={(e) => setSettingsForm((c) => ({ ...c, promoCtaLabel: e.target.value }))} /></label>
                <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">رابط زر الحملة</span><input className="input" value={settingsForm.promoCtaHref} onChange={(e) => setSettingsForm((c) => ({ ...c, promoCtaHref: e.target.value }))} /></label>
                <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">عدد المنتجات بالصفحة الرئيسية</span><input type="number" min="1" max="12" className="input" value={settingsForm.homepageProductLimit} onChange={(e) => setSettingsForm((c) => ({ ...c, homepageProductLimit: e.target.value }))} /></label>

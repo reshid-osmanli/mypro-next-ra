@@ -4,6 +4,7 @@ import { Hero } from "@/components/hero";
 import { ProductCard } from "@/components/product-card";
 import { SectionHeading } from "@/components/section-heading";
 import { LocalizedText } from "@/components/site-preferences";
+import { PromoImage } from "@/components/promo-image";
 import { getGrades, getProducts } from "@/lib/catalog";
 import { getSiteSettings } from "@/lib/site-settings";
 
@@ -118,13 +119,15 @@ export default async function HomePage() {
                 </Link>
               ) : null}
             </div>
-            <div className="min-h-[18rem] bg-qatar-50">
+            <div className="relative min-h-[18rem] bg-qatar-50 overflow-hidden">
               {settings.promoImageUrl ? (
-                settings.promoImageUrl.match(/\.(mp4|webm|mov)(\?|$)/i) ? (
-                  <video src={settings.promoImageUrl} className="h-full w-full object-cover" muted loop playsInline autoPlay />
-                ) : (
-                  <img src={settings.promoImageUrl} alt="promo" className="h-full w-full object-cover" />
-                )
+                <PromoImage
+                  imageUrl={settings.promoImageUrl}
+                  motionEnabled={settings.promoMotionEnabled}
+                  scale={settings.promoImageScale}
+                  position={settings.promoImagePosition}
+                  rotation={settings.promoImageRotation}
+                />
               ) : (
                 <div className="grid h-full place-items-center p-8 text-center text-qatar-800">
                   <div>
