@@ -1,0 +1,121 @@
+# ============================================================================
+# .github/workflows/ci.yml — CI pipeline (lint, typecheck, tests, build)
+# ----------------------------------------------------------------------------
+# New file: /.github/workflows/ci.yml
+# ============================================================================
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-and-typecheck:
+    name: Lint & Typecheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npm run lint
+      - run: npx tsc --noEmit
+        env:
+          # Provide dummy secrets for type-check phase
+          AUTH_SECRET: ci-dummy-secret-32-characters-long-xxx
+          ADMIN_SESSION_SECRET: ci-dummy-secret-32-characters-long-xx
+          DATABASE_URL: postgresql://stub:stub@localhost:5432/stub
+      - name: Audit dependencies
+        run: npm audit --audit-level=high
+        continue-on-error: true
+
+  test:
+    name: Unit & Integration Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: kutubi_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://test:test@localhost:5432/kutubi_test
+      AUTH_SECRET: ci-dummy-secret-32-characters-long-xxx
+      ADMIN_SESSION_SECRET: ci-dummy-secret-32-characters-long-xx
+      TURNSTILE_SECRET_KEY: ""
+      NEXT_PUBLIC_SITE_URL: http://localhost:3000
+      AUTH_URL: http://localhost:3000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx prisma migrate deploy
+      - run: npx vitest run --coverage
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage/
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    needs: [lint-and-typecheck, test]
+    env:
+      AUTH_SECRET: ci-dummy-secret-32-characters-long-xxx
+      ADMIN_SESSION_SECRET: ci-dummy-secret-32-characters-long-xx
+      DATABASE_URL: postgresql://stub:stub@localhost:5432/stub
+      NEXT_PUBLIC_SITE_URL: http://localhost:3000
+      AUTH_URL: http://localhost:3000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npm run build
+
+  lighthouse:
+    name: Lighthouse (preview)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: github.event_name == 'pull_request'
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: npm run build
+      - name: Lighthouse audit
+        uses: treosh/lighthouse-ci-action@v11
+        with:
+          configPath: ./.lighthouserc.json
+          uploadArtifacts: true

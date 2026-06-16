@@ -1,0 +1,103 @@
+// ============================================================================
+// app/layout.tsx — Cairo font + improved metadata + JSON-LD organization
+// ----------------------------------------------------------------------------
+// Reference: drop-in replacement for /app/layout.tsx
+// Adds: Cairo font via next/font, organization JSON-LD, improved meta
+// ============================================================================
+
+import type { Metadata, Viewport } from "next";
+import "./globals.css";
+import { Cairo } from "next/font/google";
+import { CartProvider } from "@/components/cart-provider";
+import { SiteShell } from "@/components/site-shell";
+import { SitePreferenceProvider } from "@/components/site-preferences";
+import { AuthSessionProvider } from "@/components/auth-session-provider";
+import { PageTransition } from "@/components/page-transition";
+import { getSiteSettings } from "@/lib/site-settings";
+import { JsonLd } from "@/components/seo/json-ld";
+import { buildOrganizationSchema, buildWebSiteSchema } from "@/lib/schema-markup";
+
+const cairo = Cairo({
+  subsets: ["arabic", "latin"],
+  weight: ["400", "500", "600", "700", "800", "900"],
+  display: "swap",
+  variable: "--font-cairo",
+  preload: true,
+  fallback: ["system-ui", "Segoe UI", "Aptos", "Calibri"],
+});
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#fffdf8" },
+    { media: "(prefers-color-scheme: dark)", color: "#0c1018" },
+  ],
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+};
+
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSiteSettings();
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
+  return {
+    metadataBase: siteUrl ? new URL(siteUrl) : undefined,
+    title: {
+      default: settings.brandName,
+      template: `%s · ${settings.brandName}`,
+    },
+    description: settings.heroDescription,
+    applicationName: settings.brandName,
+    keywords: ["عروض بوربوينت", "أوراق عمل", "محتوى تعليمي", "متجر رقمي", "Kutubi", "كُتبي"],
+    authors: [{ name: settings.brandName }],
+    creator: settings.brandName,
+    publisher: settings.brandName,
+    formatDetection: { telephone: false, email: false, address: false },
+    icons: {
+      icon: "/icon.svg",
+      shortcut: "/icon.svg",
+      apple: "/icon.svg",
+    },
+    openGraph: {
+      type: "website",
+      locale: "ar_SA",
+      siteName: settings.brandName,
+      title: settings.brandName,
+      description: settings.heroDescription,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: settings.brandName,
+      description: settings.heroDescription,
+    },
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: { index: true, follow: true },
+    },
+  };
+}
+
+export default async function RootLayout({
+  children,
+}: Readonly<{ children: React.ReactNode }>) {
+  const settings = await getSiteSettings();
+
+  return (
+    <html lang="ar" dir="rtl" className={`${cairo.variable}`}>
+      <head>
+        <JsonLd id="site-org" data={[buildOrganizationSchema(), buildWebSiteSchema()]} />
+      </head>
+      <body className="font-sans antialiased">
+        <AuthSessionProvider>
+          <SitePreferenceProvider>
+            <CartProvider>
+              <SiteShell brandName={settings.brandName}>
+                <PageTransition>{children}</PageTransition>
+              </SiteShell>
+            </CartProvider>
+          </SitePreferenceProvider>
+        </AuthSessionProvider>
+      </body>
+    </html>
+  );
+}

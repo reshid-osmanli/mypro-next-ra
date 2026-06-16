@@ -14,8 +14,8 @@
   --gold: #d89b32;
   --pearl: #f8f3e9;
   --line: #e7ded1;
-  --button-radius: 4px;
-  --panel-radius: 4px;
+  --button-radius: 10px;
+  --panel-radius: 18px;
   color-scheme: light;
 }
 
@@ -39,7 +39,7 @@ body {
   min-height: 100vh;
   color: rgb(var(--foreground));
   background: rgb(var(--background));
-  font-family: "Dubai", "Aptos", "Calibri", "Segoe UI Variable", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-cairo), "Cairo", "Tajawal", "Dubai", "Aptos", "Calibri", "Segoe UI Variable", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
 }
 
 ::selection {

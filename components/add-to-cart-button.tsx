@@ -10,9 +10,10 @@ import { useSitePreferences } from "./site-preferences";
 type Props = {
   item: Omit<CartItem, "quantity">;
   compact?: boolean;
+  className?: string;
 };
 
-export function AddToCartButton({ item, compact }: Props) {
+export function AddToCartButton({ item, compact, className }: Props) {
   const { addItem, hasItem } = useCart();
   const { text } = useSitePreferences();
   const [done, setDone] = useState(false);
@@ -30,7 +31,7 @@ export function AddToCartButton({ item, compact }: Props) {
         setDone(true);
         window.setTimeout(() => setDone(false), 1200);
       }}
-      className={`btn-primary ${compact ? "h-11 px-4 text-sm" : "h-12 px-5 text-sm"} disabled:cursor-not-allowed disabled:opacity-80`}
+      className={`btn-primary ${compact ? "h-11 px-4 text-sm" : "h-12 px-5 text-sm"} disabled:cursor-not-allowed disabled:opacity-80 ${className ?? ""}`}
     >
       {done || alreadyInCart ? <Check size={16} /> : <ShoppingCart size={16} />}
       {alreadyInCart

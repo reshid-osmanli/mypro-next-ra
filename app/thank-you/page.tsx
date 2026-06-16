@@ -2,6 +2,7 @@ import Link from "next/link";
 import { CheckCircle2, Download, RefreshCw } from "lucide-react";
 import { cookies } from "next/headers";
 import { OrderDownloadGate } from "@/components/order-download-gate";
+import { ConfettiCelebration } from "@/components/confetti-celebration";
 import { LocalizedText } from "@/components/site-preferences";
 import { MotionShowcase } from "@/components/motion-showcase";
 import { DOWNLOAD_SESSION_COOKIE, hashToken } from "@/lib/order-access";
@@ -42,6 +43,8 @@ export default async function ThankYouPage({ searchParams }: { searchParams?: Pr
   const expired = Boolean(params.expired) || Boolean(order?.downloadSessionUsedAt);
 
   return (
+    <>
+      <ConfettiCelebration fire={Boolean(order)} />
     <section className="mx-auto max-w-3xl px-4 py-20 text-center lg:px-8">
       <div className="panel p-10">
         <CheckCircle2 size={56} className="mx-auto text-emerald-600" />
@@ -80,5 +83,6 @@ export default async function ThankYouPage({ searchParams }: { searchParams?: Pr
         </div>
       </div>
     </section>
+    </>
   );
 }

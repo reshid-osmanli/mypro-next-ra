@@ -9,6 +9,7 @@ import { AddToCartButton } from "./add-to-cart-button";
 import { ProductVisual } from "./product-visual";
 import { currencyLabel } from "@/lib/utils";
 import { useSitePreferences } from "./site-preferences";
+import { EmptyProducts } from "./empty-states";
 
 type Props = {
   products: ProductCardModel[];
@@ -252,14 +253,7 @@ export function ProductExplorer({ products, grades, subjects, initialSearch = ""
         </AnimatePresence>
       </div>
 
-      {!filtered.length ? (
-        <div className="rounded-lg border border-dashed border-zinc-300 bg-white p-10 text-center text-zinc-600">
-          {text({
-            ar: "لا توجد نتائج مطابقة. جرّب فلاتر مختلفة أو أضف منتجاً جديداً من لوحة الإدارة.",
-            en: "No matching results. Try different filters or add a product from the admin panel."
-          })}
-        </div>
-      ) : null}
+      {!filtered.length ? <EmptyProducts /> : null}
     </div>
   );
 }

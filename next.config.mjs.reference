@@ -1,0 +1,137 @@
+// ============================================================================
+// next.config.mjs — Production-grade security headers + image + server config
+// ----------------------------------------------------------------------------
+// Drop-in replacement for /next.config.mjs
+// Includes: CSP, HSTS, X-Frame-Options, Referrer-Policy, Permissions-Policy,
+//          X-Content-Type-Options, COOP/CORP, X-DNS-Prefetch-Control
+// ============================================================================
+
+const isProduction = process.env.NODE_ENV === "production";
+
+/**
+ * Build a strict but pragmatic CSP that allows PayPal + Stripe + Cloudinary + Google Fonts.
+ * We avoid 'unsafe-eval' entirely. 'unsafe-inline' for <script> is required by Next.js
+ * (hydration) and is replaced by a nonce when CSP is enabled per request in middleware.
+ */
+function buildCsp(nonce) {
+  const scriptSrc = [
+    "'self'",
+    nonce ? `'nonce-${nonce}'` : "'unsafe-inline'",
+    "https://*.paypal.com",
+    "https://*.paypalobjects.com",
+    "https://js.stripe.com",
+    "https://*.googleapis.com",
+  ].filter(Boolean);
+
+  return [
+    "default-src 'self'",
+    "base-uri 'self'",
+    "frame-ancestors 'none'",
+    "form-action 'self' https://www.paypal.com https://www.sandbox.paypal.com https://checkout.stripe.com https://hooks.stripe.com",
+    "object-src 'none'",
+    "img-src 'self' data: blob: https: https://*.paypal.com https://*.paypalobjects.com https://res.cloudinary.com",
+    "font-src 'self' data: https://fonts.gstatic.com",
+    `style-src 'self' 'unsafe-inline' https://*.paypal.com https://*.paypalobjects.com https://fonts.googleapis.com`,
+    scriptSrc.join(" "),
+    "connect-src 'self' https://*.paypal.com https://*.paypalobjects.com https://api-m.paypal.com https://api-m.sandbox.paypal.com https://api.stripe.com https://checkout.stripe.com https://hooks.stripe.com https://api.resend.com https://*.googleapis.com",
+    "child-src https://*.paypal.com https://*.paypalobjects.com https://checkout.stripe.com https://hooks.stripe.com",
+    "frame-src https://*.paypal.com https://*.paypalobjects.com https://checkout.stripe.com https://hooks.stripe.com",
+    "manifest-src 'self'",
+    "worker-src 'self' blob:",
+    "media-src 'self' blob: https://res.cloudinary.com",
+    "upgrade-insecure-requests",
+  ].join("; ");
+}
+
+const securityHeaders = [
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  { key: "X-Frame-Options", value: "DENY" },
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  {
+    key: "Permissions-Policy",
+    value: "camera=(), microphone=(), geolocation=(), payment=(self \"https://www.paypal.com\" \"https://www.sandbox.paypal.com\" \"https://checkout.stripe.com\"), accelerometer=(), gyroscope=(), magnetometer=()",
+  },
+  { key: "Cross-Origin-Opener-Policy", value: "same-origin-allow-popups" },
+  { key: "Cross-Origin-Resource-Policy", value: "same-origin" },
+  { key: "X-DNS-Prefetch-Control", value: "off" },
+  { key: "X-Permitted-Cross-Domain-Policies", value: "none" },
+  { key: "Origin-Agent-Cluster", value: "?1" },
+  // Always emit a baseline CSP in next.config; middleware adds per-request nonce.
+  { key: "Content-Security-Policy", value: buildCsp(null) },
+  ...(isProduction
+    ? [{ key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" }]
+    : []),
+];
+
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  reactStrictMode: true,
+  poweredByHeader: false,
+  productionBrowserSourceMaps: false,
+
+  images: {
+    remotePatterns: [
+      { protocol: "https", hostname: "res.cloudinary.com" },
+      { protocol: "https", hostname: "lh3.googleusercontent.com" },
+    ],
+    formats: ["image/avif", "image/webp"],
+    minimumCacheTTL: 60 * 60 * 24 * 30, // 30 days
+  },
+
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "100mb",
+      allowedOrigins: isProduction ? [process.env.NEXT_PUBLIC_SITE_URL ?? ""] : ["localhost:3000"],
+    },
+    // Enable typed routes for safer navigation
+    typedRoutes: false,
+  },
+
+  // Surface useful security headers everywhere. Per-route overrides live in
+  // app-level config (admin headers via middleware).
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: securityHeaders,
+      },
+      {
+        // Strict caching for static assets
+        source: "/_next/static/:path*",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=31536000, immutable" },
+        ],
+      },
+      {
+        // Never cache the admin shell
+        source: "/admin/:path*",
+        headers: [
+          { key: "Cache-Control", value: "no-store, no-cache, must-revalidate, private" },
+          { key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" },
+          { key: "Pragma", value: "no-cache" },
+        ],
+      },
+      {
+        // Download API: never cache private file payloads
+        source: "/api/download/:path*",
+        headers: [
+          { key: "Cache-Control", value: "no-store, no-cache, must-revalidate, private" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+        ],
+      },
+    ];
+  },
+
+  // Avoid accidental exposure of internal paths
+  async redirects() {
+    return [
+      { source: "/wp-admin", destination: "/", permanent: true },
+      { source: "/wp-login.php", destination: "/", permanent: true },
+      { source: "/xmlrpc.php", destination: "/", permanent: true },
+      { source: "/.env", destination: "/", permanent: true },
+      { source: "/.git", destination: "/", permanent: true },
+    ];
+  },
+};
+
+export default nextConfig;
