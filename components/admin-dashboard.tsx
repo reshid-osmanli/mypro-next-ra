@@ -907,7 +907,15 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
       motionRotation: product.motionRotation ?? 0,
       motionSrc: product.motionSrc ?? ""
     });
-    setUploadedFiles(product.files?.map((f) => ({ id: f.id, title: f.title, url: f.url, mimeType: f.mimeType ?? "", size: f.size ?? 0 })) ?? []);
+    setUploadedFiles(
+      (product.files as any[])?.map((f) => ({
+        id: f.id,
+        title: f.title,
+        url: f.url,
+        mimeType: f.mimeType ?? "",
+        size: f.size ?? 0,
+      })) ?? []
+    );
     setTab("products");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -1042,35 +1050,55 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
   }
 
   async function uploadFileDirect(file: File, mustBePrivate = false): Promise<{ url: string; mimeType: string; size: number }> {
+    // Step 1: Get signed upload parameters from our server
     const signedRes = await fetch("/api/admin/signed-upload", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ fileName: file.name, mimeType: file.type })
     });
-    const signedData = await signedRes.json();
-    if (!signedRes.ok) throw new Error(signedData.error || "تعذر إنشاء رابط الرفع");
 
-    const form = new FormData();
-    for (const [key, value] of Object.entries(signedData.formData)) {
-      form.append(key, value as string);
+    if (!signedRes.ok) {
+      const err = await signedRes.json().catch(() => ({}));
+      throw new Error(err.error || "تعذر إنشاء رابط الرفع الموقّع");
     }
+
+    const signedData = await signedRes.json();
+
+    // Step 2: Prepare FormData for direct upload to Cloudinary
+    const form = new FormData();
+    Object.entries(signedData.formData || {}).forEach(([key, value]) => {
+      form.append(key, value as string);
+    });
     form.append("file", file);
 
-    const uploadRes = await fetch(signedData.uploadUrl, { method: "POST", body: form });
-    const uploadResult = await uploadRes.json();
+    // Step 3: Upload directly to Cloudinary (supports large files up to several GB)
+    const uploadRes = await fetch(signedData.uploadUrl, {
+      method: "POST",
+      body: form,
+    });
+
+    let uploadResult: any;
+    try {
+      uploadResult = await uploadRes.json();
+    } catch {
+      throw new Error("فشل في قراءة رد Cloudinary");
+    }
+
     if (!uploadRes.ok || !uploadResult.secure_url) {
-      throw new Error(uploadResult.error?.message || "فشل رفع الملف مباشرة إلى Cloudinary");
+      const errorMsg = uploadResult?.error?.message || uploadResult?.error || "فشل رفع الملف إلى Cloudinary";
+      throw new Error(errorMsg);
     }
 
     const url = uploadResult.secure_url;
+
     if (mustBePrivate && !url.includes("cloudinary")) {
-      throw new Error("يجب أن ترفع الملفات الخاصة إلى التخزين الخاص");
+      throw new Error("يجب رفع الملفات الخاصة عبر Cloudinary");
     }
 
     return {
       url,
-      mimeType: signedData.mimeType,
-      size: uploadResult.bytes ?? file.size
+      mimeType: signedData.mimeType || file.type,
+      size: uploadResult.bytes ?? file.size,
     };
   }
 
