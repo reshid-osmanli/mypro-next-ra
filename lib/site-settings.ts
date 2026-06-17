@@ -25,6 +25,7 @@ export type SiteSettings = {
   promoImageScale: string;
   promoImagePosition: string;
   promoImageRotation: string;
+  promoEnabled: string;
   promoMotionEnabled: string;
   promoCtaLabel: string;
   promoCtaHref: string;
@@ -58,6 +59,7 @@ export const siteSettingDefaults: SiteSettings = {
   promoImageScale: "1",
   promoImagePosition: "center",
   promoImageRotation: "0",
+  promoEnabled: "true",
   promoMotionEnabled: "false",
   promoCtaLabel: "اكتشف العروض",
   promoCtaHref: "/products",

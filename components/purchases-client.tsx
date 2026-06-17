@@ -78,18 +78,23 @@ export function PurchasesClient({ initialLibrary }: Props) {
     setBusy(true);
     setMessage("");
     try {
-      const res = await fetch("/api/purchases/drive/sync", { method: "POST", headers: { "Content-Type": "application/json" } });
-      const data = await res.json().catch(() => ({}));
+      const res = await fetch("/api/purchases/drive/sync", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include" });
+      let data: any = {};
+      try { data = await res.json(); } catch { /* ignore parse error */ }
       if (!res.ok) throw new Error(data?.error || text({ ar: "تعذر الحفظ في Google Drive", en: "Unable to save to Google Drive" }));
-      const refreshed = await fetch("/api/purchases").then((response) => response.json());
-      setLibrary(refreshed);
+      const refreshedRes = await fetch("/api/purchases", { credentials: "include" });
+      let refreshed = null;
+      try { refreshed = await refreshedRes.json(); } catch { /* ignore */ }
+      if (refreshed) setLibrary(refreshed);
       const uploadedCount = numberLabel(Number(data.uploaded ?? 0));
       const failedCount = numberLabel(Number(data.failed?.length ?? 0));
       const baseMsg = text({ ar: `تم حفظ ${uploadedCount} ملف في Google Drive.`, en: `${uploadedCount} file(s) saved to Google Drive.` });
       const failedMsg = data.failed?.length ? text({ ar: ` فشل إرفاق ${failedCount} ملف.`, en: ` ${failedCount} file(s) failed to upload.` }) : "";
       setMessage(baseMsg + failedMsg);
-    } catch (error) {
-      if (error instanceof Error && error.message.includes("429")) {
+    } catch (error: any) {
+      if (error?.name === "TypeError" && error?.message?.includes("fetch")) {
+        setMessage(text({ ar: "فشل الاتصال بالخادم. تحقق من الإنترنت وأعد المحاولة.", en: "Failed to connect to server. Check your connection and try again." }));
+      } else if (error instanceof Error && error.message.includes("429")) {
         setMessage(text({ ar: "تم تجاوز حد التنزيلات. يرجى الانتظار 15 دقيقة ثم المحاولة مرة أخرى.", en: "Rate limit exceeded. Please wait 15 minutes and try again." }));
       } else {
         setMessage(error instanceof Error ? error.message : text({ ar: "حدث خطأ غير متوقع", en: "An unexpected error occurred" }));

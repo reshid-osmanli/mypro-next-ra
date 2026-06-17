@@ -57,14 +57,14 @@ export function SiteHeader({ brandName = "موقع كُتبي", logoUrl = null }
             logoUrl.match(/\.(mp4|webm|mov)(\?|$)/i) ? (
               <video
                 src={logoUrl}
-                className="h-10 w-10 shrink-0 rounded-lg object-cover"
+                className="h-8 w-8 sm:h-10 sm:w-10 shrink-0 rounded-lg object-cover"
                 muted
                 loop
                 playsInline
                 autoPlay
               />
             ) : (
-              <img src={logoUrl} alt="logo" className="h-10 w-10 shrink-0 rounded-lg object-cover" />
+              <img src={logoUrl} alt="logo" className="h-8 w-8 sm:h-10 sm:w-10 shrink-0 rounded-lg object-cover" />
             )
           ) : (
             <KutubiLogoMotion compact className="shrink-0" />

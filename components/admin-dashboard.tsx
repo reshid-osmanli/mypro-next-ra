@@ -69,6 +69,7 @@ type SiteSettings = {
   promoImageScale: string;
   promoImagePosition: string;
   promoImageRotation: string;
+  promoEnabled: string;
   promoMotionEnabled: string;
   promoCtaLabel: string;
   promoCtaHref: string;
@@ -1051,11 +1052,16 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
 
   async function uploadFileDirect(file: File, mustBePrivate = false): Promise<{ url: string; mimeType: string; size: number }> {
     // Step 1: Get signed upload parameters from our server
-    const signedRes = await fetch("/api/admin/signed-upload", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ fileName: file.name, mimeType: file.type })
-    });
+    let signedRes: Response;
+    try {
+      signedRes = await fetch("/api/admin/signed-upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fileName: file.name, mimeType: file.type })
+      });
+    } catch (networkError) {
+      throw new Error("فشل الاتصال بالخادم. تأكد من الإنترنت وأعد المحاولة.");
+    }
 
     if (!signedRes.ok) {
       const err = await signedRes.json().catch(() => ({}));
@@ -1072,10 +1078,15 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
     form.append("file", file);
 
     // Step 3: Upload directly to Cloudinary (supports large files up to several GB)
-    const uploadRes = await fetch(signedData.uploadUrl, {
-      method: "POST",
-      body: form,
-    });
+    let uploadRes: Response;
+    try {
+      uploadRes = await fetch(signedData.uploadUrl, {
+        method: "POST",
+        body: form,
+      });
+    } catch (networkError) {
+      throw new Error("فشل الاتصال بـ Cloudinary. تأكد من الإنترنت.");
+    }
 
     let uploadResult: any;
     try {
@@ -1141,7 +1152,12 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
   async function uploadAdminFile(file: File, fallback: string) {
     const formData = new FormData();
     formData.append("file", file);
-    const res = await fetch("/api/admin/uploads", { method: "POST", body: formData });
+    let res: Response;
+    try {
+      res = await fetch("/api/admin/uploads", { method: "POST", body: formData });
+    } catch (networkError) {
+      throw new Error(`فشل الاتصال بالخادم أثناء رفع الملف. تأكد من اتصال الإنترنت. ${fallback}`);
+    }
     const data = await res.json().catch(() => ({}));
     const upload = requireUploadData(data, fallback);
     if (!res.ok) throw new Error(typeof (data as { error?: unknown }).error === "string" ? (data as { error: string }).error : fallback);
@@ -1772,6 +1788,7 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
                <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">إظهار الإعلان العلوي</span><select className="input" value={settingsForm.announcementEnabled} onChange={(e) => setSettingsForm((c) => ({ ...c, announcementEnabled: e.target.value }))}><option value="true">مفعل</option><option value="false">مخفي</option></select></label>
                <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">رابط الإعلان</span><input className="input" value={settingsForm.announcementHref} onChange={(e) => setSettingsForm((c) => ({ ...c, announcementHref: e.target.value }))} /></label>
                <label className="space-y-2 sm:col-span-2"><span className="text-sm font-semibold text-zinc-700">نص الإعلان العلوي</span><input className="input" value={settingsForm.announcementText} onChange={(e) => setSettingsForm((c) => ({ ...c, announcementText: e.target.value }))} /></label>
+               <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">تفعيل حملة العرض</span><select className="input" value={settingsForm.promoEnabled} onChange={(e) => setSettingsForm((c) => ({ ...c, promoEnabled: e.target.value }))}><option value="true">مفعلة</option><option value="false">مخفية</option></select></label>
                <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">عنوان حملة العرض</span><input className="input" value={settingsForm.promoTitle} onChange={(e) => setSettingsForm((c) => ({ ...c, promoTitle: e.target.value }))} /></label>
                <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">رابط صورة الحملة</span><input className="input" value={settingsForm.promoImageUrl} onChange={(e) => setSettingsForm((c) => ({ ...c, promoImageUrl: e.target.value }))} /></label>
                <label className="space-y-2 sm:col-span-2"><span className="text-sm font-semibold text-zinc-700">وصف حملة العرض</span><textarea className="textarea" value={settingsForm.promoDescription} onChange={(e) => setSettingsForm((c) => ({ ...c, promoDescription: e.target.value }))} /></label>

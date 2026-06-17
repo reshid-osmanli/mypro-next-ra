@@ -105,7 +105,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {(settings.promoTitle || settings.promoDescription) ? (
+      {settings.promoEnabled === "true" && (settings.promoTitle || settings.promoDescription) ? (
         <section className="mx-auto max-w-7xl px-4 py-8 lg:px-8">
           <div className="grid overflow-hidden rounded-3xl border border-pearl-200 bg-white shadow-[0_24px_80px_rgba(60,32,18,0.08)] lg:grid-cols-[1fr_0.8fr]">
             <div className="p-6 md:p-10">
@@ -119,20 +119,35 @@ export default async function HomePage() {
                 </Link>
               ) : null}
             </div>
-            <div className="relative min-h-[18rem] bg-qatar-50 overflow-hidden">
+            <div className="relative min-h-[14rem] sm:min-h-[18rem] bg-qatar-50 overflow-hidden">
               {settings.promoImageUrl ? (
-                <PromoImage
-                  imageUrl={settings.promoImageUrl}
-                  motionEnabled={settings.promoMotionEnabled}
-                  scale={settings.promoImageScale}
-                  position={settings.promoImagePosition}
-                  rotation={settings.promoImageRotation}
-                />
+                settings.promoImageUrl.match(/\.(mp4|webm|mov)(\?|$)/i) ? (
+                  <video
+                    src={settings.promoImageUrl}
+                    className="h-full w-full object-cover"
+                    muted
+                    loop
+                    playsInline
+                    autoPlay
+                    style={{
+                      transform: `scale(${Number(settings.promoImageScale || 1)}) rotate(${Number(settings.promoImageRotation || 0)}deg)`,
+                      transformOrigin: settings.promoImagePosition || "center"
+                    }}
+                  />
+                ) : (
+                  <PromoImage
+                    imageUrl={settings.promoImageUrl}
+                    motionEnabled={settings.promoMotionEnabled}
+                    scale={settings.promoImageScale}
+                    position={settings.promoImagePosition}
+                    rotation={settings.promoImageRotation}
+                  />
+                )
               ) : (
                 <div className="grid h-full place-items-center p-8 text-center text-qatar-800">
                   <div>
                     <Presentation className="mx-auto" size={42} />
-                    <p className="mt-4 text-sm font-black">أضف صورة جذابة من لوحة التحكم</p>
+                    <p className="mt-4 text-sm font-black">أضف صورة أو فيديو جذاب من لوحة التحكم</p>
                   </div>
                 </div>
               )}

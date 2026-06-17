@@ -98,10 +98,9 @@ export function ProductExplorer({ products, grades, subjects, initialSearch = ""
   const [grade, setGrade] = useState(initialGrade);
   const [subject, setSubject] = useState(initialSubject);
   const [format, setFormat] = useState(ALL);
-  const [minRating, setMinRating] = useState(0);
-  const [maxPrice, setMaxPrice] = useState(0);
   const [sort, setSort] = useState<"recommended" | "price-asc" | "price-desc" | "rating-desc">("recommended");
   const [view, setView] = useState<"grid" | "list">("grid");
+  const [showFilters, setShowFilters] = useState(false);
 
   const subjectsForGrade = useMemo(() => {
     if (grade === ALL) return subjects;
@@ -110,18 +109,15 @@ export function ProductExplorer({ products, grades, subjects, initialSearch = ""
 
   const formats = useMemo(() => Array.from(new Set(products.flatMap((product) => product.format.split(/[+،,\/]/).map((item) => item.trim()).filter(Boolean)))).sort(), [products]);
   const highestPrice = useMemo(() => Math.max(0, ...products.map((product) => product.price)), [products]);
-  const effectiveMaxPrice = maxPrice > 0 ? maxPrice : highestPrice;
 
   const filtered = useMemo(() => {
     const matches = products.filter((product) => {
-      const text = `${product.title} ${product.excerpt} ${product.grade} ${product.subject} ${product.category} ${product.format}`.toLowerCase();
-      const matchesSearch = text.includes(search.toLowerCase());
+      const txt = `${product.title} ${product.excerpt} ${product.grade} ${product.subject} ${product.category} ${product.format}`.toLowerCase();
+      const matchesSearch = txt.includes(search.toLowerCase());
       const matchesGrade = grade === ALL || product.grade === grade;
       const matchesSubject = subject === ALL || product.subject === subject;
       const matchesFormat = format === ALL || product.format.toLowerCase().includes(format.toLowerCase());
-      const matchesRating = (product.averageRating ?? 0) >= minRating;
-      const matchesPrice = effectiveMaxPrice <= 0 || product.price <= effectiveMaxPrice;
-      return matchesSearch && matchesGrade && matchesSubject && matchesFormat && matchesRating && matchesPrice;
+      return matchesSearch && matchesGrade && matchesSubject && matchesFormat;
     });
 
     return matches.sort((a, b) => {
@@ -130,106 +126,63 @@ export function ProductExplorer({ products, grades, subjects, initialSearch = ""
       if (sort === "rating-desc") return (b.averageRating ?? 0) - (a.averageRating ?? 0) || (b.reviewCount ?? 0) - (a.reviewCount ?? 0);
       return Number(Boolean(b.featured)) - Number(Boolean(a.featured)) || (b.sortOrder ?? 0) - (a.sortOrder ?? 0);
     });
-  }, [products, search, grade, subject, format, minRating, effectiveMaxPrice, sort]);
+  }, [products, search, grade, subject, format, sort]);
+
+  const activeFiltersCount = (grade !== ALL ? 1 : 0) + (subject !== ALL ? 1 : 0) + (format !== ALL ? 1 : 0) + (sort !== "recommended" ? 1 : 0);
 
   return (
     <div className="space-y-6">
-      <div className="rounded-lg border border-pearl-200 bg-white p-5 shadow-sm lg:grid lg:grid-cols-[1.25fr_0.75fr] lg:items-center lg:gap-4">
-        <label className="relative block">
-          <Search size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400" />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="input pr-12"
-            placeholder={text({ ar: "ابحث عن بوربوينت، صف، مادة أو صيغة...", en: "Search PowerPoint, grade, subject, or format..." })}
-          />
-        </label>
-        <div className="mt-4 flex flex-wrap gap-2 lg:mt-0 lg:justify-end">
-          <button type="button" onClick={() => setView("grid")} className={`chip ${view === "grid" ? "border-qatar-300 bg-qatar-50 text-qatar-800" : ""}`}>
-            <LayoutGrid size={16} /> {text({ ar: "شبكة", en: "Grid" })}
-          </button>
-          <button type="button" onClick={() => setView("list")} className={`chip ${view === "list" ? "border-qatar-300 bg-qatar-50 text-qatar-800" : ""}`}>
-            <ListFilter size={16} /> {text({ ar: "قائمة", en: "List" })}
-          </button>
-          <span className="chip cursor-default bg-zinc-50 text-zinc-600">
-            <SlidersHorizontal size={16} /> {text({ ar: "فلترة مباشرة", en: "Live filters" })}
-          </span>
-        </div>
-      </div>
-
-      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-pearl-200 bg-white px-4 py-3 text-sm text-zinc-600">
-        <span>
-          {text({ ar: "النتائج", en: "Results" })}: <strong className="text-zinc-950">{filtered.length}</strong>
-        </span>
-        <span className="text-zinc-300">·</span>
-        <span>{text({ ar: "الصفوف", en: "Grades" })}: {grades.length}</span>
-        <span className="text-zinc-300">·</span>
-        <span>{text({ ar: "المواد", en: "Subjects" })}: {subjects.length}</span>
-        {(grade !== ALL || subject !== ALL || format !== ALL || minRating > 0 || maxPrice > 0 || sort !== "recommended" || search) ? (
-          <button
-            type="button"
-            onClick={() => {
-              setSearch("");
-              setGrade(ALL);
-              setSubject(ALL);
-              setFormat(ALL);
-              setMinRating(0);
-              setMaxPrice(0);
-              setSort("recommended");
-            }}
-            className="chip border-qatar-100 bg-qatar-50 px-3 py-1.5 text-qatar-800 hover:bg-qatar-100"
-          >
-            <X size={14} /> {text({ ar: "مسح الفلاتر", en: "Clear filters" })}
-          </button>
-        ) : null}
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
-        <aside className="h-fit rounded-lg border border-pearl-200 bg-white p-5 shadow-sm lg:sticky lg:top-28">
-          <div className="flex items-center gap-2 text-lg font-black text-zinc-950">
-            <SlidersHorizontal size={18} className="text-qatar-700" />
-            {text({ ar: "بحث متقدم", en: "Advanced filters" })}
+      <div className="rounded-lg border border-pearl-200 bg-white p-5 shadow-sm">
+        <div className="grid gap-4 lg:grid-cols-[1fr_auto]">
+          <label className="relative block">
+            <Search size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="input pr-12"
+              placeholder={text({ ar: "ابحث عن بوربوينت، صف، مادة أو صيغة...", en: "Search PowerPoint, grade, subject, or format..." })}
+            />
+          </label>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" onClick={() => setShowFilters(!showFilters)} className={`chip ${showFilters || activeFiltersCount > 0 ? "border-qatar-300 bg-qatar-50 text-qatar-800" : ""}`}>
+              <SlidersHorizontal size={16} />
+              {text({ ar: "فلاتر", en: "Filters" })}
+              {activeFiltersCount > 0 ? <span className="ml-1 rounded-full bg-qatar-700 px-1.5 py-0.5 text-[10px] font-black text-white">{activeFiltersCount}</span> : null}
+            </button>
+            <button type="button" onClick={() => setView("grid")} className={`chip ${view === "grid" ? "border-qatar-300 bg-qatar-50 text-qatar-800" : ""}`}>
+              <LayoutGrid size={16} /> {text({ ar: "شبكة", en: "Grid" })}
+            </button>
+            <button type="button" onClick={() => setView("list")} className={`chip ${view === "list" ? "border-qatar-300 bg-qatar-50 text-qatar-800" : ""}`}>
+              <ListFilter size={16} /> {text({ ar: "قائمة", en: "List" })}
+            </button>
           </div>
-          <div className="mt-5 space-y-4">
-            <label className="block space-y-2">
-              <span className="text-sm font-bold text-zinc-700">{text({ ar: "الصف", en: "Grade" })}</span>
-              <select className="input" value={grade} onChange={(e) => {
-                setGrade(e.target.value);
-                setSubject(ALL);
-              }}>
+        </div>
+
+        {showFilters || activeFiltersCount > 0 ? (
+          <div className="mt-4 grid gap-3 border-t border-pearl-100 pt-4 sm:grid-cols-2 lg:grid-cols-4">
+            <label className="block space-y-1">
+              <span className="text-xs font-bold text-zinc-500">{text({ ar: "الصف", en: "Grade" })}</span>
+              <select className="input" value={grade} onChange={(e) => { setGrade(e.target.value); setSubject(ALL); }}>
                 <option value={ALL}>{text({ ar: "كل الصفوف", en: "All grades" })}</option>
                 {grades.map((item) => <option key={item} value={item}>{item}</option>)}
               </select>
             </label>
-            <label className="block space-y-2">
-              <span className="text-sm font-bold text-zinc-700">{text({ ar: "المادة", en: "Subject" })}</span>
+            <label className="block space-y-1">
+              <span className="text-xs font-bold text-zinc-500">{text({ ar: "المادة", en: "Subject" })}</span>
               <select className="input" value={subject} onChange={(e) => setSubject(e.target.value)}>
                 <option value={ALL}>{text({ ar: "كل المواد", en: "All subjects" })}</option>
                 {subjectsForGrade.map((item) => <option key={item} value={item}>{item}</option>)}
               </select>
             </label>
-            <label className="block space-y-2">
-              <span className="text-sm font-bold text-zinc-700">{text({ ar: "نوع الملف", en: "File type" })}</span>
+            <label className="block space-y-1">
+              <span className="text-xs font-bold text-zinc-500">{text({ ar: "نوع الملف", en: "File type" })}</span>
               <select className="input" value={format} onChange={(e) => setFormat(e.target.value)}>
                 <option value={ALL}>{text({ ar: "كل الصيغ", en: "All formats" })}</option>
                 {formats.map((item) => <option key={item} value={item}>{item}</option>)}
               </select>
             </label>
-            <label className="block space-y-2">
-              <span className="text-sm font-bold text-zinc-700">{text({ ar: "السعر الأعلى", en: "Max price" })}: {currencyLabel(effectiveMaxPrice || 0)}</span>
-              <input type="range" min="0" max={highestPrice || 0} value={effectiveMaxPrice || 0} onChange={(e) => setMaxPrice(Number(e.target.value))} className="w-full accent-qatar-700" />
-              <button type="button" onClick={() => setMaxPrice(0)} className="text-xs font-bold text-qatar-700 hover:underline">{text({ ar: "كل الأسعار", en: "All prices" })}</button>
-            </label>
-            <label className="block space-y-2">
-              <span className="text-sm font-bold text-zinc-700">{text({ ar: "التقييم الأدنى", en: "Minimum rating" })}</span>
-              <select className="input" value={minRating} onChange={(e) => setMinRating(Number(e.target.value))}>
-                <option value={0}>{text({ ar: "أي تقييم", en: "Any rating" })}</option>
-                <option value={4}>4★+</option>
-                <option value={3}>3★+</option>
-              </select>
-            </label>
-            <label className="block space-y-2">
-              <span className="text-sm font-bold text-zinc-700">{text({ ar: "الترتيب", en: "Sort" })}</span>
+            <label className="block space-y-1">
+              <span className="text-xs font-bold text-zinc-500">{text({ ar: "الترتيب", en: "Sort" })}</span>
               <select className="input" value={sort} onChange={(e) => setSort(e.target.value as typeof sort)}>
                 <option value="recommended">{text({ ar: "الموصى به", en: "Recommended" })}</option>
                 <option value="rating-desc">{text({ ar: "الأعلى تقييمًا", en: "Top rated" })}</option>
@@ -238,8 +191,36 @@ export function ProductExplorer({ products, grades, subjects, initialSearch = ""
               </select>
             </label>
           </div>
-        </aside>
+        ) : null}
 
+        {activeFiltersCount > 0 ? (
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-zinc-600">
+            <span>
+              {text({ ar: "النتائج", en: "Results" })}: <strong className="text-zinc-950">{filtered.length}</strong>
+            </span>
+            <span className="text-zinc-300">·</span>
+            <button
+              type="button"
+              onClick={() => {
+                setSearch("");
+                setGrade(ALL);
+                setSubject(ALL);
+                setFormat(ALL);
+                setSort("recommended");
+              }}
+              className="chip border-qatar-100 bg-qatar-50 px-3 py-1.5 text-qatar-800 hover:bg-qatar-100"
+            >
+              <X size={14} /> {text({ ar: "مسح الفلاتر", en: "Clear filters" })}
+            </button>
+          </div>
+        ) : (
+          <div className="mt-3 text-sm text-zinc-500">
+            {text({ ar: "النتائج", en: "Results" })}: <strong className="text-zinc-950">{filtered.length}</strong>
+          </div>
+        )}
+      </div>
+
+      <div className="grid gap-6">
         <AnimatePresence mode="popLayout">
           {view === "grid" ? (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="grid gap-6 xl:grid-cols-2">

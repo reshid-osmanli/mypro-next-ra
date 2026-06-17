@@ -42,6 +42,10 @@ body {
   font-family: var(--font-cairo), "Cairo", "Tajawal", "Dubai", "Aptos", "Calibri", "Segoe UI Variable", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
 }
 
+.font-cairo {
+  font-family: var(--font-cairo), "Cairo", "Tajawal", "Dubai", "Aptos", "Calibri", "Segoe UI Variable", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+}
+
 ::selection {
   background: #8a1538;
   color: #fff;
