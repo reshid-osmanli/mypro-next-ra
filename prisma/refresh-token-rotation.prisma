@@ -1,0 +1,31 @@
+// ============================================================================
+// Prisma migration — Refresh Token Rotation
+// ----------------------------------------------------------------------------
+// Add this to /prisma/schema.prisma
+// Creates a family-based rotation system that detects token theft.
+// ============================================================================
+
+/// Add to schema.prisma:
+
+model RefreshTokenFamily {
+  id            String    @id @default(cuid())
+  userId        String
+  email         String
+  /// SHA-256 hash of the current refresh token (never store raw)
+  currentTokenHash String  @unique
+  /// SHA-256 hash of the parent token in the chain (null on first issuance)
+  parentTokenHash String?
+  /// When this token was used (set on rotation); re-use triggers theft detection
+  usedAt       DateTime?
+  /// When the entire family was revoked (theft or logout-everywhere)
+  revokedAt    DateTime?
+  /// Reason for revocation
+  revokedReason String?
+  createdAt    DateTime  @default(now())
+  expiresAt    DateTime
+
+  @@index([userId])
+  @@index([email])
+  @@index([expiresAt])
+  @@index([revokedAt])
+}

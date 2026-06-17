@@ -1,0 +1,126 @@
+// ============================================================================
+// app/api/admin/orders/export/route.ts — Improved CSV export with filters
+// ----------------------------------------------------------------------------
+// New file: replace /app/api/admin/orders/export/route.ts
+// Supports filters: from, to, status, paymentMethod, productId
+// ============================================================================
+
+import { type NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/db";
+import { requireAdminRequest } from "@/lib/admin-auth";
+import { assertCsrf } from "@/lib/security/csrf";
+import { getRequestIp, isRateLimited } from "@/lib/rate-limit";
+import { buildCsv, csvCell, fmtDate } from "@/lib/csv-export";
+
+export const runtime = "nodejs";
+
+export async function GET(req: NextRequest) {
+  // Export is a GET, but we still gate by admin + lightweight rate limit
+  const authError = await requireAdminRequest(req);
+  if (authError) return authError;
+
+  const ip = getRequestIp(req);
+  if (isRateLimited(`export:${ip}`, 10, 60 * 60 * 1000)) {
+    return NextResponse.json({ error: "تجاوز الحد المسموح من التصدير. حاول بعد ساعة." }, { status: 429 });
+  }
+
+  const url = new URL(req.url);
+  const from = url.searchParams.get("from");
+  const to = url.searchParams.get("to");
+  const status = url.searchParams.get("status");
+  const paymentMethod = url.searchParams.get("paymentMethod");
+  const productId = url.searchParams.get("productId");
+
+  const where: {
+    createdAt?: { gte?: Date; lt?: Date };
+    status?: string;
+    paymentMethod?: string;
+    items?: { some: { productId: string } };
+  } = {};
+
+  if (from || to) {
+    where.createdAt = {};
+    if (from) where.createdAt.gte = new Date(from);
+    if (to) {
+      const t = new Date(to);
+      t.setHours(23, 59, 59, 999);
+      where.createdAt.lt = t;
+    }
+  }
+  if (status) where.status = status;
+  if (paymentMethod) where.paymentMethod = paymentMethod;
+  if (productId) where.items = { some: { productId } };
+
+  const orders = await prisma.order.findMany({
+    where,
+    orderBy: { createdAt: "desc" },
+    include: {
+      items: {
+        include: {
+          product: { select: { slug: true, grade: true, subject: true } },
+        },
+      },
+    },
+    take: 5000, // hard cap for one export
+  });
+
+  const headers = [
+    "orderId",
+    "createdAt",
+    "status",
+    "paymentMethod",
+    "customerName",
+    "email",
+    "phone",
+    "total",
+    "currency",
+    "walletUsed",
+    "voucherCode",
+    "affiliateEmail",
+    "affiliateCommission",
+    "trackingConsent",
+    "itemsCount",
+    "items",
+    "gradeSubjectSummary",
+  ];
+
+  const rows = orders.map((order) => [
+    order.id,
+    fmtDate(order.createdAt),
+    order.status,
+    order.paymentMethod,
+    order.customerName,
+    order.email,
+    order.phone ?? "",
+    order.total,
+    (process.env.NEXT_PUBLIC_STRIPE_CURRENCY ?? "USD").toUpperCase(),
+    order.walletUsed,
+    order.voucherId ?? "",
+    order.affiliateEmail ?? "",
+    order.affiliateCommission,
+    order.purchaseTrackingConsent ? "yes" : "no",
+    order.items.reduce((sum, item) => sum + item.quantity, 0),
+    order.items.map((i) => `${i.productTitle} (x${i.quantity})`).join(" | "),
+    order.items.map((i) => `${i.product?.grade ?? ""}/${i.product?.subject ?? ""}`).filter(Boolean).join(" | "),
+  ]);
+
+  const csv = buildCsv(headers, rows);
+
+  // BOM so Excel detects UTF-8
+  const body = "\uFEFF" + csv;
+
+  return new NextResponse(body, {
+    status: 200,
+    headers: {
+      "Content-Type": "text/csv; charset=utf-8",
+      "Content-Disposition": `attachment; filename="orders-${Date.now()}.csv"`,
+      "Cache-Control": "no-store, no-cache, must-revalidate, private",
+      "X-Content-Type-Options": "nosniff",
+    },
+  });
+}
+
+// Handle empty POST placeholder (kept for parity with previous exports)
+export async function POST() {
+  return NextResponse.json({ error: "Use GET to export orders" }, { status: 405 });
+}

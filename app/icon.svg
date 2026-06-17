@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96">
+  <style>
+    :root { color-scheme: light dark; }
+    .ring { transform-origin: 48px 48px; animation: spin 8s linear infinite; }
+    .page { transform-origin: 48px 72px; animation: page 3.6s ease-in-out infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes page { 0%,100% { transform: rotate(0deg); } 50% { transform: rotate(-4deg); } }
+  </style>
+  <rect width="96" height="96" rx="18" fill="#8a1538"/>
+  <circle class="ring" cx="48" cy="48" r="37" fill="none" stroke="#fff5ef" stroke-width="4" stroke-linecap="round" stroke-dasharray="142 56"/>
+  <path d="M38 18h25l10 10v30H38z" fill="#fff7f0"/>
+  <path d="M63 18v12h10" fill="#e7c8bc"/>
+  <path d="M47 34h16M47 43h18M47 52h12" stroke="#8a1538" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="39" cy="34" r="2.4" fill="#8a1538"/>
+  <circle cx="39" cy="43" r="2.4" fill="#8a1538"/>
+  <circle cx="39" cy="52" r="2.4" fill="#8a1538"/>
+  <g class="page">
+    <path d="M48 71c-11-10-24-10-34-5v9c12-5 22-2 34 8z" fill="#fff7f0"/>
+    <path d="M48 71c11-10 24-10 34-5v9c-12-5-22-2-34 8z" fill="#fff7f0"/>
+    <path d="M16 72c10-3 20-1 32 8M80 72c-10-3-20-1-32 8" stroke="#5b1027" stroke-width="4" stroke-linecap="round"/>
+  </g>
+</svg>
