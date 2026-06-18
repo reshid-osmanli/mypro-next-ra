@@ -14,20 +14,26 @@ export async function GET(req: NextRequest) {
 
   try {
     const tokens = await exchangeGoogleCode(code);
-    if (!tokens.refresh_token) {
+    const existing = await prisma.googleDriveConnection.findUnique({ where: { email } });
+
+    if (!tokens.refresh_token && !existing) {
+      // Google only returns a refresh_token on the very first authorization consent.
+      // If none is returned and we don't have one saved, redirect to retry with forced consent.
       return NextResponse.redirect(new URL("/purchases?drive=no-refresh-token", req.url));
     }
 
-    await prisma.googleDriveConnection.upsert({
-      where: { email },
-      update: {
-        refreshTokenEncrypted: encryptRefreshToken(tokens.refresh_token)
-      },
-      create: {
-        email,
-        refreshTokenEncrypted: encryptRefreshToken(tokens.refresh_token)
-      }
-    });
+    if (tokens.refresh_token) {
+      await prisma.googleDriveConnection.upsert({
+        where: { email },
+        update: {
+          refreshTokenEncrypted: encryptRefreshToken(tokens.refresh_token)
+        },
+        create: {
+          email,
+          refreshTokenEncrypted: encryptRefreshToken(tokens.refresh_token)
+        }
+      });
+    }
 
     await prisma.order.updateMany({
       where: { email, status: "paid", purchaseTrackingConsent: true },

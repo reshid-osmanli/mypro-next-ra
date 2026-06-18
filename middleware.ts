@@ -65,14 +65,14 @@ function applySecurityHeaders(res: NextResponse, pathname = "") {
       "default-src 'self'",
       "base-uri 'self'",
       "frame-ancestors 'none'",
-      "form-action 'self' https://www.paypal.com https://www.sandbox.paypal.com https://checkout.stripe.com",
+      "form-action 'self' https://www.paypal.com https://www.sandbox.paypal.com https://checkout.stripe.com https://accounts.google.com https://*.google.com",
       "object-src 'none'",
-      "img-src 'self' data: blob: https: https://*.paypal.com https://*.paypalobjects.com",
-      "style-src 'self' 'unsafe-inline' https://*.paypal.com https://*.paypalobjects.com",
-      "script-src 'self' 'unsafe-inline' https://*.paypal.com https://*.paypalobjects.com",
-      "connect-src 'self' https://*.paypal.com https://*.paypalobjects.com https://api-m.paypal.com https://api-m.sandbox.paypal.com https://api.stripe.com https://checkout.stripe.com https://api.resend.com",
-      "child-src https://*.paypal.com https://*.paypalobjects.com",
-      "frame-src https://*.paypal.com https://*.paypalobjects.com https://checkout.stripe.com"
+      "img-src 'self' data: blob: https: https://*.paypal.com https://*.paypalobjects.com https://*.googleusercontent.com https://res.cloudinary.com",
+      "style-src 'self' 'unsafe-inline' https://*.paypal.com https://*.paypalobjects.com https://fonts.googleapis.com",
+      "script-src 'self' 'unsafe-inline' https://*.paypal.com https://*.paypalobjects.com https://accounts.google.com https://*.googleapis.com https://*.gstatic.com",
+      "connect-src 'self' https://*.paypal.com https://*.paypalobjects.com https://api-m.paypal.com https://api-m.sandbox.paypal.com https://api.stripe.com https://checkout.stripe.com https://api.resend.com https://*.googleapis.com https://*.google.com https://api.cloudinary.com",
+      "child-src https://*.paypal.com https://*.paypalobjects.com https://accounts.google.com",
+      "frame-src https://*.paypal.com https://*.paypalobjects.com https://checkout.stripe.com https://accounts.google.com"
     ].join("; ");
     res.headers.set("Content-Security-Policy", csp);
   }
