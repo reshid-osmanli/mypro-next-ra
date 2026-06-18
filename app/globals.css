@@ -39,11 +39,7 @@ body {
   min-height: 100vh;
   color: rgb(var(--foreground));
   background: rgb(var(--background));
-  font-family: var(--font-cairo), "Cairo", "Tajawal", "Dubai", "Aptos", "Calibri", "Segoe UI Variable", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
-}
-
-.font-cairo {
-  font-family: var(--font-cairo), "Cairo", "Tajawal", "Dubai", "Aptos", "Calibri", "Segoe UI Variable", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+  font-family: "Dubai", "Aptos", "Calibri", "Segoe UI Variable", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
 }
 
 ::selection {

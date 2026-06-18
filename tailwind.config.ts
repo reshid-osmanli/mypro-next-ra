@@ -52,9 +52,6 @@ const config: Config = {
         "qatar-gradient": "linear-gradient(135deg, #8a1538 0%, #5f1029 55%, #ffffff 220%)",
         "hero-grid": "radial-gradient(circle at top right, rgba(138,21,56,0.10), transparent 28%), radial-gradient(circle at bottom left, rgba(138,21,56,0.06), transparent 24%), linear-gradient(180deg, #fff 0%, #fff8fb 100%)"
       },
-      fontFamily: {
-        cairo: ["var(--font-cairo)", "Cairo", "Tajawal", "Dubai", "Aptos", "Calibri", "Segoe UI Variable", "Segoe UI", "ui-sans-serif", "system-ui", "sans-serif"]
-      },
       keyframes: {
         floaty: {
           "0%,100%": { transform: "translateY(0px)" },
