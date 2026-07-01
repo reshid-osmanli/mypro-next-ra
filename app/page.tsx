@@ -1,0 +1,206 @@
+import Link from "next/link";
+import { ArrowLeft, FileText, LibraryBig, Presentation, ShieldCheck } from "lucide-react";
+import { Hero } from "@/components/hero";
+import { ProductCard } from "@/components/product-card";
+import { SectionHeading } from "@/components/section-heading";
+import { LocalizedText } from "@/components/site-preferences";
+import { PromoImage } from "@/components/promo-image";
+import { getGrades, getProducts } from "@/lib/catalog";
+import { getSiteSettings } from "@/lib/site-settings";
+
+export const dynamic = "force-dynamic";
+
+export default async function HomePage() {
+  const [featured, grades, settings] = await Promise.all([
+    getProducts({ featured: true }),
+    getGrades(),
+    getSiteSettings()
+  ]);
+
+  const productLimit = Math.min(12, Math.max(1, Number(settings.homepageProductLimit || 4)));
+  const productDateMs = (value?: Date | string) => (value ? new Date(value).getTime() : 0);
+  const orderedFeatured = [...featured].sort((a, b) => {
+    if (settings.homepageProductOrder === "newest") return productDateMs(b.createdAt) - productDateMs(a.createdAt);
+    if (settings.homepageProductOrder === "manual") return (b.sortOrder ?? 0) - (a.sortOrder ?? 0);
+    return Number(b.featured) - Number(a.featured) || (b.sortOrder ?? 0) - (a.sortOrder ?? 0);
+  });
+
+  const formats = [
+    {
+      icon: Presentation,
+      title: { ar: "عروض بوربوينت", en: "PowerPoint decks" },
+      text: { ar: "شرائح تعليمية قابلة للتعديل مع نسخ جاهزة للعرض داخل الفصل.", en: "Editable teaching slides with classroom-ready presentation copies." }
+    },
+    {
+      icon: FileText,
+      title: { ar: "PDF وDOCX", en: "PDF and DOCX" },
+      text: { ar: "أوراق عمل وملفات قابلة للطباعة أو التعديل حسب المادة والصف.", en: "Worksheets and files that can be printed or edited by subject and grade." }
+    },
+    {
+      icon: ShieldCheck,
+      title: { ar: "تسليم آمن", en: "Secure delivery" },
+      text: { ar: "ملفات خاصة وروابط تحميل مؤقتة بعد إتمام عملية الدفع.", en: "Private files and temporary download links after payment is completed." }
+    }
+  ];
+
+  return (
+    <>
+      <Hero
+        eyebrow={{ ar: settings.heroEyebrow, en: "Qatari educational platform" }}
+        title={{ ar: settings.heroTitle, en: "A professional digital store for PowerPoint lessons and worksheets" }}
+        description={{
+          ar: settings.heroDescription,
+          en: "Kutubi brings a polished storefront, grade-and-subject browsing, and secure checkout for ready digital teaching files."
+        }}
+        primaryColor={settings.primaryColor}
+        secondaryColor={settings.secondaryColor}
+        primaryCtaLabel={{ ar: settings.heroPrimaryCtaLabel, en: "Browse products" }}
+        primaryCtaHref={settings.heroPrimaryCtaHref}
+        secondaryCtaLabel={{ ar: settings.heroSecondaryCtaLabel, en: "View library" }}
+        secondaryCtaHref={settings.heroSecondaryCtaHref}
+      />
+
+      {settings.announcementEnabled === "true" && settings.announcementText ? (
+        <section className="mx-auto max-w-7xl px-4 pt-6 lg:px-8">
+          <Link href={settings.announcementHref} className="block rounded-2xl border border-qatar-100 bg-qatar-50 px-5 py-4 text-center text-sm font-black text-qatar-900 shadow-sm transition hover:-translate-y-0.5 hover:bg-qatar-100">
+            {settings.announcementText}
+          </Link>
+        </section>
+      ) : null}
+
+      <section className="mx-auto max-w-7xl px-4 py-12 lg:px-8">
+        <div className="grid gap-4 md:grid-cols-3">
+          {[
+            { value: `${featured.length || 3}+`, label: { ar: "منتجات مميزة", en: "Featured products" } },
+            { value: `${grades.length || 6}+`, label: { ar: "صفوف ومقررات", en: "Grades and courses" } },
+            { value: "5GB+", label: { ar: "حد رفع لكل ملف", en: "Upload limit per file" } }
+          ].map((item) => (
+            <div key={item.value} className="rounded-lg border border-pearl-200 bg-white p-6 text-center shadow-sm">
+              <div className="mx-auto mb-4 h-1 w-14 rounded-md bg-qatar-700" />
+              <p className="text-3xl font-black text-zinc-950">{item.value}</p>
+              <LocalizedText as="p" className="mt-2 text-sm font-bold text-zinc-500" value={item.label} />
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-4 py-8 lg:px-8">
+        <SectionHeading
+          eyebrow={{ ar: "تجربة بيع مكتملة", en: "Complete store flow" }}
+          title={{ ar: "متجر ملفات تعليمية يبدو جاهزاً للبيع", en: "A teaching-file store that feels ready to sell" }}
+          description={{
+            ar: "الواجهة تعرض المنتجات بوضوح، ولوحة الإدارة تربط الصفوف والمواد والملفات والأسعار في مسار واحد قابل للنشر.",
+            en: "Products, grades, subjects, files, and prices are presented in a focused flow built for real digital sales."
+          }}
+          center
+        />
+        <div className="mt-8 grid gap-4 md:grid-cols-3">
+          {formats.map(({ icon: Icon, title, text }) => (
+            <div key={title.ar} className="rounded-lg border border-pearl-200 bg-white p-6 shadow-sm">
+              <div className="flex h-11 w-11 items-center justify-center rounded-md bg-[#2d1820] text-white">
+                <Icon size={19} />
+              </div>
+              <LocalizedText as="h3" className="mt-5 text-xl font-black text-zinc-950" value={title} />
+              <LocalizedText as="p" className="mt-3 text-sm leading-7 text-zinc-600" value={text} />
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {settings.promoEnabled === "true" && (settings.promoTitle || settings.promoDescription) ? (
+        <section className="mx-auto max-w-7xl px-4 py-8 lg:px-8">
+          <div className="grid overflow-hidden rounded-3xl border border-pearl-200 bg-white shadow-[0_24px_80px_rgba(60,32,18,0.08)] lg:grid-cols-[1fr_0.8fr]">
+            <div className="p-6 md:p-10">
+              <div className="inline-flex rounded-full bg-qatar-50 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-qatar-800">عرض مميز</div>
+              <h2 className="mt-5 text-3xl font-black text-zinc-950 md:text-4xl">{settings.promoTitle}</h2>
+              <p className="mt-4 max-w-2xl leading-8 text-zinc-600">{settings.promoDescription}</p>
+              {settings.promoCtaLabel ? (
+                <Link href={settings.promoCtaHref} className="btn-primary mt-6 inline-flex">
+                  {settings.promoCtaLabel}
+                  <ArrowLeft size={16} />
+                </Link>
+              ) : null}
+            </div>
+            <div className="relative min-h-[14rem] sm:min-h-[18rem] bg-qatar-50 overflow-hidden">
+              {settings.promoImageUrl ? (
+                settings.promoImageUrl.match(/\.(mp4|webm|mov)(\?|$)/i) ? (
+                  <video
+                    src={settings.promoImageUrl}
+                    className="h-full w-full object-cover"
+                    muted
+                    loop
+                    playsInline
+                    autoPlay
+                    style={{
+                      transform: `scale(${Number(settings.promoImageScale || 1)}) rotate(${Number(settings.promoImageRotation || 0)}deg)`,
+                      transformOrigin: settings.promoImagePosition || "center"
+                    }}
+                  />
+                ) : (
+                  <PromoImage
+                    imageUrl={settings.promoImageUrl}
+                    motionEnabled={settings.promoMotionEnabled}
+                    scale={settings.promoImageScale}
+                    position={settings.promoImagePosition}
+                    rotation={settings.promoImageRotation}
+                  />
+                )
+              ) : (
+                <div className="grid h-full place-items-center p-8 text-center text-qatar-800">
+                  <div>
+                    <Presentation className="mx-auto" size={42} />
+                    <p className="mt-4 text-sm font-black">أضف صورة أو فيديو جذاب من لوحة التحكم</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      <section className="mx-auto max-w-7xl px-4 py-14 lg:px-8">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <SectionHeading
+            eyebrow={{ ar: "المحتوى المميز", en: "Featured content" }}
+            title={{ ar: "منتجات تظهر كملفات رقمية حقيقية", en: "Products presented like real digital packs" }}
+            description={{
+              ar: "بطاقات واضحة مع أغلفة مرئية، تصنيف حسب الصف والمادة، وسعر ظاهر من أول نظرة.",
+              en: "Clear cards, visual covers, grade and subject tags, and prices visible at a glance."
+            }}
+          />
+          <Link href="/products" className="btn-secondary">
+            <LocalizedText value={{ ar: "عرض كل المنتجات", en: "View all products" }} />
+            <ArrowLeft size={16} />
+          </Link>
+        </div>
+        <div className="mt-8 grid gap-6 xl:grid-cols-2">
+          {orderedFeatured.slice(0, productLimit).map((product) => <ProductCard key={product.id} product={product} />)}
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-4 py-6 lg:px-8">
+        <div className="grid gap-6 rounded-lg border border-white/10 bg-[#2d1820] p-6 text-white shadow-[0_24px_80px_rgba(60,32,18,0.2)] lg:grid-cols-[1fr_auto] lg:items-center">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-md bg-white/10 px-3 py-2 text-xs font-black text-white/80">
+              <LibraryBig size={14} />
+              <LocalizedText value={{ ar: "مكتبة منظمة", en: "Organized library" }} />
+            </div>
+            <LocalizedText as="h3" className="mt-4 text-2xl font-black" value={{ ar: "صفوف، مواد، وصفحات تعريفية قابلة للتحرير", en: "Editable grades, subjects, and content pages" }} />
+            <LocalizedText
+              as="p"
+              className="mt-3 max-w-2xl text-sm leading-7 text-white/70"
+              value={{
+                ar: "يمكن إدارة المنتجات، الصفوف، المواد، الصفحات، الأسعار، وصور الأغلفة من لوحة الإدارة دون تعديل الكود.",
+                en: "Products, grades, subjects, pages, pricing, and cover images can be managed from the admin panel without code changes."
+              }}
+            />
+          </div>
+          <Link href="/library" className="inline-flex items-center justify-center gap-2 rounded-md bg-white px-5 py-3 text-sm font-black text-zinc-950 transition hover:-translate-y-0.5">
+            <LocalizedText value={{ ar: "تصفح المكتبة", en: "Browse library" }} />
+            <ArrowLeft size={16} />
+          </Link>
+        </div>
+      </section>
+    </>
+  );
+}

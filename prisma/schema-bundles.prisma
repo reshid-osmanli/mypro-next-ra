@@ -1,0 +1,68 @@
+// ============================================================================
+// Prisma — Bundle + Upsell Models
+// ----------------------------------------------------------------------------
+// Add to /prisma/schema.prisma
+// ============================================================================
+
+/// Add these to your existing schema.prisma:
+
+model Bundle {
+  id              String      @id @default(cuid())
+  slug            String      @unique
+  title           String
+  description     String
+  /// Price in minor currency units (cents/halalas). 0 = free
+  price           Int
+  /// Original price (sum of items) before bundle discount
+  compareAt       Int?
+  /// Percentage saved
+  discountPercent Int         @default(0)
+  coverImage      String?
+  badge           String?
+  /// Whether the bundle is visible on the storefront
+  active          Boolean     @default(true)
+  sortOrder       Int         @default(0)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  items           BundleItem[]
+
+  @@index([active, sortOrder])
+}
+
+model BundleItem {
+  id        String   @id @default(cuid())
+  bundleId  String
+  productId String
+  /// Position in the bundle list
+  position  Int      @default(0)
+
+  bundle  Bundle  @relation(fields: [bundleId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([bundleId, productId])
+}
+
+/// Rule-based upsell: "when cart has X, suggest Y with discount Z"
+model UpsellRule {
+  id              String   @id @default(cuid())
+  /// Trigger: product ID or category or subject
+  triggerProductId String?
+  triggerCategory String?
+  triggerSubject  String?
+  /// Suggested: another product ID
+  suggestProductId String
+  /// Discount percentage applied to the suggestion
+  discountPercent Int      @default(0)
+  /// Display title
+  title           String
+  active          Boolean  @default(true)
+  priority        Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([active, priority])
+  @@index([triggerProductId])
+  @@index([triggerCategory])
+  @@index([triggerSubject])
+}

@@ -1,0 +1,208 @@
+import { NextResponse, type NextRequest } from "next/server";
+import { z } from "zod";
+import { prisma } from "@/lib/db";
+import { requireAdminRequest } from "@/lib/admin-auth";
+import { isKnownPrivateUploadMimeType, isSafePrivateStoredUploadUrl } from "@/lib/upload-policy";
+import { coverImageSchema, hexColorSchema, moneyAmountSchema, normalizeOptionalStoredUrl, storedFileSizeSchema } from "@/lib/security-validation";
+import { reportCaughtError, routeContext } from "@/lib/report-caught-error";
+
+type RouteContext = { params: Promise<{ id: string }> };
+
+const fileSchema = z.object({
+  title: z.string().trim().min(1).max(120),
+  url: z.string().trim().min(1).max(500).refine(isSafePrivateStoredUploadUrl, "رابط الملف يجب أن يكون من التخزين الخاص"),
+  mimeType: z.string().trim().min(1).max(120).refine(isKnownPrivateUploadMimeType, "نوع الملف غير مسموح كمرفق مدفوع"),
+  size: storedFileSizeSchema
+});
+
+const baseSchema = z.object({
+  title: z.string().trim().min(2).max(120),
+  excerpt: z.string().trim().min(2).max(240),
+  description: z.string().trim().min(10).max(10000),
+  price: moneyAmountSchema,
+  compareAt: moneyAmountSchema.optional(),
+  badge: z.string().trim().min(1).max(50),
+  grade: z.string().trim().min(1).max(80),
+  subject: z.string().trim().min(1).max(80),
+  category: z.string().trim().min(1).max(80),
+  format: z.string().trim().min(1).max(80),
+  pages: z.string().trim().min(1).max(80),
+  level: z.string().trim().min(1).max(80),
+  featured: z.boolean().optional(),
+  status: z.string().trim().min(1).max(40).optional(),
+  accentA: hexColorSchema.optional(),
+  accentB: hexColorSchema.optional(),
+  coverImage: coverImageSchema,
+  imageUrl: coverImageSchema.optional(),
+  slug: z.string().trim().max(150).optional(),
+  sortOrder: z.coerce.number().int().min(0).optional(),
+  additionalImages: z.array(z.string().trim().min(1).max(500)).optional(),
+  motionEnabled: z.boolean().optional(),
+  motionPosition: z.enum(["top-left", "top-right", "bottom-left", "bottom-right", "center"]).optional(),
+  motionScale: z.coerce.number().min(0.1).max(3).optional(),
+  motionRotation: z.coerce.number().min(-180).max(180).optional(),
+  motionSrc: coverImageSchema,
+  files: z.array(fileSchema).default([])
+});
+
+const patchSchema = baseSchema.partial().extend({
+  compareAt: z.coerce.number().nonnegative().nullable().optional(),
+  files: z.array(fileSchema).optional()
+});
+
+function getErrorCode(error: unknown) {
+  return typeof error === "object" && error && "code" in error ? String((error as { code?: unknown }).code) : null;
+}
+
+function logProductError(action: string, error: unknown, context?: Record<string, unknown>) {
+  console.error(`[admin/products:${action}]`, context ?? {}, error);
+}
+
+export async function PATCH(req: NextRequest, { params }: RouteContext) {
+  const authError = await requireAdminRequest(req);
+  if (authError) return authError;
+
+  const { id } = await params;
+  const body = await req.json().catch((error) => {
+    logProductError("update:read-body", error, { id });
+    return null;
+  });
+  const parsed = patchSchema.safeParse(body);
+  if (!parsed.success) {
+    const details = parsed.error.flatten();
+    logProductError("update:validation", details, { id });
+    return NextResponse.json({ error: "البيانات غير صالحة. تحقق من الحقول المطلوبة وصورة الغلاف والمرفقات.", details: details.fieldErrors }, { status: 400 });
+  }
+
+  const data = parsed.data;
+  const { files, compareAt, coverImage, imageUrl, additionalImages, motionEnabled, motionPosition, motionScale, motionRotation, motionSrc, ...rest } = data;
+
+  const motionSrcNormalized = normalizeOptionalStoredUrl(motionSrc);
+  const additionalImagesNormalized = (additionalImages ?? []).filter(Boolean).map(normalizeOptionalStoredUrl).filter(Boolean) as string[];
+
+  // Ensure a product cannot be published without at least one attached file
+  if ((rest.status === "published" || data.status === "published")) {
+    try {
+      const existing = await prisma.product.findUnique({ where: { id }, include: { files: true } });
+      const existingFiles = existing?.files?.length ?? 0;
+      const newFiles = files?.length ?? 0;
+      if (existingFiles + newFiles === 0) {
+        return NextResponse.json({ error: "منتج منشور يجب أن يتضمن ملفًا رقميًا واحدًا على الأقل." }, { status: 400 });
+      }
+    } catch (error) {
+      logProductError("update:check-files", error, { id });
+      return NextResponse.json({ error: "تعذر التحقق من ملفات المنتج" }, { status: 500 });
+    }
+  }
+
+  try {
+    const product = await prisma.product.update({
+      where: { id },
+      data: {
+        ...rest,
+        ...(typeof coverImage === "string" || typeof imageUrl === "string" ? { coverImage: normalizeOptionalStoredUrl(coverImage ?? imageUrl) } : {}),
+        ...(typeof compareAt !== "undefined" ? { compareAt: compareAt && compareAt > 0 ? compareAt : null } : {}),
+        additionalImages: additionalImagesNormalized.length > 0 ? additionalImagesNormalized : [],
+        motionEnabled: motionEnabled ?? false,
+        motionPosition: motionEnabled ? (motionPosition ?? "top-right") : null,
+        motionScale: motionEnabled ? (motionScale ?? 1) : null,
+        motionRotation: motionEnabled ? (motionRotation ?? 0) : null,
+        motionSrc: motionEnabled ? (motionSrcNormalized ?? null) : null,
+        ...(files?.length
+          ? {
+              files: {
+                create: files.map((file) => ({
+                  title: file.title,
+                  url: file.url,
+                  mimeType: file.mimeType,
+                  size: file.size
+                }))
+              }
+            }
+          : {})
+      },
+      include: { files: true }
+    });
+
+    return NextResponse.json({ product, imageUrl: product.coverImage });
+  } catch (error) {
+    logProductError("update:prisma", error, { id });
+    if (getErrorCode(error) === "P2025") {
+      return NextResponse.json({ error: "المنتج غير موجود" }, { status: 404 });
+    }
+    await reportCaughtError(error, { ...routeContext(req, "admin"), statusCode: 500 });
+    return NextResponse.json({ error: "تعذر تحديث المنتج في قاعدة البيانات. راجع سجل الخادم لمعرفة السبب." }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: NextRequest, { params }: RouteContext) {
+  const authError = await requireAdminRequest(req);
+  if (authError) return authError;
+
+  const { id } = await params;
+  const archiveInstead = req.nextUrl.searchParams.get("archive") === "1";
+
+  let linkedOrders = 0;
+  try {
+    linkedOrders = await prisma.orderItem.count({ where: { productId: id } });
+  } catch (error) {
+    logProductError("delete:count-orders", error, { id });
+    await reportCaughtError(error, { ...routeContext(req, "admin"), statusCode: 503 });
+    return NextResponse.json(
+      { error: "تعذر الاتصال بقاعدة البيانات. تحقق من DATABASE_URL في Vercel ثم أعد النشر." },
+      { status: 503 }
+    );
+  }
+
+  if (linkedOrders > 0) {
+    if (archiveInstead) {
+      try {
+        const product = await prisma.product.update({
+          where: { id },
+          data: { status: "draft", featured: false },
+          include: { files: true }
+        });
+        return NextResponse.json({
+          ok: true,
+          archived: true,
+          product,
+          message: "تم إخفاء المنتج من المتجر بتحويله إلى مسودة. سجلات الطلبات السابقة بقيت كما هي."
+        });
+      } catch (error) {
+        logProductError("delete:archive", error, { id });
+        if (getErrorCode(error) === "P2025") {
+          return NextResponse.json({ error: "المنتج غير موجود" }, { status: 404 });
+        }
+        await reportCaughtError(error, { ...routeContext(req, "admin"), statusCode: 500 });
+        return NextResponse.json({ error: "تعذر تحويل المنتج إلى مسودة." }, { status: 500 });
+      }
+    }
+
+    return NextResponse.json(
+      {
+        error: "لا يمكن حذف منتج مرتبط بطلبات سابقة. يمكنك إخفاؤه بتحويله إلى مسودة بدلاً من الحذف.",
+        suggestArchive: true,
+        linkedOrders
+      },
+      { status: 409 }
+    );
+  }
+
+  try {
+    await prisma.product.delete({ where: { id } });
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    logProductError("delete:prisma", error, { id });
+    if (getErrorCode(error) === "P2025") {
+      return NextResponse.json({ error: "المنتج غير موجود" }, { status: 404 });
+    }
+    if (getErrorCode(error) === "P2003") {
+      return NextResponse.json(
+        { error: "لا يمكن حذف المنتج لأنه مرتبط بسجلات أخرى في قاعدة البيانات." },
+        { status: 409 }
+      );
+    }
+    await reportCaughtError(error, { ...routeContext(req, "admin"), statusCode: 500 });
+    return NextResponse.json({ error: "تعذر حذف المنتج من قاعدة البيانات. راجع سجل الخادم لمعرفة السبب." }, { status: 500 });
+  }
+}

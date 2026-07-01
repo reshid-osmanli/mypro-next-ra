@@ -1,0 +1,14 @@
+// ============================================================================
+// instrumentation.ts — Bootstrap Sentry on server start
+// ----------------------------------------------------------------------------
+// New file (root): /instrumentation.ts (Next.js 13+ hook)
+// ============================================================================
+
+export async function register() {
+  if (process.env.NEXT_RUNTIME === "nodejs") {
+    await import("./lib/monitoring").then((m) => m.initSentry());
+  }
+  if (process.env.NEXT_RUNTIME === "edge") {
+    await import("@sentry/nextjs").then((m) => m.init({ dsn: process.env.SENTRY_DSN }));
+  }
+}
