@@ -52,3 +52,4 @@ Set `ADMIN_EMAIL`, `ADMIN_PASSWORD`, and `ADMIN_SESSION_SECRET` before running t
 ## Deployment
 
 See `VERCEL_ENVIRONMENT.md` for the exact environment variable checklist and GitHub push steps.
+
