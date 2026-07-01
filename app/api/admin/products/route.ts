@@ -32,7 +32,7 @@ const createSchema = z.object({
   accentA: hexColorSchema.optional(),
   accentB: hexColorSchema.optional(),
   coverImage: coverImageSchema,
-  imageUrl: coverImageSchema,
+  imageUrl: coverImageSchema.optional(),
   slug: z.string().trim().max(150).optional(),
   sortOrder: z.coerce.number().int().min(0).optional(),
   additionalImages: z.array(z.string().trim().min(1).max(500)).optional(),
