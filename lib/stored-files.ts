@@ -34,7 +34,19 @@ export async function readStoredFile(file: StoredFile) {
     };
   }
 
-  if (isSafeCloudinaryStoredUrl(file.url)) {
+  if (file.url.startsWith("/uploads/")) {
+    const filePath = resolveInside(path.join(process.cwd(), "public", "uploads"), file.url.replace("/uploads/", ""));
+    if (!filePath) {
+      throw new Error("Unsafe public upload path");
+    }
+    return {
+      data: await readFile(filePath),
+      contentType: file.mimeType,
+      contentLength: null as number | null
+    };
+  }
+
+  if (isSafeCloudinaryStoredUrl(file.url) || file.url.startsWith("https://res.cloudinary.com/")) {
     const response = await fetch(file.url, { cache: "no-store" });
     if (!response.ok) {
       throw new Error(`Cloudinary download failed with ${response.status}`);

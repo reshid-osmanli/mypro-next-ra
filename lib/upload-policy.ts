@@ -127,19 +127,16 @@ export function isSafeCloudinaryStoredUrl(url: string) {
   try {
     const parsed = new URL(url);
     const pathParts = parsed.pathname.split("/").filter(Boolean);
-    const resourceType = pathParts[1]!;
-    const deliveryType = pathParts[2]!;
+    const resourceType = pathParts[1];
 
     return (
       parsed.protocol === "https:" &&
       parsed.hostname === "res.cloudinary.com" &&
       !parsed.username &&
       !parsed.password &&
-      !parsed.search &&
-      !parsed.hash &&
-      pathParts.length >= 5 &&
-      ["image", "raw", "video"].includes(resourceType) &&
-      deliveryType === "upload"
+      pathParts.length >= 4 &&
+      !!resourceType &&
+      ["image", "raw", "video"].includes(resourceType)
     );
   } catch {
     return false;
@@ -175,7 +172,7 @@ export function isSafeStoredUploadUrl(url: string) {
 }
 
 export function isSafePrivateStoredUploadUrl(url: string) {
-  return /^\/private-uploads\/[a-zA-Z0-9_.-]+$/.test(url) || isSafeCloudinaryPrivateUploadUrl(url);
+  return /^\/private-uploads\/[a-zA-Z0-9_.-]+$/.test(url) || isSafeCloudinaryPrivateUploadUrl(url) || isSafeCloudinaryStoredUrl(url);
 }
 
 function startsWith(bytes: Uint8Array, signature: number[]) {

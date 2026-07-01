@@ -10,13 +10,7 @@ const { auth: authMiddleware } = NextAuth(authConfig);
 // ---------------------------------------------------------------------------
 // next-intl locale detection (without URL prefix rewriting)
 // ---------------------------------------------------------------------------
-// We detect locale from cookie or Accept-Language header and make it available
-// via a response header. The layout reads this header to set html[lang|dir].
-// This avoids conflicts with the hardcoded lang="ar" dir="rtl" in existing pages
-// while providing locale awareness for server components using next-intl.
-
 export async function localeMiddleware(req: NextRequest, res: NextResponse) {
-  // Try to read locale from cookie first, then fall back to Accept-Language
   const localeCookie = req.cookies.get("NEXT_LOCALE")?.value;
   const acceptLang = req.headers.get("accept-language") || "";
   let locale = localeCookie || "ar";
@@ -26,10 +20,8 @@ export async function localeMiddleware(req: NextRequest, res: NextResponse) {
     if (match) locale = match;
   }
 
-  // Pass locale to the response via custom header (read by layout if needed)
   res.headers.set("x-locale-detected", locale);
 
-  // Also set the next-intl cookie so server components can use it
   res.cookies.set("NEXT_LOCALE", locale, {
     path: "/",
     sameSite: "lax",
@@ -68,6 +60,8 @@ function applySecurityHeaders(res: NextResponse, pathname = "") {
       "form-action 'self' https://www.paypal.com https://www.sandbox.paypal.com https://checkout.stripe.com https://accounts.google.com https://*.google.com",
       "object-src 'none'",
       "img-src 'self' data: blob: https: https://*.paypal.com https://*.paypalobjects.com https://*.googleusercontent.com https://res.cloudinary.com",
+      "media-src 'self' data: blob: https: https://res.cloudinary.com",
+      "font-src 'self' data: https: https://fonts.gstatic.com",
       "style-src 'self' 'unsafe-inline' https://*.paypal.com https://*.paypalobjects.com https://fonts.googleapis.com",
       "script-src 'self' 'unsafe-inline' https://*.paypal.com https://*.paypalobjects.com https://accounts.google.com https://*.googleapis.com https://*.gstatic.com",
       "connect-src 'self' https://*.paypal.com https://*.paypalobjects.com https://api-m.paypal.com https://api-m.sandbox.paypal.com https://api.stripe.com https://checkout.stripe.com https://api.resend.com https://*.googleapis.com https://*.google.com https://api.cloudinary.com",
@@ -100,10 +94,11 @@ function withReferralCookie(req: NextRequest, res: NextResponse) {
 function isStaticAsset(pathname: string) {
   return (
     pathname.startsWith("/_next/") ||
+    pathname.startsWith("/uploads/") ||
     pathname === "/favicon.ico" ||
     pathname === "/robots.txt" ||
     pathname === "/sitemap.xml" ||
-    /\.(?:css|js|map|png|jpg|jpeg|gif|webp|svg|ico)$/.test(pathname)
+    /\.(?:css|js|map|png|jpg|jpeg|gif|webp|svg|ico|mp4|webm|mov|pdf|woff|woff2)$/.test(pathname)
   );
 }
 

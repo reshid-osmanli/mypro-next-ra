@@ -1,10 +1,3 @@
-// ============================================================================
-// lib/security/refresh-token-rotation.ts — Refresh Token Rotation Engine
-// ----------------------------------------------------------------------------
-// New file: /lib/security/refresh-token-rotation.ts
-// Implements OWASP-recommended refresh token rotation with theft detection.
-// ============================================================================
-
 import crypto from "node:crypto";
 import { prisma } from "@/lib/db";
 
@@ -64,9 +57,17 @@ export async function rotateRefreshToken(opts: {
   const presentedHash = hash(opts.presentedToken);
   const now = new Date();
 
-  const family = await prisma.refreshTokenFamily.findUnique({
+  let family = await prisma.refreshTokenFamily.findUnique({
     where: { currentTokenHash: presentedHash },
   });
+
+  if (!family) {
+    if (typeof prisma.refreshTokenFamily.findFirst === "function") {
+      family = await prisma.refreshTokenFamily.findFirst({
+        where: { parentTokenHash: presentedHash },
+      });
+    }
+  }
 
   if (!family) return { ok: false, reason: "not_found" };
   if (family.revokedAt) return { ok: false, reason: "revoked" };

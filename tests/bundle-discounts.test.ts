@@ -1,7 +1,5 @@
 // ============================================================================
 // tests/bundle-discounts.test.ts — Bundle discount calculation
-// ----------------------------------------------------------------------------
-// New file: /tests/bundle-discounts.test.ts
 // ============================================================================
 
 import { describe, it, expect } from "vitest";
@@ -33,8 +31,8 @@ describe("bundle discounts", () => {
 
   it("keeps bundles separate when grade or subject differ", () => {
     const items = [
-      { price: 100, quantity: 2, grade: "الصف الأول", subject: "الرياضيات" },
-      { price: 100, quantity: 2, grade: "الصف الثاني", subject: "الرياضيات" },
+      { price: 100, quantity: BUNDLE_MIN_ITEMS, grade: "الصف الأول", subject: "الرياضيات" },
+      { price: 100, quantity: BUNDLE_MIN_ITEMS, grade: "الصف الثاني", subject: "الرياضيات" },
     ];
     const result = calculateBundleDiscount(items);
     expect(result.bundles).toHaveLength(2);

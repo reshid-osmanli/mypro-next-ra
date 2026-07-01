@@ -21,7 +21,7 @@ export const checkoutItemsSchema = z.array(checkoutItemSchema).min(1).max(MAX_CH
 export function isSafeCoverImageUrl(value?: string | null) {
   if (!value) return true;
   const normalized = value.trim();
-  return /^\/uploads\/[a-zA-Z0-9_.-]+\.(?:png|jpe?g|webp)$/i.test(normalized) || isSafeCloudinaryImageUrl(normalized);
+  return /^\/uploads\/[a-zA-Z0-9_.-]+\.(?:png|jpe?g|webp|gif|svg|mp4|webm|mov)$/i.test(normalized) || isSafeCloudinaryStoredUrl(normalized);
 }
 
 export function isSafePublicMotionLogoUrl(value?: string | null) {

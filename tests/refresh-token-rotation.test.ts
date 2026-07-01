@@ -1,7 +1,5 @@
 // ============================================================================
 // tests/refresh-token-rotation.test.ts
-// ----------------------------------------------------------------------------
-// New file: /tests/refresh-token-rotation.test.ts
 // ============================================================================
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -21,6 +19,17 @@ vi.mock("@/lib/db", () => ({
       findUnique: vi.fn(({ where }: any) => {
         const family = mockFamilies.find((f) => f.currentTokenHash === where.currentTokenHash);
         return Promise.resolve(family ?? null);
+      }),
+      findFirst: vi.fn(({ where }: any) => {
+        if (where.parentTokenHash) {
+          const family = mockFamilies.find((f) => f.parentTokenHash === where.parentTokenHash);
+          return Promise.resolve(family ?? null);
+        }
+        if (where.currentTokenHash) {
+          const family = mockFamilies.find((f) => f.currentTokenHash === where.currentTokenHash);
+          return Promise.resolve(family ?? null);
+        }
+        return Promise.resolve(null);
       }),
       update: vi.fn(({ where, data }: any) => {
         const family = mockFamilies.find((f) => f.id === where.id);
@@ -43,7 +52,6 @@ vi.mock("@/lib/db", () => ({
 }));
 
 import { issueInitialRefreshToken, rotateRefreshToken, revokeFamily, revokeAllForUser } from "@/lib/security/refresh-token-rotation";
-import crypto from "node:crypto";
 
 describe("refresh token rotation", () => {
   beforeEach(() => {

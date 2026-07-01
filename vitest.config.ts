@@ -1,7 +1,5 @@
 // ============================================================================
 // vitest.config.ts — Test runner config
-// ----------------------------------------------------------------------------
-// New file (root): /vitest.config.ts
 // ============================================================================
 
 import { defineConfig } from "vitest/config";
@@ -14,6 +12,11 @@ export default defineConfig({
     setupFiles: ["./vitest.setup.ts"],
     include: ["tests/**/*.test.{ts,tsx}"],
     exclude: ["node_modules", ".next", ".storybook"],
+    server: {
+      deps: {
+        inline: ["next-auth", "@auth/core"],
+      },
+    },
     coverage: {
       reporter: ["text", "html", "lcov"],
       include: ["lib/**", "components/**/*.tsx", "app/api/**/*.ts"],
@@ -29,6 +32,10 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./"),
+      "next/server": path.resolve(__dirname, "node_modules/next/server.js"),
+      "next/headers": path.resolve(__dirname, "node_modules/next/headers.js"),
+      "next/navigation": path.resolve(__dirname, "node_modules/next/navigation.js"),
+      "next/image": path.resolve(__dirname, "node_modules/next/image.js"),
     },
   },
 });
