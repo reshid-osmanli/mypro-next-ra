@@ -62,3 +62,6 @@ playwright-report/
 # Editor
 .idea/
 *.swp
+
+# sandbox-only prisma engine stubs (never commit binaries)
+.local-engines/
