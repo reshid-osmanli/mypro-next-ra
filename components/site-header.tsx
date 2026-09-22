@@ -1,130 +1,193 @@
 "use client";
 
+import { Menu, Search, ShoppingBag, UserRound } from "lucide-react";
 import Link from "next/link";
-import { HandCoins, Home, Languages, LibraryBig, LogIn, LogOut, Moon, Newspaper, ReceiptText, Search, ShieldCheck, Sun, UserRound } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { signOut, useSession } from "next-auth/react";
-import { CartButton } from "./cart-button";
-import { useSitePreferences, type LocalizedTextValue } from "./site-preferences";
-import { KutubiLogoMotion } from "./kutubi-logo-motion";
-
-const navItems = [
-  { href: "/", label: { ar: "الرئيسية", en: "Home" }, icon: Home },
-  { href: "/products", label: { ar: "المتجر", en: "Store" }, icon: Search },
-  { href: "/library", label: { ar: "المكتبة", en: "Library" }, icon: LibraryBig },
-  { href: "/blog", label: { ar: "المدونة", en: "Blog" }, icon: Newspaper },
-  { href: "/affiliates", label: { ar: "العمولة", en: "Affiliates" }, icon: HandCoins },
-  { href: "/checkout", label: { ar: "الدفع", en: "Checkout" }, icon: ShieldCheck },
-  { href: "/purchases", label: { ar: "مشترياتي", en: "Purchases" }, icon: ReceiptText }
-];
+import { useCart } from "@/components/cart-provider";
+import { useSitePreferences } from "@/components/site-preferences";
+import { SearchOverlay } from "@/components/store/search-overlay";
+import { MobileMenu, MAIN_NAV } from "@/components/store/mobile-menu";
+import { Wordmark } from "@/components/store/logo";
+import { cn } from "@/lib/utils";
 
 type SiteHeaderProps = {
   brandName?: string;
   logoUrl?: string | null;
 };
 
-const copy: Record<string, LocalizedTextValue> = {
-  subtitle: { ar: "متجر ملفات تعليمية رقمية", en: "Ready digital teaching files" },
-  browse: { ar: "تصفح المنتجات", en: "Browse products" },
-  login: { ar: "تسجيل الدخول", en: "Sign in" },
-  logout: { ar: "تسجيل الخروج", en: "Sign out" },
-  theme: { ar: "تبديل الوضع الليلي", en: "Toggle dark mode" },
-  language: { ar: "تغيير اللغة", en: "Change language" }
-};
-
-export function SiteHeader({ brandName = "موقع كُتبي", logoUrl = null }: SiteHeaderProps) {
-  const { language, theme, text, toggleLanguage, toggleTheme } = useSitePreferences();
+/**
+ * KUTUBI header — clean, stable, scroll-aware.
+ * Rest: h-16, transparent-ish paper. Scrolled: h-14 + soft shadow.
+ * Search opens the overlay; cart opens the drawer; mobile gets a menu drawer.
+ */
+export function SiteHeader({ brandName = "كُتبي", logoUrl = null }: SiteHeaderProps) {
+  const pathname = usePathname();
+  const { text } = useSitePreferences();
+  const { items, openDrawer } = useCart();
   const { data: session, status } = useSession();
   const isAuthenticated = status === "authenticated" && Boolean(session?.user?.email);
+  const [scrolled, setScrolled] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const count = items.length;
+
+  // rAF-throttled scroll state (passive)
+  useEffect(() => {
+    let ticking = false;
+    function onScroll() {
+      if (ticking) return;
+      ticking = true;
+      window.requestAnimationFrame(() => {
+        setScrolled(window.scrollY > 24);
+        ticking = false;
+      });
+    }
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  // Cmd/Ctrl+K opens search
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setSearchOpen(true);
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-pearl-200 bg-white/95 backdrop-blur-xl">
-      <div className="h-1 bg-qatar-700" />
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 lg:px-8">
-        <Link href="/" className="flex min-w-0 items-center gap-3">
-          {logoUrl ? (
-            logoUrl.match(/\.(mp4|webm|mov)(\?|$)/i) ? (
-              <video
-                src={logoUrl}
-                className="h-8 w-8 sm:h-10 sm:w-10 shrink-0 rounded-lg object-cover"
-                muted
-                loop
-                playsInline
-                autoPlay
-              />
+    <header
+      className={cn(
+        "sticky top-0 z-50 border-b transition-[background-color,box-shadow,border-color] duration-normal ease-standard",
+        scrolled
+          ? "border-line bg-paper/92 shadow-soft backdrop-blur-md"
+          : "border-transparent bg-paper/80 backdrop-blur-sm"
+      )}
+    >
+      {/* brand strip */}
+      <div className="h-0.5 w-full bg-brand" aria-hidden="true" />
+
+      <div className="container-wide">
+        <div
+          className={cn(
+            "flex items-center justify-between gap-4 transition-[padding] duration-normal ease-standard",
+            scrolled ? "py-2.5" : "py-3.5"
+          )}
+        >
+          {/* brand */}
+          <Link href="/" aria-label={brandName} className="shrink-0">
+            {logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={logoUrl} alt={brandName} className="h-9 w-9 rounded-sm object-cover" />
             ) : (
-              <img src={logoUrl} alt="logo" className="h-8 w-8 sm:h-10 sm:w-10 shrink-0 rounded-lg object-cover" />
-            )
-          ) : (
-            <KutubiLogoMotion compact className="shrink-0" />
-          )}
-          <div className="min-w-0 leading-tight">
-            <div className="truncate text-sm font-black text-zinc-950">{brandName}</div>
-            <div className="hidden text-[11px] font-semibold text-zinc-500 sm:block">{text(copy.subtitle)}</div>
-          </div>
-        </Link>
-
-        <nav className="hidden items-center justify-center gap-1 lg:flex">
-          {navItems.map((item) => (
-            <Link key={item.href} href={item.href} className="inline-flex items-center gap-2 rounded-[10px] px-4 py-2 text-sm font-bold text-zinc-700 transition hover:bg-pearl-100 hover:text-qatar-800 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-qatar-100">
-              <item.icon size={15} />
-              {text(item.label)}
-            </Link>
-          ))}
-        </nav>
-
-        <div className="flex items-center justify-end gap-2">
-          <Link href="/products" className="btn-secondary hidden h-10 px-3 py-0 md:flex">
-            <Search size={15} />
-            {text(copy.browse)}
+              <Wordmark name={brandName} />
+            )}
           </Link>
-          {isAuthenticated ? (
-            <div className="hidden h-10 max-w-[180px] items-center gap-2 rounded-md border border-pearl-200 bg-white px-3 text-sm font-bold text-zinc-700 sm:flex">
-              <UserRound size={15} className="shrink-0 text-qatar-700" />
-              <span className="truncate">{session?.user?.name || session?.user?.email}</span>
-            </div>
-          ) : null}
-          <button
-            type="button"
-            onClick={toggleTheme}
-            className="btn-secondary h-10 w-10 px-0 py-0"
-            aria-label={text(copy.theme)}
-            title={text(copy.theme)}
-          >
-            {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
-          </button>
-          <button
-            type="button"
-            onClick={toggleLanguage}
-            className="btn-secondary h-10 px-3 py-0"
-            aria-label={text(copy.language)}
-            title={text(copy.language)}
-          >
-            <Languages size={16} />
-            <span className="text-xs font-black">{language === "ar" ? "EN" : "ع"}</span>
-          </button>
-          {isAuthenticated ? (
-            <button type="button" onClick={() => signOut({ callbackUrl: "/" })} className="btn-secondary h-10 px-3 py-0" aria-label={text(copy.logout)} title={text(copy.logout)}>
-              <LogOut size={16} />
-              <span className="hidden text-xs font-black md:inline">{text(copy.logout)}</span>
+
+          {/* desktop nav */}
+          <nav className="hidden items-center gap-1 lg:flex" aria-label="main">
+            {MAIN_NAV.map((item) => {
+              const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  aria-current={active ? "page" : undefined}
+                  className={cn(
+                    "relative rounded-sm px-3.5 py-2 text-body-sm font-semibold transition-colors duration-instant",
+                    active ? "text-brand-deep" : "text-ink-soft hover:text-ink"
+                  )}
+                >
+                  {text(item.label)}
+                  {active ? (
+                    <span className="absolute inset-x-3 -bottom-px h-0.5 rounded-pill bg-brand" aria-hidden="true" />
+                  ) : null}
+                </Link>
+              );
+            })}
+          </nav>
+
+          {/* actions */}
+          <div className="flex items-center gap-1.5">
+            {/* search */}
+            <button
+              type="button"
+              onClick={() => setSearchOpen(true)}
+              className="hidden h-10 items-center gap-2 rounded-sm border border-line bg-surface px-3 text-body-sm font-medium text-ink-faint transition-colors duration-instant hover:border-line-strong hover:text-ink md:inline-flex"
+              aria-label={text({ ar: "بحث", en: "Search" })}
+            >
+              <Search size={16} strokeWidth={1.75} aria-hidden="true" />
+              <span className="hidden xl:inline">{text({ ar: "بحث", en: "Search" })}</span>
+              <kbd className="hidden rounded-sm border border-line bg-paper-deep/60 px-1.5 py-0.5 text-[10px] font-semibold text-ink-faint xl:inline">
+                Ctrl K
+              </kbd>
             </button>
-          ) : (
-            <Link href="/login" className="btn-secondary h-10 px-4 py-0" aria-label={text(copy.login)}>
-              <LogIn size={16} />
-              <span className="hidden text-xs font-black md:inline">{text(copy.login)}</span>
-            </Link>
-          )}
-          <CartButton />
+            <button
+              type="button"
+              onClick={() => setSearchOpen(true)}
+              className="grid size-10 place-items-center rounded-sm text-ink-soft transition-colors duration-instant hover:bg-paper-deep hover:text-ink md:hidden"
+              aria-label={text({ ar: "بحث", en: "Search" })}
+            >
+              <Search size={18} strokeWidth={1.75} aria-hidden="true" />
+            </button>
+
+            {/* cart */}
+            <button
+              type="button"
+              onClick={openDrawer}
+              className="relative grid size-10 place-items-center rounded-sm text-ink-soft transition-colors duration-instant hover:bg-paper-deep hover:text-ink"
+              aria-label={text({ ar: `السلة (${count})`, en: `Cart (${count})` })}
+            >
+              <ShoppingBag size={19} strokeWidth={1.75} aria-hidden="true" />
+              {count > 0 ? (
+                <span className="tnum absolute -top-0.5 -end-0.5 grid h-[18px] min-w-[18px] place-items-center rounded-pill bg-brand px-1 text-[10px] font-bold leading-none text-white">
+                  {count > 99 ? "99+" : count}
+                </span>
+              ) : null}
+            </button>
+
+            {/* account */}
+            {isAuthenticated ? (
+              <button
+                type="button"
+                onClick={() => signOut({ callbackUrl: "/" })}
+                className="hidden h-10 items-center gap-2 rounded-sm border border-line bg-surface px-3 text-body-sm font-semibold text-ink-soft transition-colors duration-instant hover:border-line-strong hover:text-ink sm:inline-flex"
+                title={text({ ar: "تسجيل الخروج", en: "Sign out" })}
+              >
+                <UserRound size={15} strokeWidth={1.75} className="text-brand" aria-hidden="true" />
+                <span className="max-w-[110px] truncate">{session?.user?.name || session?.user?.email}</span>
+              </button>
+            ) : (
+              <Link
+                href="/login"
+                className="hidden h-10 items-center gap-2 rounded-sm border border-line bg-surface px-3 text-body-sm font-semibold text-ink-soft transition-colors duration-instant hover:border-line-strong hover:text-ink sm:inline-flex"
+              >
+                <UserRound size={15} strokeWidth={1.75} className="text-brand" aria-hidden="true" />
+                <span>{text({ ar: "دخول", en: "Sign in" })}</span>
+              </Link>
+            )}
+
+            {/* mobile menu */}
+            <button
+              type="button"
+              onClick={() => setMenuOpen(true)}
+              className="grid size-10 place-items-center rounded-sm text-ink-soft transition-colors duration-instant hover:bg-paper-deep hover:text-ink lg:hidden"
+              aria-label={text({ ar: "القائمة", en: "Open menu" })}
+            >
+              <Menu size={19} strokeWidth={1.75} aria-hidden="true" />
+            </button>
+          </div>
         </div>
       </div>
 
-      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-1.5 border-t border-pearl-100 px-4 py-2 lg:hidden">
-        {navItems.map((item) => (
-          <Link key={item.href} href={item.href} className="inline-flex items-center justify-center gap-1.5 rounded-[10px] px-2.5 py-2 text-xs font-bold text-zinc-700 transition hover:bg-pearl-100 hover:text-qatar-800 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-qatar-100">
-            <item.icon size={14} className="shrink-0" />
-            <span>{text(item.label)}</span>
-          </Link>
-        ))}
-      </div>
+      <SearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} />
+      <MobileMenu open={menuOpen} onClose={() => setMenuOpen(false)} />
     </header>
   );
 }

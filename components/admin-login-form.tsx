@@ -88,13 +88,13 @@ export function AdminLoginForm() {
   }
 
   return (
-    <div className="panel w-full max-w-xl overflow-hidden p-0 shadow-[0_30px_80px_rgba(15,23,42,0.08)]">
-      <div className="bg-zinc-950 px-8 py-8 text-white">
-        <div className="inline-flex items-center gap-2 rounded-md border border-white/20 bg-white/10 px-4 py-2 text-xs font-black uppercase tracking-[0.16em]">
+    <div className="card w-full max-w-xl overflow-hidden p-0 shadow-[0_30px_80px_rgba(15,23,42,0.08)]">
+      <div className="bg-ink-deep px-8 py-8 text-white">
+        <div className="inline-flex items-center gap-2 rounded-md border border-white/20 bg-white/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.16em]">
           <BookOpenText size={14} />
           منصة كُتبي
         </div>
-        <h1 className="mt-5 text-3xl font-black">تسجيل دخول لوحة الإدارة</h1>
+        <h1 className="mt-5 text-3xl font-bold">تسجيل دخول لوحة الإدارة</h1>
         <p className="mt-3 max-w-lg text-sm leading-7 text-white/75">
           مساحة مخصصة لإدارة المنتجات والملفات والصفحات والأسعار، مع تحقق إضافي بالبريد.
         </p>
@@ -103,12 +103,12 @@ export function AdminLoginForm() {
       {mode === "credentials" ? (
         <form onSubmit={submitCredentials} className="space-y-5 p-8">
           <label className="block space-y-2">
-            <span className="text-sm font-bold text-zinc-700">البريد الإلكتروني</span>
+            <span className="text-sm font-bold text-ink-soft">البريد الإلكتروني</span>
             <div className="relative">
-              <Mail size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400" />
+              <Mail size={18} className="absolute end-4 top-1/2 -translate-y-1/2 text-ink-faint" />
               <input
                 type="email"
-                className="input pr-12"
+                className="input pe-12"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="admin@example.com"
@@ -119,12 +119,12 @@ export function AdminLoginForm() {
           </label>
 
           <label className="block space-y-2">
-            <span className="text-sm font-bold text-zinc-700">كلمة المرور</span>
+            <span className="text-sm font-bold text-ink-soft">كلمة المرور</span>
             <div className="relative">
-              <ShieldCheck size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400" />
+              <ShieldCheck size={18} className="absolute end-4 top-1/2 -translate-y-1/2 text-ink-faint" />
               <input
                 type="password"
-                className="input pr-12"
+                className="input pe-12"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="كلمة المرور"
@@ -134,7 +134,7 @@ export function AdminLoginForm() {
             </div>
           </label>
 
-          {error ? <div className="rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div> : null}
+          {error ? <div className="rounded-md border border-accent-danger/30 bg-accent-danger-soft px-4 py-3 text-sm text-accent-danger">{error}</div> : null}
 
           <button type="submit" disabled={loading} className="btn-primary w-full disabled:opacity-60">
             {loading ? "جارٍ التحقق..." : "إرسال رمز التحقق"}
@@ -143,25 +143,25 @@ export function AdminLoginForm() {
         </form>
       ) : (
         <form onSubmit={submitCode} className="space-y-5 p-8">
-          <div className="rounded-md border border-qatar-100 bg-qatar-50 px-4 py-3 text-sm text-zinc-700">
+          <div className="rounded-md border border-brand/15 bg-brand-soft px-4 py-3 text-sm text-ink-soft">
             تم إرسال رمز تحقق إلى <strong>{verifiedEmail || email}</strong>. أدخل الرمز المكوّن من 8 أرقام.
           </div>
 
           {devCode ? (
-            <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-800">
+            <div className="rounded-md border border-accent-gold/25 bg-accent-gold-soft px-4 py-3 text-sm font-bold text-accent-gold">
               رمز التطوير: {devCode}
             </div>
           ) : null}
 
           <label className="block space-y-2">
-            <span className="text-sm font-bold text-zinc-700">رمز التحقق</span>
+            <span className="text-sm font-bold text-ink-soft">رمز التحقق</span>
             <div className="relative">
-              <KeyRound size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400" />
+              <KeyRound size={18} className="absolute end-4 top-1/2 -translate-y-1/2 text-ink-faint" />
               <input
                 type="text"
                 inputMode="numeric"
                 maxLength={8}
-                className="input pr-12 text-center text-lg"
+                className="input pe-12 text-center text-lg"
                 value={code}
                 onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
                 placeholder="00000000"
@@ -171,7 +171,7 @@ export function AdminLoginForm() {
             </div>
           </label>
 
-          {error ? <div className="rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div> : null}
+          {error ? <div className="rounded-md border border-accent-danger/30 bg-accent-danger-soft px-4 py-3 text-sm text-accent-danger">{error}</div> : null}
 
           <button type="submit" disabled={loading || !canSubmitCode} className="btn-primary w-full disabled:opacity-60">
             {loading ? "جارٍ التحقق..." : "التحقق والدخول"}
@@ -179,10 +179,10 @@ export function AdminLoginForm() {
           </button>
 
           <div className="flex items-center justify-between gap-3 text-sm">
-            <button type="button" onClick={() => setMode("credentials")} className="font-bold text-qatar-700 underline decoration-dotted underline-offset-4">
+            <button type="button" onClick={() => setMode("credentials")} className="font-bold text-brand-deep underline decoration-dotted underline-offset-4">
               الرجوع لتسجيل الدخول
             </button>
-            <button type="button" onClick={resendCode} disabled={loading} className="inline-flex items-center gap-2 font-bold text-qatar-700 underline decoration-dotted underline-offset-4 disabled:opacity-50">
+            <button type="button" onClick={resendCode} disabled={loading} className="inline-flex items-center gap-2 font-bold text-brand-deep underline decoration-dotted underline-offset-4 disabled:opacity-50">
               <RefreshCcw size={14} />
               إعادة إرسال الرمز
             </button>

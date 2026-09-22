@@ -278,18 +278,18 @@ function DiagnoseFilesTab() {
 
   const messageClassName =
     messageKind === "error"
-      ? "rounded-[1.4rem] border border-rose-200 bg-rose-50 px-5 py-4 text-sm font-semibold text-rose-700 shadow-[0_12px_30px_rgba(15,23,42,0.04)]"
+      ? "rounded-md border border-accent-danger/30 bg-accent-danger-soft px-5 py-4 text-sm font-semibold text-accent-danger shadow-[0_12px_30px_rgba(15,23,42,0.04)]"
       : messageKind === "success"
-        ? "rounded-[1.4rem] border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-semibold text-emerald-700 shadow-[0_12px_30px_rgba(15,23,42,0.04)]"
-        : "rounded-[1.4rem] border border-qatar-100 bg-white px-5 py-4 text-sm text-zinc-700 shadow-[0_12px_30px_rgba(15,23,42,0.04)]";
+        ? "rounded-md border border-accent-teal/25 bg-accent-teal-soft px-5 py-4 text-sm font-semibold text-accent-teal shadow-[0_12px_30px_rgba(15,23,42,0.04)]"
+        : "rounded-md border border-brand/15 bg-white px-5 py-4 text-sm text-ink-soft shadow-[0_12px_30px_rgba(15,23,42,0.04)]";
 
   return (
     <div className="space-y-6">
-      <div className="panel p-6 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
+      <div className="card p-6 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h3 className="text-2xl font-black text-zinc-950">تشخيص ملفات المنتجات</h3>
-            <p className="mt-1 text-sm text-zinc-500">تحقق من وصولية الملفات وأعد رفع الملفات المفقودة إلى Cloudinary.</p>
+            <h3 className="text-2xl font-bold text-ink">تشخيص ملفات المنتجات</h3>
+            <p className="mt-1 text-sm text-ink-faint">تحقق من وصولية الملفات وأعد رفع الملفات المفقودة إلى Cloudinary.</p>
           </div>
           <button type="button" disabled={loading} onClick={loadFiles} className="btn-primary disabled:opacity-60">
             <RotateCcw size={16} className={loading ? "animate-spin" : ""} />
@@ -300,56 +300,56 @@ function DiagnoseFilesTab() {
 
       {message ? <div className={messageClassName}>{message}</div> : null}
 
-      <div className="panel p-6 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
+      <div className="card p-6 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-qatar-100 text-left text-xs font-semibold text-zinc-500 uppercase tracking-wider">
-                <th className="pb-3 pr-4">الملف</th>
-                <th className="pb-3 pr-4">المنتج</th>
-                <th className="pb-3 pr-4">النوع</th>
-                <th className="pb-3 pr-4">الحجم</th>
-                <th className="pb-3 pr-4">التخزين</th>
-                <th className="pb-3 pr-4">الحالة</th>
-                <th className="pb-3 pr-4">الإجراءات</th>
+              <tr className="border-b border-brand/15 text-left text-xs font-semibold text-ink-faint uppercase tracking-wider">
+                <th className="pb-3 px-4">الملف</th>
+                <th className="pb-3 px-4">المنتج</th>
+                <th className="pb-3 px-4">النوع</th>
+                <th className="pb-3 px-4">الحجم</th>
+                <th className="pb-3 px-4">التخزين</th>
+                <th className="pb-3 px-4">الحالة</th>
+                <th className="pb-3 px-4">الإجراءات</th>
               </tr>
             </thead>
             <tbody>
               {files.map((file) => (
-                <tr key={file.id} className="border-b border-qatar-50">
-                  <td className="py-3 pr-4">
+                <tr key={file.id} className="border-b border-brand/10">
+                  <td className="py-3 px-4">
                     <div>
-                      <p className="font-medium text-zinc-900 truncate max-w-xs">{file.title}</p>
-                      <p className="text-xs text-zinc-500 truncate max-w-xs">{file.url}</p>
+                      <p className="font-medium text-ink truncate max-w-xs">{file.title}</p>
+                      <p className="text-xs text-ink-faint truncate max-w-xs">{file.url}</p>
                     </div>
                   </td>
-                  <td className="py-3 pr-4 text-zinc-700">{file.productTitle || "—"}</td>
-                  <td className="py-3 pr-4">
-                    <span className="inline-flex items-center gap-1 rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-600">
+                  <td className="py-3 px-4 text-ink-soft">{file.productTitle || "—"}</td>
+                  <td className="py-3 px-4">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-paper-deep/60 px-2 py-0.5 text-xs text-ink-soft">
                       {file.mimeType}
                     </span>
                   </td>
-                  <td className="py-3 pr-4 text-zinc-700">{file.actualSize > 0 ? formatBytes(file.actualSize) : formatBytes(file.size)}</td>
-                  <td className="py-3 pr-4">
-                    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${file.isCloudinary ? "bg-sky-50 text-sky-700" : file.isLocal ? "bg-amber-50 text-amber-700" : "bg-zinc-100 text-zinc-600"
+                  <td className="py-3 px-4 text-ink-soft">{file.actualSize > 0 ? formatBytes(file.actualSize) : formatBytes(file.size)}</td>
+                  <td className="py-3 px-4">
+                    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${file.isCloudinary ? "bg-paper-deep/60 text-ink-soft" : file.isLocal ? "bg-accent-gold-soft text-accent-gold" : "bg-paper-deep/60 text-ink-soft"
                       }`}>
                       {file.isCloudinary ? "Cloudinary" : file.isLocal ? "محلي" : "غير معروف"}
                     </span>
                   </td>
-                  <td className="py-3 pr-4">
+                  <td className="py-3 px-4">
                     {file.reachable ? (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                      <span className="inline-flex items-center gap-1 rounded-full bg-accent-teal-soft px-2 py-0.5 text-xs font-medium text-accent-teal">
+                        <span className="w-1.5 h-1.5 rounded-full bg-accent-teal" />
                         قابل للوصول
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-rose-50 px-2 py-0.5 text-xs font-medium text-rose-700">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-accent-danger-soft px-2 py-0.5 text-xs font-medium text-accent-danger">
                         <AlertCircle size={10} />
                         غير قابل للوصول
                       </span>
                     )}
                   </td>
-                  <td className="py-3 pr-4">
+                  <td className="py-3 px-4">
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
@@ -365,14 +365,14 @@ function DiagnoseFilesTab() {
                           type="button"
                           disabled={loading}
                           onClick={() => handleAction(file.id, "reupload")}
-                          className="chip text-xs border-sky-200 text-sky-700 hover:bg-sky-50"
+                          className="chip text-xs border-line-strong text-ink-soft hover:bg-paper-deep/60"
                           title="أعد رفع إلى Cloudinary"
                         >
                           <HardDrive size={12} /> رفع لـ Cloudinary
                         </button>
                       )}
                       {file.error && (
-                        <span className="text-xs text-rose-600 truncate max-w-xs" title={file.error}>
+                        <span className="text-xs text-accent-danger truncate max-w-xs" title={file.error}>
                           {file.error}
                         </span>
                       )}
@@ -382,7 +382,7 @@ function DiagnoseFilesTab() {
               ))}
               {files.length === 0 && !loading && (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center text-zinc-500">
+                  <td colSpan={7} className="py-8 text-center text-ink-faint">
                     لا توجد ملفات. اضغط "تحديث القائمة" للتحميل.
                   </td>
                 </tr>
@@ -593,43 +593,43 @@ function VouchersTab() {
 
   const messageClassName =
     messageKind === "error"
-      ? "rounded-[1.4rem] border border-rose-200 bg-rose-50 px-5 py-4 text-sm font-semibold text-rose-700 shadow-[0_12px_30px_rgba(15,23,42,0.04)]"
+      ? "rounded-md border border-accent-danger/30 bg-accent-danger-soft px-5 py-4 text-sm font-semibold text-accent-danger shadow-[0_12px_30px_rgba(15,23,42,0.04)]"
       : messageKind === "success"
-        ? "rounded-[1.4rem] border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-semibold text-emerald-700 shadow-[0_12px_30px_rgba(15,23,42,0.04)]"
-        : "rounded-[1.4rem] border border-qatar-100 bg-white px-5 py-4 text-sm text-zinc-700 shadow-[0_12px_30px_rgba(15,23,42,0.04)]";
+        ? "rounded-md border border-accent-teal/25 bg-accent-teal-soft px-5 py-4 text-sm font-semibold text-accent-teal shadow-[0_12px_30px_rgba(15,23,42,0.04)]"
+        : "rounded-md border border-brand/15 bg-white px-5 py-4 text-sm text-ink-soft shadow-[0_12px_30px_rgba(15,23,42,0.04)]";
 
   return (
     <div className="space-y-6">
-      <div className="panel p-6 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
+      <div className="card p-6 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <div className="inline-flex items-center gap-2 rounded-full bg-qatar-50 px-4 py-2 text-xs font-black uppercase tracking-[0.22em] text-qatar-800">
+            <div className="inline-flex items-center gap-2 rounded-full bg-brand-soft px-4 py-2 text-xs font-bold uppercase tracking-[0.22em] text-brand-deep">
               <Ticket size={16} />
               القسائم والمحفظة
             </div>
-            <h3 className="mt-3 text-2xl font-black text-zinc-950">
+            <h3 className="mt-3 text-2xl font-bold text-ink">
               {text({ ar: "القسائم والإيداع", en: "Vouchers & Wallet Credit" })}
             </h3>
-            <p className="mt-1 text-sm text-zinc-500">
+            <p className="mt-1 text-sm text-ink-faint">
               {text({ ar: "أنشئ قسائم هدايا أو أضف رصيدًا للمحفظة لعملاء محددين.", en: "Create gift vouchers or add credit to selected customer wallets." })}
             </p>
           </div>
         </div>
 
         <div className="mt-6 space-y-6">
-          <div className="border-b border-qatar-100 pb-6">
-            <h4 className="mb-3 text-lg font-black text-zinc-950">{text({ ar: "إنشاء قسيمة هدايا", en: "Create Gift Voucher" })}</h4>
+          <div className="border-b border-brand/15 pb-6">
+            <h4 className="mb-3 text-lg font-bold text-ink">{text({ ar: "إنشاء قسيمة هدايا", en: "Create Gift Voucher" })}</h4>
             <form onSubmit={createVoucher} className="grid gap-4 sm:grid-cols-4">
               <label className="block space-y-2">
-                <span className="text-sm font-semibold text-zinc-700">{text({ ar: "القيمة بالسنةة", en: "Amount (USD)" })}</span>
+                <span className="text-sm font-semibold text-ink-soft">{text({ ar: "القيمة بالسنةة", en: "Amount (USD)" })}</span>
                 <input type="number" className="input" value={amount} onChange={(e) => setAmount(e.target.value)} min="1" required />
               </label>
               <label className="block space-y-2">
-                <span className="text-sm font-semibold text-zinc-700">{text({ ar: "عدد الاستخدامات", en: "Max uses" })}</span>
+                <span className="text-sm font-semibold text-ink-soft">{text({ ar: "عدد الاستخدامات", en: "Max uses" })}</span>
                 <input type="number" className="input" value={maxUses} onChange={(e) => setMaxUses(e.target.value)} min="1" />
               </label>
               <label className="block space-y-2">
-                <span className="text-sm font-semibold text-zinc-700">{text({ ar: "تاريخ الانتهاء", en: "Expires at" })}</span>
+                <span className="text-sm font-semibold text-ink-soft">{text({ ar: "تاريخ الانتهاء", en: "Expires at" })}</span>
                 <input type="date" className="input" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)} />
               </label>
               <button type="submit" disabled={loading} className="btn-primary self-end disabled:opacity-60">
@@ -640,10 +640,10 @@ function VouchersTab() {
           </div>
 
           <div>
-            <h4 className="mb-3 text-lg font-black text-zinc-950">{text({ ar: "إدارة رصيد المحفظة", en: "Manage Wallets" })}</h4>
+            <h4 className="mb-3 text-lg font-bold text-ink">{text({ ar: "إدارة رصيد المحفظة", en: "Manage Wallets" })}</h4>
             <form onSubmit={handleWalletSubmit} className="grid gap-4 sm:grid-cols-3">
               <label className="block space-y-2 sm:col-span-3">
-                <span className="text-sm font-semibold text-zinc-700">{text({ ar: "بحث عن العملاء", en: "Search customers" })}</span>
+                <span className="text-sm font-semibold text-ink-soft">{text({ ar: "بحث عن العملاء", en: "Search customers" })}</span>
                 <input
                   type="text"
                   className="input"
@@ -652,12 +652,12 @@ function VouchersTab() {
                   placeholder={text({ ar: "اكتب البريد الإلكتروني...", en: "Type email..." })}
                 />
               </label>
-              <div className="sm:col-span-3 max-h-60 overflow-y-auto border border-qatar-100 rounded-lg p-2">
+              <div className="sm:col-span-3 max-h-60 overflow-y-auto border border-brand/15 rounded-sm p-2">
                 {filteredCustomers.length === 0 && !loading ? (
-                  <p className="py-4 text-center text-zinc-500">لا يوجد عملاء.</p>
+                  <p className="py-4 text-center text-ink-faint">لا يوجد عملاء.</p>
                 ) : (
                   filteredCustomers.map((customer) => (
-                    <label key={customer.email} className="flex items-center gap-3 py-2 px-3 hover:bg-zinc-50 rounded cursor-pointer">
+                    <label key={customer.email} className="flex items-center gap-3 py-2 px-3 hover:bg-paper-deep/60 rounded cursor-pointer">
                       <input
                         type="checkbox"
                         checked={selectedEmails.has(customer.email)}
@@ -667,24 +667,24 @@ function VouchersTab() {
                           else newSet.delete(customer.email);
                           setSelectedEmails(newSet);
                         }}
-                        className="rounded border-qatar-300"
+                        className="rounded border-brand/30"
                       />
-                      <span className="flex-1 font-medium text-zinc-900">{customer.email}</span>
-                      <span className="text-xs text-zinc-500">{customer.orders} طلب · {currencyLabel(customer.total)}</span>
+                      <span className="flex-1 font-medium text-ink">{customer.email}</span>
+                      <span className="text-xs text-ink-faint">{customer.orders} طلب · {currencyLabel(customer.total)}</span>
                     </label>
                   ))
                 )}
               </div>
               <label className="block space-y-2">
-                <span className="text-sm font-semibold text-zinc-700">{text({ ar: "قيمة الإيداع", en: "Deposit amount" })}</span>
+                <span className="text-sm font-semibold text-ink-soft">{text({ ar: "قيمة الإيداع", en: "Deposit amount" })}</span>
                 <input type="number" className="input" value={depositAmount} onChange={(e) => setDepositAmount(e.target.value)} min="1" required />
               </label>
               <label className="block space-y-2">
-                <span className="text-sm font-semibold text-zinc-700">{text({ ar: "الوصف", en: "Description" })}</span>
+                <span className="text-sm font-semibold text-ink-soft">{text({ ar: "الوصف", en: "Description" })}</span>
                 <input type="text" className="input" value={depositDescription} onChange={(e) => setDepositDescription(e.target.value)} placeholder={text({ ar: "مكافأة، إرحالة...", en: "Reward, reimbursement..." })} required />
               </label>
               <div className="sm:col-span-3 flex items-center justify-between">
-                <span className="text-sm text-zinc-600">
+                <span className="text-sm text-ink-soft">
                   {selectedEmails.size > 0
                     ? text({ ar: `تم اختيار ${selectedEmails.size} عميل`, en: `${selectedEmails.size} customer(s) selected` })
                     : text({ ar: "لم يتم اختيار أي عميل", en: "No customers selected" })}
@@ -693,7 +693,7 @@ function VouchersTab() {
                     {loading ? <Loader2 size={16} className="animate-spin" /> : <WalletCards size={16} />}
                     {text({ ar: "إيداع الرصيد", en: "Deposit Credit" })}
                   </button>
-                  <button type="submit" name="actionType" value="debit" disabled={loading || selectedEmails.size === 0} className="btn-secondary border-rose-200 text-rose-700 hover:bg-rose-50 disabled:opacity-60">
+                  <button type="submit" name="actionType" value="debit" disabled={loading || selectedEmails.size === 0} className="btn-secondary border-accent-danger/30 text-accent-danger hover:bg-accent-danger-soft disabled:opacity-60">
                     {loading ? <Loader2 size={16} className="animate-spin" /> : <WalletCards size={16} />}
                     {text({ ar: "خصم الرصيد", en: "Deduct Credit" })}
                   </button>
@@ -705,38 +705,38 @@ function VouchersTab() {
 
       {message ? <div className={messageClassName}>{message}</div> : null}
 
-      <div className="panel p-6 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
-          <h3 className="text-xl font-black text-zinc-950">{text({ ar: "القسائم الموجودة", en: "Existing vouchers" })}</h3>
+      <div className="card p-6 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
+          <h3 className="text-xl font-bold text-ink">{text({ ar: "القسائم الموجودة", en: "Existing vouchers" })}</h3>
         <div className="mt-4 overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-qatar-100 text-left text-xs font-semibold text-zinc-500 uppercase tracking-wider">
-                <th className="pb-3 pr-4">{text({ ar: "الرمز", en: "Code" })}</th>
-                <th className="pb-3 pr-4">{text({ ar: "القيمة", en: "Amount" })}</th>
-                <th className="pb-3 pr-4">{text({ ar: "الاستخدامات", en: "Uses" })}</th>
-                <th className="pb-3 pr-4">{text({ ar: "تاريخ الانتهاء", en: "Expires" })}</th>
-                <th className="pb-3 pr-4">{text({ ar: "الحالة", en: "Status" })}</th>
-                <th className="pb-3 pr-4">{text({ ar: "الإجراءات", en: "Actions" })}</th>
+              <tr className="border-b border-brand/15 text-left text-xs font-semibold text-ink-faint uppercase tracking-wider">
+                <th className="pb-3 px-4">{text({ ar: "الرمز", en: "Code" })}</th>
+                <th className="pb-3 px-4">{text({ ar: "القيمة", en: "Amount" })}</th>
+                <th className="pb-3 px-4">{text({ ar: "الاستخدامات", en: "Uses" })}</th>
+                <th className="pb-3 px-4">{text({ ar: "تاريخ الانتهاء", en: "Expires" })}</th>
+                <th className="pb-3 px-4">{text({ ar: "الحالة", en: "Status" })}</th>
+                <th className="pb-3 px-4">{text({ ar: "الإجراءات", en: "Actions" })}</th>
               </tr>
             </thead>
             <tbody>
               {vouchers.map((voucher) => (
-                <tr key={voucher.id} className="border-b border-qatar-50">
-                  <td className="py-3 pr-4 font-medium text-zinc-900">{voucher.code}</td>
-                  <td className="py-3 pr-4 text-zinc-700">{currencyLabel(voucher.amount)}</td>
-                  <td className="py-3 pr-4 text-zinc-700">{voucher.usedCount} / {voucher.maxUses}</td>
-                  <td className="py-3 pr-4 text-zinc-500">{voucher.expiresAt ? dateLabel(voucher.expiresAt) : "—"}</td>
-                  <td className="py-3 pr-4">
-                    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${voucher.isActive ? "bg-emerald-50 text-emerald-700" : "bg-zinc-100 text-zinc-600"}`}>
+                <tr key={voucher.id} className="border-b border-brand/10">
+                  <td className="py-3 px-4 font-medium text-ink">{voucher.code}</td>
+                  <td className="py-3 px-4 text-ink-soft">{currencyLabel(voucher.amount)}</td>
+                  <td className="py-3 px-4 text-ink-soft">{voucher.usedCount} / {voucher.maxUses}</td>
+                  <td className="py-3 px-4 text-ink-faint">{voucher.expiresAt ? dateLabel(voucher.expiresAt) : "—"}</td>
+                  <td className="py-3 px-4">
+                    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${voucher.isActive ? "bg-accent-teal-soft text-accent-teal" : "bg-paper-deep/60 text-ink-soft"}`}>
                       {voucher.isActive ? text({ ar: "فعال", en: "Active" }) : text({ ar: "غير فعال", en: "Inactive" })}
                     </span>
                   </td>
-                  <td className="py-3 pr-4">
+                  <td className="py-3 px-4">
                     <div className="flex items-center gap-2">
                       <button type="button" disabled={loading} onClick={() => toggleVoucher(voucher.id, voucher.isActive)} className="chip text-xs">
                         {voucher.isActive ? text({ ar: "إلغاء التفعيل", en: "Deactivate" }) : text({ ar: "تفعيل", en: "Activate" })}
                       </button>
-                      <button type="button" disabled={loading} onClick={() => deleteVoucher(voucher.id, voucher.code)} className="chip text-xs border-rose-200 text-rose-700 hover:bg-rose-50">
+                      <button type="button" disabled={loading} onClick={() => deleteVoucher(voucher.id, voucher.code)} className="chip text-xs border-accent-danger/30 text-accent-danger hover:bg-accent-danger-soft">
                         <Trash2 size={12} /> {text({ ar: "حذف", en: "Delete" })}
                       </button>
                     </div>
@@ -745,7 +745,7 @@ function VouchersTab() {
               ))}
               {vouchers.length === 0 && !loading && (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-zinc-500">لا توجد قسائم. أنشئ قسيمة جديدة.</td>
+                  <td colSpan={6} className="py-8 text-center text-ink-faint">لا توجد قسائم. أنشئ قسيمة جديدة.</td>
                 </tr>
               )}
             </tbody>
@@ -1277,23 +1277,23 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
 
   const messageClassName =
     messageKind === "error"
-      ? "rounded-[1.4rem] border border-rose-200 bg-rose-50 px-5 py-4 text-sm font-semibold text-rose-700 shadow-[0_12px_30px_rgba(15,23,42,0.04)]"
+      ? "rounded-md border border-accent-danger/30 bg-accent-danger-soft px-5 py-4 text-sm font-semibold text-accent-danger shadow-[0_12px_30px_rgba(15,23,42,0.04)]"
       : messageKind === "success"
-        ? "rounded-[1.4rem] border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-semibold text-emerald-700 shadow-[0_12px_30px_rgba(15,23,42,0.04)]"
-        : "rounded-[1.4rem] border border-qatar-100 bg-white px-5 py-4 text-sm text-zinc-700 shadow-[0_12px_30px_rgba(15,23,42,0.04)]";
+        ? "rounded-md border border-accent-teal/25 bg-accent-teal-soft px-5 py-4 text-sm font-semibold text-accent-teal shadow-[0_12px_30px_rgba(15,23,42,0.04)]"
+        : "rounded-md border border-brand/15 bg-white px-5 py-4 text-sm text-ink-soft shadow-[0_12px_30px_rgba(15,23,42,0.04)]";
 
   return (
     <div className="space-y-6">
-      <div className="relative overflow-hidden rounded-lg border border-zinc-200 bg-[linear-gradient(135deg,#fff,#f7f8f5_60%,#fff)] p-6 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
-        <div className="absolute inset-x-0 top-0 h-1.5 bg-[linear-gradient(90deg,#8a1538,#0f766e,#d89b32)]" />
+      <div className="relative overflow-hidden rounded-sm border border-line bg-surface p-6 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
+        <div className="absolute inset-x-0 top-0 h-1.5 bg-brand" />
         <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <div className="inline-flex items-center gap-2 rounded-full bg-qatar-50 px-4 py-2 text-xs font-black uppercase tracking-[0.22em] text-qatar-800">
+            <div className="inline-flex items-center gap-2 rounded-full bg-brand-soft px-4 py-2 text-xs font-bold uppercase tracking-[0.22em] text-brand-deep">
               <Layers3 size={14} />
               لوحة منشئ مستقلة
             </div>
-            <h1 className="mt-4 text-3xl font-black tracking-tight text-zinc-950 md:text-4xl">إدارة المنتجات والصفوف والمواد والملفات</h1>
-            <p className="mt-3 max-w-3xl leading-8 text-zinc-600">كل ميزة هنا تعمل فعليًا: إضافة، تعديل، حذف، تنظيم الصفوف والمواد، ورفع الملفات وربطها بالمنتجات.</p>
+            <h1 className="mt-4 text-3xl font-bold tracking-tight text-ink md:text-4xl">إدارة المنتجات والصفوف والمواد والملفات</h1>
+            <p className="mt-3 max-w-3xl leading-8 text-ink-soft">كل ميزة هنا تعمل فعليًا: إضافة، تعديل، حذف، تنظيم الصفوف والمواد، ورفع الملفات وربطها بالمنتجات.</p>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -1303,21 +1303,21 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
               { label: "الصفوف", value: numberLabel(catalog.length), icon: Layers3 },
               { label: "الملفات المرفوعة", value: numberLabel(uploadedFiles.length), icon: FolderUp }
             ].map((item) => (
-              <motion.div key={item.label} whileHover={{ y: -3 }} className="rounded-[1.4rem] border border-white/70 bg-white p-4 shadow-[0_14px_40px_rgba(15,23,42,0.05)]">
-                <item.icon className="text-qatar-700" size={18} />
-                <p className="mt-3 text-sm text-zinc-500">{item.label}</p>
-                <p className="mt-1 text-2xl font-black text-qatar-800">{item.value}</p>
+              <motion.div key={item.label} whileHover={{ y: -3 }} className="rounded-md border border-white/70 bg-white p-4 shadow-[0_14px_40px_rgba(15,23,42,0.05)]">
+                <item.icon className="text-brand-deep" size={18} />
+                <p className="mt-3 text-sm text-ink-faint">{item.label}</p>
+                <p className="mt-1 text-2xl font-bold text-brand-deep">{item.value}</p>
               </motion.div>
             ))}
           </div>
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2 rounded-[1.5rem] border border-qatar-100 bg-white/80 p-2 shadow-[0_12px_30px_rgba(15,23,42,0.04)] backdrop-blur">
+      <div className="flex flex-wrap gap-2 rounded-md border border-brand/15 bg-white/80 p-2 shadow-[0_12px_30px_rgba(15,23,42,0.04)] backdrop-blur">
         {tabs.map((item) => {
           const active = tab === item.id;
           return (
-            <button key={item.id} type="button" onClick={() => setTab(item.id)} className={`inline-flex items-center gap-2 rounded-[1.2rem] px-4 py-3 text-sm font-semibold transition ${active ? "bg-qatar-700 text-white shadow-[0_12px_35px_rgba(138,21,56,0.22)]" : "text-zinc-700 hover:bg-zinc-50"}`}>
+            <button key={item.id} type="button" onClick={() => setTab(item.id)} className={`inline-flex items-center gap-2 rounded-sm px-4 py-3 text-sm font-semibold transition ${active ? "bg-brand text-white shadow-[0_12px_35px_rgba(138,21,56,0.22)]" : "text-ink-soft hover:bg-paper-deep/60"}`}>
               <item.icon size={16} />
               {item.label}
             </button>
@@ -1325,41 +1325,41 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
         })}
       </div>
 
-      {busy ? <div className="rounded-[1.4rem] border border-sky-200 bg-sky-50 px-5 py-4 text-sm font-semibold text-sky-800 shadow-[0_12px_30px_rgba(15,23,42,0.04)]">جارٍ تنفيذ العملية...</div> : null}
+      {busy ? <div className="rounded-md border border-line-strong bg-paper-deep/60 px-5 py-4 text-sm font-semibold text-ink-soft shadow-[0_12px_30px_rgba(15,23,42,0.04)]">جارٍ تنفيذ العملية...</div> : null}
       {message ? <div className={messageClassName}>{message}</div> : null}
 
       {tab === "products" ? (
         <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
-          <div className="panel space-y-5 p-6 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
+          <div className="card space-y-5 p-6 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <h3 className="text-2xl font-black text-zinc-950">{editingProductId ? "تعديل المنتج" : "إضافة منتج جديد"}</h3>
-                <p className="mt-1 text-sm text-zinc-500">اختر الصف ثم المادة حتى يبقى كل محتوى في مكانه الصحيح.</p>
+                <h3 className="text-2xl font-bold text-ink">{editingProductId ? "تعديل المنتج" : "إضافة منتج جديد"}</h3>
+                <p className="mt-1 text-sm text-ink-faint">اختر الصف ثم المادة حتى يبقى كل محتوى في مكانه الصحيح.</p>
               </div>
               {editingProductId ? <button type="button" onClick={resetProductForm} className="chip">إلغاء التعديل</button> : null}
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
-              <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">عنوان المنتج</span><input className="input" value={productForm.title} onChange={(e) => setProductForm((c) => ({ ...c, title: e.target.value }))} /></label>
-              <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">السعر</span><input className="input" type="number" value={productForm.price} onChange={(e) => setProductForm((c) => ({ ...c, price: Number(e.target.value) }))} /></label>
-              <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">السعر قبل الخصم</span><input className="input" type="number" value={productForm.compareAt} onChange={(e) => setProductForm((c) => ({ ...c, compareAt: Number(e.target.value) }))} /></label>
-              <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">شارة المنتج</span><input className="input" value={productForm.badge} onChange={(e) => setProductForm((c) => ({ ...c, badge: e.target.value }))} /></label>
-              <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">الصف</span><select className="input" value={productForm.grade} onChange={(e) => setProductForm((c) => ({ ...c, grade: e.target.value, subject: catalog.find((g) => g.grade === e.target.value)?.subjects[0]?.name ?? c.subject }))}>{gradeOptions.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
-              <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">المادة</span><select className="input" value={productForm.subject} onChange={(e) => setProductForm((c) => ({ ...c, subject: e.target.value }))}>{subjectsForProduct.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
-              <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">التصنيف</span><input className="input" value={productForm.category} onChange={(e) => setProductForm((c) => ({ ...c, category: e.target.value }))} /></label>
-              <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">الصيغة</span><input className="input" value={productForm.format} onChange={(e) => setProductForm((c) => ({ ...c, format: e.target.value }))} /></label>
-              <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">عدد الصفحات</span><input className="input" value={productForm.pages} onChange={(e) => setProductForm((c) => ({ ...c, pages: e.target.value }))} /></label>
-              <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">المستوى</span><input className="input" value={productForm.level} onChange={(e) => setProductForm((c) => ({ ...c, level: e.target.value }))} /></label>
-              <label className="space-y-2 sm:col-span-2"><span className="text-sm font-semibold text-zinc-700">الملخص</span><input className="input" value={productForm.excerpt} onChange={(e) => setProductForm((c) => ({ ...c, excerpt: e.target.value }))} /></label>
-              <label className="space-y-2 sm:col-span-2"><span className="text-sm font-semibold text-zinc-700">الوصف التفصيلي</span><textarea className="textarea" value={productForm.description} onChange={(e) => setProductForm((c) => ({ ...c, description: e.target.value }))} /></label>
-              <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">الترتيب</span><input className="input" type="number" value={productForm.sortOrder} onChange={(e) => setProductForm((c) => ({ ...c, sortOrder: Number(e.target.value) }))} /></label>
-              <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">الحالة</span><select className="input" value={productForm.status} onChange={(e) => setProductForm((c) => ({ ...c, status: e.target.value }))}><option value="published">منشور</option><option value="draft">مسودة</option></select></label>
-              <label className="inline-flex items-center gap-3"><input type="checkbox" checked={productForm.featured} onChange={(e) => setProductForm((c) => ({ ...c, featured: e.target.checked }))} /> <span className="text-sm font-semibold text-zinc-700">عرض في الصفحة الرئيسية</span></label>
+              <label className="space-y-2"><span className="text-sm font-semibold text-ink-soft">عنوان المنتج</span><input className="input" value={productForm.title} onChange={(e) => setProductForm((c) => ({ ...c, title: e.target.value }))} /></label>
+              <label className="space-y-2"><span className="text-sm font-semibold text-ink-soft">السعر</span><input className="input" type="number" value={productForm.price} onChange={(e) => setProductForm((c) => ({ ...c, price: Number(e.target.value) }))} /></label>
+              <label className="space-y-2"><span className="text-sm font-semibold text-ink-soft">السعر قبل الخصم</span><input className="input" type="number" value={productForm.compareAt} onChange={(e) => setProductForm((c) => ({ ...c, compareAt: Number(e.target.value) }))} /></label>
+              <label className="space-y-2"><span className="text-sm font-semibold text-ink-soft">شارة المنتج</span><input className="input" value={productForm.badge} onChange={(e) => setProductForm((c) => ({ ...c, badge: e.target.value }))} /></label>
+              <label className="space-y-2"><span className="text-sm font-semibold text-ink-soft">الصف</span><select className="input" value={productForm.grade} onChange={(e) => setProductForm((c) => ({ ...c, grade: e.target.value, subject: catalog.find((g) => g.grade === e.target.value)?.subjects[0]?.name ?? c.subject }))}>{gradeOptions.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
+              <label className="space-y-2"><span className="text-sm font-semibold text-ink-soft">المادة</span><select className="input" value={productForm.subject} onChange={(e) => setProductForm((c) => ({ ...c, subject: e.target.value }))}>{subjectsForProduct.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
+              <label className="space-y-2"><span className="text-sm font-semibold text-ink-soft">التصنيف</span><input className="input" value={productForm.category} onChange={(e) => setProductForm((c) => ({ ...c, category: e.target.value }))} /></label>
+              <label className="space-y-2"><span className="text-sm font-semibold text-ink-soft">الصيغة</span><input className="input" value={productForm.format} onChange={(e) => setProductForm((c) => ({ ...c, format: e.target.value }))} /></label>
+              <label className="space-y-2"><span className="text-sm font-semibold text-ink-soft">عدد الصفحات</span><input className="input" value={productForm.pages} onChange={(e) => setProductForm((c) => ({ ...c, pages: e.target.value }))} /></label>
+              <label className="space-y-2"><span className="text-sm font-semibold text-ink-soft">المستوى</span><input className="input" value={productForm.level} onChange={(e) => setProductForm((c) => ({ ...c, level: e.target.value }))} /></label>
+              <label className="space-y-2 sm:col-span-2"><span className="text-sm font-semibold text-ink-soft">الملخص</span><input className="input" value={productForm.excerpt} onChange={(e) => setProductForm((c) => ({ ...c, excerpt: e.target.value }))} /></label>
+              <label className="space-y-2 sm:col-span-2"><span className="text-sm font-semibold text-ink-soft">الوصف التفصيلي</span><textarea className="textarea" value={productForm.description} onChange={(e) => setProductForm((c) => ({ ...c, description: e.target.value }))} /></label>
+              <label className="space-y-2"><span className="text-sm font-semibold text-ink-soft">الترتيب</span><input className="input" type="number" value={productForm.sortOrder} onChange={(e) => setProductForm((c) => ({ ...c, sortOrder: Number(e.target.value) }))} /></label>
+              <label className="space-y-2"><span className="text-sm font-semibold text-ink-soft">الحالة</span><select className="input" value={productForm.status} onChange={(e) => setProductForm((c) => ({ ...c, status: e.target.value }))}><option value="published">منشور</option><option value="draft">مسودة</option></select></label>
+              <label className="inline-flex items-center gap-3"><input type="checkbox" checked={productForm.featured} onChange={(e) => setProductForm((c) => ({ ...c, featured: e.target.checked }))} /> <span className="text-sm font-semibold text-ink-soft">عرض في الصفحة الرئيسية</span></label>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
-              <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">لون أول</span><input className="input" value={productForm.accentA} onChange={(e) => setProductForm((c) => ({ ...c, accentA: e.target.value }))} /></label>
-              <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">لون ثانٍ</span><input className="input" value={productForm.accentB} onChange={(e) => setProductForm((c) => ({ ...c, accentB: e.target.value }))} /></label>
+              <label className="space-y-2"><span className="text-sm font-semibold text-ink-soft">لون أول</span><input className="input" value={productForm.accentA} onChange={(e) => setProductForm((c) => ({ ...c, accentA: e.target.value }))} /></label>
+              <label className="space-y-2"><span className="text-sm font-semibold text-ink-soft">لون ثانٍ</span><input className="input" value={productForm.accentB} onChange={(e) => setProductForm((c) => ({ ...c, accentB: e.target.value }))} /></label>
               <label className="space-y-2 sm:col-span-2">
-                <span className="text-sm font-semibold text-zinc-700">صورة الغلاف / المعاينة</span>
+                <span className="text-sm font-semibold text-ink-soft">صورة الغلاف / المعاينة</span>
                 <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-center">
                   <input
                     className="input"
@@ -1367,56 +1367,56 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
                     onChange={(e) => setProductForm((c) => ({ ...c, coverImage: e.target.value }))}
                     placeholder="/uploads/cover-image.jpg"
                   />
-                  <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-2xl border border-qatar-200 bg-white px-4 py-3 text-sm font-semibold text-qatar-800 transition hover:bg-qatar-50">
+                  <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-md border border-brand/20 bg-white px-4 py-3 text-sm font-semibold text-brand-deep transition hover:bg-brand-soft">
                     <UploadCloud size={16} /> رفع صورة
                     <input type="file" accept=".png,.jpg,.jpeg,.webp" className="hidden" onChange={(e) => uploadCoverImage(e.target.files?.[0] ?? null)} />
                   </label>
                 </div>
                 {productForm.coverImage ? (
-                  <div className="mt-3 overflow-hidden rounded-2xl border border-qatar-100 bg-zinc-50">
+                  <div className="mt-3 overflow-hidden rounded-md border border-brand/15 bg-paper-deep/60">
                     <img src={productForm.coverImage} alt="معاينة صورة الغلاف" className="h-52 w-full object-cover" />
                   </div>
                 ) : null}
               </label>
               <label className="space-y-2 sm:col-span-2">
-                <span className="text-sm font-semibold text-zinc-700">الصور الإضافية (سيظهر تحت صورة الغلاف)</span>
+                <span className="text-sm font-semibold text-ink-soft">الصور الإضافية (سيظهر تحت صورة الغلاف)</span>
                 <div className="flex flex-wrap gap-2">
                   {productForm.additionalImages.map((img, index) => (
                     <div key={index} className="relative">
-                      <img src={img} alt={`إضافية ${index + 1}`} className="h-16 w-16 rounded-lg object-cover border border-qatar-100" />
+                      <img src={img} alt={`إضافية ${index + 1}`} className="h-16 w-16 rounded-sm object-cover border border-brand/15" />
                       <button
                         type="button"
                         onClick={() => setProductForm((c) => ({ ...c, additionalImages: c.additionalImages.filter((_, i) => i !== index) }))}
-                        className="absolute -top-1 -right-1 rounded-full bg-rose-100 p-0.5 text-rose-700"
+                        className="absolute -top-1 -right-1 rounded-full bg-accent-danger-soft p-0.5 text-accent-danger"
                       >
                         ×
                       </button>
                     </div>
                   ))}
                 </div>
-                <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-2xl border border-qatar-200 bg-white px-4 py-3 text-sm font-semibold text-qatar-800 transition hover:bg-qatar-50">
+                <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-md border border-brand/20 bg-white px-4 py-3 text-sm font-semibold text-brand-deep transition hover:bg-brand-soft">
                   <PlusCircle size={16} /> إضافة صور
                   <input type="file" multiple accept=".png,.jpg,.jpeg,.webp,.gif" className="hidden" onChange={(e) => uploadAdditionalImages(e.target.files)} />
                 </label>
               </label>
               <label className="space-y-2 sm:col-span-2">
-                <span className="text-sm font-semibold text-zinc-700">اللغو المتحرك للمنتج</span>
+                <span className="text-sm font-semibold text-ink-soft">اللغو المتحرك للمنتج</span>
                 <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-center">
                   <div className="flex items-center gap-3">
                     <input
                       type="checkbox"
                       checked={productForm.motionEnabled}
                       onChange={(e) => setProductForm((c) => ({ ...c, motionEnabled: e.target.checked }))}
-                      className="rounded border-qatar-300"
+                      className="rounded border-brand/30"
                     />
-                    <span className="text-xs text-zinc-600">تفعيل اللغو المتحرك</span>
+                    <span className="text-xs text-ink-soft">تفعيل اللغو المتحرك</span>
                   </div>
                 </div>
                 {productForm.motionEnabled ? (
                   <>
                     <div className="mt-3 grid gap-3 sm:grid-cols-3">
                       <label className="block space-y-2">
-                        <span className="text-xs font-semibold text-zinc-600">الموضع</span>
+                        <span className="text-xs font-semibold text-ink-soft">الموضع</span>
                         <select
                           className="input"
                           value={productForm.motionPosition}
@@ -1430,7 +1430,7 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
                         </select>
                       </label>
                       <label className="block space-y-2">
-                        <span className="text-xs font-semibold text-zinc-600">الحجم (1 = أصلي)</span>
+                        <span className="text-xs font-semibold text-ink-soft">الحجم (1 = أصلي)</span>
                         <input
                           type="number"
                           step="0.1"
@@ -1442,7 +1442,7 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
                         />
                       </label>
                       <label className="block space-y-2">
-                        <span className="text-xs font-semibold text-zinc-600">الدوران (بالدرجات)</span>
+                        <span className="text-xs font-semibold text-ink-soft">الدوران (بالدرجات)</span>
                         <input
                           type="number"
                           step="1"
@@ -1461,7 +1461,7 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
                         onChange={(e) => setProductForm((c) => ({ ...c, motionSrc: e.target.value }))}
                         placeholder="سيستخدم اللغو الافتراضي إذا كان فارغاً"
                       />
-                      <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-2xl border border-qatar-200 bg-white px-4 py-3 text-sm font-semibold text-qatar-800 transition hover:bg-qatar-50">
+                      <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-md border border-brand/20 bg-white px-4 py-3 text-sm font-semibold text-brand-deep transition hover:bg-brand-soft">
                         <Sparkles size={16} /> رفع لغو
                         <input type="file" accept={PUBLIC_IMAGE_ACCEPT} className="hidden" onChange={(e) => uploadMotionSrc(e.target.files?.[0] ?? null)} />
                       </label>
@@ -1474,33 +1474,33 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
               <button type="button" disabled={busy} onClick={saveProduct} className="btn-primary disabled:opacity-60">{productSaving ? <Loader2 size={16} className="animate-spin" /> : <PlusCircle size={16} />}{productSaving ? "جارٍ الحفظ..." : editingProductId ? "حفظ التعديلات" : "حفظ المنتج"}</button>
               <button type="button" onClick={resetProductForm} className="btn-secondary">إعادة ضبط</button>
             </div>
-            <div className="rounded-[1.5rem] border border-dashed border-qatar-200 bg-qatar-50/60 p-4 text-sm text-zinc-700">
-              <div className="flex items-center justify-between gap-3"><span>الملفات المرفوعة مؤقتًا</span><span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-qatar-800">{uploadedFiles.length}</span></div>
+            <div className="rounded-md border border-dashed border-brand/20 bg-brand-soft/60 p-4 text-sm text-ink-soft">
+              <div className="flex items-center justify-between gap-3"><span>الملفات المرفوعة مؤقتًا</span><span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-brand-deep">{uploadedFiles.length}</span></div>
               <div className="mt-3 space-y-2">{uploadedFiles.map((file) => (
-                <div key={file.url} className="flex items-center justify-between gap-3 rounded-2xl bg-white px-3 py-2">
+                <div key={file.url} className="flex items-center justify-between gap-3 rounded-md bg-white px-3 py-2">
                   <div className="min-w-0">
-                    <p className="truncate font-semibold text-zinc-900">{file.title}</p>
-                    <p className="text-xs text-zinc-500">{file.url}</p>
+                    <p className="truncate font-semibold text-ink">{file.title}</p>
+                    <p className="text-xs text-ink-faint">{file.url}</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-zinc-500">{formatBytes(file.size)}</span>
-                    {file.id ? <button type="button" onClick={() => deleteProductFile(file.id!)} className="chip border-rose-200 text-rose-700 hover:bg-rose-50"><Trash2 size={14} />حذف</button> : null}
+                    <span className="text-xs text-ink-faint">{formatBytes(file.size)}</span>
+                    {file.id ? <button type="button" onClick={() => deleteProductFile(file.id!)} className="chip border-accent-danger/30 text-accent-danger hover:bg-accent-danger-soft"><Trash2 size={14} />حذف</button> : null}
                   </div>
                 </div>
               ))}</div>
             </div>
           </div>
           <div className="space-y-6">
-            <div className="panel p-6 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
-              <h3 className="text-2xl font-black text-zinc-950">المنتجات بحسب الصف</h3>
-              <div className="mt-5 space-y-4">{groupedProducts.map((group) => <div key={group.grade} className="rounded-[1.5rem] border border-qatar-100 p-4"><div className="flex items-center justify-between gap-4"><h4 className="font-black text-zinc-950">{group.grade}</h4><span className="rounded-full bg-qatar-50 px-3 py-1 text-xs font-bold text-qatar-800">{group.items.length} منتج</span></div><div className="mt-3 space-y-2">{group.items.slice(0, 5).map((product) => <div key={product.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-zinc-50 px-3 py-2 text-sm"><div className="min-w-0"><p className="truncate font-semibold text-zinc-900">{product.title}</p><p className="text-xs text-zinc-500">{product.subject} · {product.status}</p></div><div className="flex items-center gap-2"><span className="shrink-0 font-black text-qatar-800">{currencyLabel(product.price)}</span><button type="button" onClick={() => startEditProduct(product)} className="chip py-1.5"><PencilLine size={14} />تعديل</button><button type="button" onClick={() => deleteProduct(product.id)} className="chip py-1.5 border-rose-200 text-rose-700 hover:bg-rose-50"><Trash2 size={14} />حذف</button></div></div>)}</div></div>)}</div>
+            <div className="card p-6 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
+              <h3 className="text-2xl font-bold text-ink">المنتجات بحسب الصف</h3>
+              <div className="mt-5 space-y-4">{groupedProducts.map((group) => <div key={group.grade} className="rounded-md border border-brand/15 p-4"><div className="flex items-center justify-between gap-4"><h4 className="font-bold text-ink">{group.grade}</h4><span className="rounded-full bg-brand-soft px-3 py-1 text-xs font-bold text-brand-deep">{group.items.length} منتج</span></div><div className="mt-3 space-y-2">{group.items.slice(0, 5).map((product) => <div key={product.id} className="flex flex-wrap items-center justify-between gap-3 rounded-md bg-paper-deep/60 px-3 py-2 text-sm"><div className="min-w-0"><p className="truncate font-semibold text-ink">{product.title}</p><p className="text-xs text-ink-faint">{product.subject} · {product.status}</p></div><div className="flex items-center gap-2"><span className="shrink-0 font-bold text-brand-deep">{currencyLabel(product.price)}</span><button type="button" onClick={() => startEditProduct(product)} className="chip py-1.5"><PencilLine size={14} />تعديل</button><button type="button" onClick={() => deleteProduct(product.id)} className="chip py-1.5 border-accent-danger/30 text-accent-danger hover:bg-accent-danger-soft"><Trash2 size={14} />حذف</button></div></div>)}</div></div>)}</div>
             </div>
-            <div className="panel p-6 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
-              <h3 className="text-xl font-black text-zinc-950">المرفقات</h3>
-              <p className="mt-2 text-sm leading-7 text-zinc-600">ارفع ملفات المنتج بصيغ {describeAllowedPrivateUploads()}، وسيتم ربطها بالمنتج فور الحفظ مع فحص النوع والحجم على الخادم.</p>
-              <label className="mt-4 block rounded-[1.5rem] border-2 border-dashed border-qatar-200 bg-qatar-50/40 p-6 text-center transition hover:border-qatar-300 hover:bg-qatar-50">
-                <UploadCloud className="mx-auto text-qatar-700" size={28} />
-                <span className="mt-3 block text-sm font-semibold text-zinc-800">اضغط أو اسحب الملفات هنا</span>
+            <div className="card p-6 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
+              <h3 className="text-xl font-bold text-ink">المرفقات</h3>
+              <p className="mt-2 text-sm leading-7 text-ink-soft">ارفع ملفات المنتج بصيغ {describeAllowedPrivateUploads()}، وسيتم ربطها بالمنتج فور الحفظ مع فحص النوع والحجم على الخادم.</p>
+              <label className="mt-4 block rounded-md border-2 border-dashed border-brand/20 bg-brand-soft/40 p-6 text-center transition hover:border-brand/30 hover:bg-brand-soft">
+                <UploadCloud className="mx-auto text-brand-deep" size={28} />
+                <span className="mt-3 block text-sm font-semibold text-ink">اضغط أو اسحب الملفات هنا</span>
                 <input ref={fileInputRef} type="file" multiple accept={PRIVATE_UPLOAD_ACCEPT} onChange={(e) => uploadFiles(e.target.files)} className="hidden" />
               </label>
             </div>
@@ -1510,74 +1510,74 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
 
       {tab === "grades" ? (
         <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
-          <div className="panel space-y-5 p-6 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
-            <div className="flex items-center justify-between gap-4"><div><h3 className="text-2xl font-black text-zinc-950">{editingGradeId ? "تعديل صف" : "إضافة صف جديد"}</h3><p className="mt-1 text-sm text-zinc-500">إدارة الصفوف منفصلة حتى لا تختلط المنتجات بين المراحل.</p></div>{editingGradeId ? <button type="button" onClick={resetGradeForm} className="chip">إلغاء التعديل</button> : null}</div>
-            <label className="block space-y-2"><span className="text-sm font-semibold text-zinc-700">اسم الصف</span><input className="input" value={gradeForm.name} onChange={(e) => setGradeForm((c) => ({ ...c, name: e.target.value }))} placeholder="الصف السابع" /></label>
-            <label className="block space-y-2"><span className="text-sm font-semibold text-zinc-700">الترتيب</span><input className="input" type="number" value={gradeForm.sortOrder} onChange={(e) => setGradeForm((c) => ({ ...c, sortOrder: Number(e.target.value) }))} /></label>
+          <div className="card space-y-5 p-6 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
+            <div className="flex items-center justify-between gap-4"><div><h3 className="text-2xl font-bold text-ink">{editingGradeId ? "تعديل صف" : "إضافة صف جديد"}</h3><p className="mt-1 text-sm text-ink-faint">إدارة الصفوف منفصلة حتى لا تختلط المنتجات بين المراحل.</p></div>{editingGradeId ? <button type="button" onClick={resetGradeForm} className="chip">إلغاء التعديل</button> : null}</div>
+            <label className="block space-y-2"><span className="text-sm font-semibold text-ink-soft">اسم الصف</span><input className="input" value={gradeForm.name} onChange={(e) => setGradeForm((c) => ({ ...c, name: e.target.value }))} placeholder="الصف السابع" /></label>
+            <label className="block space-y-2"><span className="text-sm font-semibold text-ink-soft">الترتيب</span><input className="input" type="number" value={gradeForm.sortOrder} onChange={(e) => setGradeForm((c) => ({ ...c, sortOrder: Number(e.target.value) }))} /></label>
             <div className="flex gap-3"><button type="button" disabled={busy} onClick={saveGrade} className="btn-primary disabled:opacity-60"><PlusCircle size={16} />{editingGradeId ? "حفظ التعديلات" : "حفظ الصف"}</button><button type="button" onClick={resetGradeForm} className="btn-secondary">إعادة ضبط</button></div>
           </div>
           <div className="space-y-6">
-            <div className="panel space-y-5 p-6 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
-              <div className="flex items-center justify-between gap-4"><div><h3 className="text-2xl font-black text-zinc-950">{editingSubjectId ? "تعديل مادة" : "إضافة مادة جديدة"}</h3><p className="mt-1 text-sm text-zinc-500">اختر الصف ثم أضف المادة التي تتبعه.</p></div>{editingSubjectId ? <button type="button" onClick={resetSubjectForm} className="chip">إلغاء التعديل</button> : null}</div>
-              <label className="block space-y-2"><span className="text-sm font-semibold text-zinc-700">الصف</span><select className="input" value={subjectForm.gradeId} onChange={(e) => setSubjectForm((c) => ({ ...c, gradeId: e.target.value }))}>{catalog.map((item) => <option key={item.id} value={item.id}>{item.grade}</option>)}</select></label>
-              <label className="block space-y-2"><span className="text-sm font-semibold text-zinc-700">اسم المادة</span><input className="input" value={subjectForm.name} onChange={(e) => setSubjectForm((c) => ({ ...c, name: e.target.value }))} placeholder="اللغة العربية" /></label>
+            <div className="card space-y-5 p-6 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
+              <div className="flex items-center justify-between gap-4"><div><h3 className="text-2xl font-bold text-ink">{editingSubjectId ? "تعديل مادة" : "إضافة مادة جديدة"}</h3><p className="mt-1 text-sm text-ink-faint">اختر الصف ثم أضف المادة التي تتبعه.</p></div>{editingSubjectId ? <button type="button" onClick={resetSubjectForm} className="chip">إلغاء التعديل</button> : null}</div>
+              <label className="block space-y-2"><span className="text-sm font-semibold text-ink-soft">الصف</span><select className="input" value={subjectForm.gradeId} onChange={(e) => setSubjectForm((c) => ({ ...c, gradeId: e.target.value }))}>{catalog.map((item) => <option key={item.id} value={item.id}>{item.grade}</option>)}</select></label>
+              <label className="block space-y-2"><span className="text-sm font-semibold text-ink-soft">اسم المادة</span><input className="input" value={subjectForm.name} onChange={(e) => setSubjectForm((c) => ({ ...c, name: e.target.value }))} placeholder="اللغة العربية" /></label>
               <label className="block space-y-2">
-                <span className="text-sm font-semibold text-zinc-700">الشعار المتحرك للمادة</span>
+                <span className="text-sm font-semibold text-ink-soft">الشعار المتحرك للمادة</span>
                 <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-center">
                   <input className="input" value={subjectForm.motionLogo} onChange={(e) => setSubjectForm((c) => ({ ...c, motionLogo: e.target.value }))} placeholder="/uploads/subject-logo.gif" />
-                  <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-2xl border border-qatar-200 bg-white px-4 py-3 text-sm font-semibold text-qatar-800 transition hover:bg-qatar-50">
+                  <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-md border border-brand/20 bg-white px-4 py-3 text-sm font-semibold text-brand-deep transition hover:bg-brand-soft">
                     <Sparkles size={16} /> رفع شعار
                     <input type="file" accept={PUBLIC_IMAGE_ACCEPT} className="hidden" onChange={(e) => uploadSubjectMotionLogo(e.target.files?.[0] ?? null)} />
                   </label>
                 </div>
                 {subjectForm.motionLogo ? (
-                  <div className="mt-3 inline-flex items-center gap-3 rounded-2xl border border-qatar-100 bg-qatar-50/60 p-3">
-                    <img src={subjectForm.motionLogo} alt="معاينة شعار المادة" className="h-14 w-14 rounded-xl object-cover shadow-sm" />
-                    <span className="text-xs font-bold leading-6 text-qatar-800">سيظهر هذا الشعار فوق كروت المنتجات الخاصة بهذه المادة.</span>
+                  <div className="mt-3 inline-flex items-center gap-3 rounded-md border border-brand/15 bg-brand-soft/60 p-3">
+                    <img src={subjectForm.motionLogo} alt="معاينة شعار المادة" className="h-14 w-14 rounded-md object-cover shadow-soft" />
+                    <span className="text-xs font-bold leading-6 text-brand-deep">سيظهر هذا الشعار فوق كروت المنتجات الخاصة بهذه المادة.</span>
                   </div>
                 ) : null}
               </label>
-              <label className="block space-y-2"><span className="text-sm font-semibold text-zinc-700">الترتيب</span><input className="input" type="number" value={subjectForm.sortOrder} onChange={(e) => setSubjectForm((c) => ({ ...c, sortOrder: Number(e.target.value) }))} /></label>
+              <label className="block space-y-2"><span className="text-sm font-semibold text-ink-soft">الترتيب</span><input className="input" type="number" value={subjectForm.sortOrder} onChange={(e) => setSubjectForm((c) => ({ ...c, sortOrder: Number(e.target.value) }))} /></label>
               <div className="flex gap-3"><button type="button" disabled={busy} onClick={saveSubject} className="btn-primary disabled:opacity-60"><PlusCircle size={16} />{editingSubjectId ? "حفظ التعديلات" : "حفظ المادة"}</button><button type="button" onClick={resetSubjectForm} className="btn-secondary">إعادة ضبط</button></div>
             </div>
-            <div className="space-y-4">{catalog.map((item) => <div key={item.id} className="rounded-[1.5rem] border border-qatar-100 bg-white p-5 shadow-[0_18px_50px_rgba(15,23,42,0.04)]"><div className="flex items-center justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-[0.22em] text-qatar-700">صف</p><h4 className="mt-1 text-lg font-black text-zinc-950">{item.grade}</h4></div><div className="flex gap-2"><button type="button" onClick={() => startEditGrade(item)} className="chip"><PencilLine size={15} />تعديل</button><button type="button" onClick={() => deleteGrade(item.id)} className="chip border-rose-200 text-rose-700 hover:bg-rose-50"><Trash2 size={15} />حذف</button></div></div><div className="mt-4 flex flex-wrap gap-2">{item.subjects.map((subject) => <div key={subject.id} className="inline-flex items-center gap-2 rounded-full bg-qatar-50 px-3 py-2 text-sm font-semibold text-qatar-800">{subject.motionLogo ? <img src={subject.motionLogo} alt="" className="h-7 w-7 rounded-full border border-white object-cover shadow-sm" /> : null}<span>{subject.name}</span><button type="button" onClick={() => startEditSubject(item.id, subject)} className="rounded-full bg-white p-1 text-qatar-700"><PencilLine size={12} /></button><button type="button" onClick={() => deleteSubject(subject.id)} className="rounded-full bg-white p-1 text-rose-700"><Trash2 size={12} /></button></div>)}</div></div>)}</div>
+            <div className="space-y-4">{catalog.map((item) => <div key={item.id} className="rounded-md border border-brand/15 bg-white p-5 shadow-[0_18px_50px_rgba(15,23,42,0.04)]"><div className="flex items-center justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-[0.22em] text-brand-deep">صف</p><h4 className="mt-1 text-lg font-bold text-ink">{item.grade}</h4></div><div className="flex gap-2"><button type="button" onClick={() => startEditGrade(item)} className="chip"><PencilLine size={15} />تعديل</button><button type="button" onClick={() => deleteGrade(item.id)} className="chip border-accent-danger/30 text-accent-danger hover:bg-accent-danger-soft"><Trash2 size={15} />حذف</button></div></div><div className="mt-4 flex flex-wrap gap-2">{item.subjects.map((subject) => <div key={subject.id} className="inline-flex items-center gap-2 rounded-full bg-brand-soft px-3 py-2 text-sm font-semibold text-brand-deep">{subject.motionLogo ? <img src={subject.motionLogo} alt="" className="h-7 w-7 rounded-full border border-white object-cover shadow-soft" /> : null}<span>{subject.name}</span><button type="button" onClick={() => startEditSubject(item.id, subject)} className="rounded-full bg-white p-1 text-brand-deep"><PencilLine size={12} /></button><button type="button" onClick={() => deleteSubject(subject.id)} className="rounded-full bg-white p-1 text-accent-danger"><Trash2 size={12} /></button></div>)}</div></div>)}</div>
           </div>
         </div>
       ) : null}
 
       {tab === "pages" ? (
         <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
-          <div className="panel space-y-5 p-6 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
-            <div className="flex items-center justify-between gap-4"><div><h3 className="text-2xl font-black text-zinc-950">{editingPageId ? "تعديل صفحة مادة" : "إنشاء صفحة مادة"}</h3><p className="mt-1 text-sm text-zinc-500">كل صفحة تُربط بالصف والمادة المحددين تلقائيًا.</p></div>{editingPageId ? <button type="button" onClick={resetPageForm} className="chip">إلغاء التعديل</button> : null}</div>
-            <div className="grid gap-4 sm:grid-cols-2"><label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">الصف</span><select className="input" value={pageForm.grade} onChange={(e) => setPageForm((c) => ({ ...c, grade: e.target.value, subject: catalog.find((g) => g.grade === e.target.value)?.subjects[0]?.name ?? c.subject }))}>{gradeOptions.map((item) => <option key={item} value={item}>{item}</option>)}</select></label><label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">المادة</span><select className="input" value={pageForm.subject} onChange={(e) => setPageForm((c) => ({ ...c, subject: e.target.value }))}>{subjectsForPage.map((item) => <option key={item} value={item}>{item}</option>)}</select></label></div>
-            <label className="block space-y-2"><span className="text-sm font-semibold text-zinc-700">عنوان الصفحة</span><input className="input" value={pageForm.title} onChange={(e) => setPageForm((c) => ({ ...c, title: e.target.value }))} /></label>
-            <label className="block space-y-2"><span className="text-sm font-semibold text-zinc-700">عنوان البطل</span><input className="input" value={pageForm.heroLabel} onChange={(e) => setPageForm((c) => ({ ...c, heroLabel: e.target.value }))} /></label>
-            <label className="block space-y-2"><span className="text-sm font-semibold text-zinc-700">التمهيد</span><textarea className="textarea" value={pageForm.intro} onChange={(e) => setPageForm((c) => ({ ...c, intro: e.target.value }))} /></label>
-            <label className="block space-y-2"><span className="text-sm font-semibold text-zinc-700">النص التفصيلي</span><textarea className="textarea" value={pageForm.body} onChange={(e) => setPageForm((c) => ({ ...c, body: e.target.value }))} /></label>
-            <label className="inline-flex items-center gap-3 text-sm font-semibold text-zinc-700"><input type="checkbox" checked={pageForm.published} onChange={(e) => setPageForm((c) => ({ ...c, published: e.target.checked }))} />منشورة</label>
+          <div className="card space-y-5 p-6 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
+            <div className="flex items-center justify-between gap-4"><div><h3 className="text-2xl font-bold text-ink">{editingPageId ? "تعديل صفحة مادة" : "إنشاء صفحة مادة"}</h3><p className="mt-1 text-sm text-ink-faint">كل صفحة تُربط بالصف والمادة المحددين تلقائيًا.</p></div>{editingPageId ? <button type="button" onClick={resetPageForm} className="chip">إلغاء التعديل</button> : null}</div>
+            <div className="grid gap-4 sm:grid-cols-2"><label className="space-y-2"><span className="text-sm font-semibold text-ink-soft">الصف</span><select className="input" value={pageForm.grade} onChange={(e) => setPageForm((c) => ({ ...c, grade: e.target.value, subject: catalog.find((g) => g.grade === e.target.value)?.subjects[0]?.name ?? c.subject }))}>{gradeOptions.map((item) => <option key={item} value={item}>{item}</option>)}</select></label><label className="space-y-2"><span className="text-sm font-semibold text-ink-soft">المادة</span><select className="input" value={pageForm.subject} onChange={(e) => setPageForm((c) => ({ ...c, subject: e.target.value }))}>{subjectsForPage.map((item) => <option key={item} value={item}>{item}</option>)}</select></label></div>
+            <label className="block space-y-2"><span className="text-sm font-semibold text-ink-soft">عنوان الصفحة</span><input className="input" value={pageForm.title} onChange={(e) => setPageForm((c) => ({ ...c, title: e.target.value }))} /></label>
+            <label className="block space-y-2"><span className="text-sm font-semibold text-ink-soft">عنوان البطل</span><input className="input" value={pageForm.heroLabel} onChange={(e) => setPageForm((c) => ({ ...c, heroLabel: e.target.value }))} /></label>
+            <label className="block space-y-2"><span className="text-sm font-semibold text-ink-soft">التمهيد</span><textarea className="textarea" value={pageForm.intro} onChange={(e) => setPageForm((c) => ({ ...c, intro: e.target.value }))} /></label>
+            <label className="block space-y-2"><span className="text-sm font-semibold text-ink-soft">النص التفصيلي</span><textarea className="textarea" value={pageForm.body} onChange={(e) => setPageForm((c) => ({ ...c, body: e.target.value }))} /></label>
+            <label className="inline-flex items-center gap-3 text-sm font-semibold text-ink-soft"><input type="checkbox" checked={pageForm.published} onChange={(e) => setPageForm((c) => ({ ...c, published: e.target.checked }))} />منشورة</label>
             <div className="flex flex-wrap gap-3"><button type="button" disabled={busy} onClick={savePage} className="btn-primary disabled:opacity-60"><PlusCircle size={16} />{editingPageId ? "حفظ التعديلات" : "حفظ الصفحة"}</button><button type="button" onClick={resetPageForm} className="btn-secondary">إعادة ضبط</button></div>
           </div>
-          <div className="panel p-6 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
-            <h3 className="text-2xl font-black text-zinc-950">الصفحات المنشأة</h3>
-            <div className="mt-5 space-y-3">{pages.map((page) => <div key={page.id} className="rounded-[1.5rem] border border-qatar-100 bg-white p-4 shadow-[0_10px_24px_rgba(15,23,42,0.03)]"><div className="flex flex-wrap items-start justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-[0.2em] text-qatar-700">{page.grade}</p><h4 className="mt-1 text-lg font-black text-zinc-950">{page.title}</h4><p className="mt-1 text-sm text-zinc-500">{page.subject}</p></div><div className="flex gap-2"><button type="button" onClick={() => startEditPage(page)} className="chip"><PencilLine size={14} />تعديل</button><button type="button" onClick={() => deletePage(page.id)} className="chip border-rose-200 text-rose-700 hover:bg-rose-50"><Trash2 size={14} />حذف</button></div></div><p className="mt-3 line-clamp-2 text-sm leading-7 text-zinc-600">{page.intro}</p></div>)}</div>
+          <div className="card p-6 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
+            <h3 className="text-2xl font-bold text-ink">الصفحات المنشأة</h3>
+            <div className="mt-5 space-y-3">{pages.map((page) => <div key={page.id} className="rounded-md border border-brand/15 bg-white p-4 shadow-[0_10px_24px_rgba(15,23,42,0.03)]"><div className="flex flex-wrap items-start justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-[0.2em] text-brand-deep">{page.grade}</p><h4 className="mt-1 text-lg font-bold text-ink">{page.title}</h4><p className="mt-1 text-sm text-ink-faint">{page.subject}</p></div><div className="flex gap-2"><button type="button" onClick={() => startEditPage(page)} className="chip"><PencilLine size={14} />تعديل</button><button type="button" onClick={() => deletePage(page.id)} className="chip border-accent-danger/30 text-accent-danger hover:bg-accent-danger-soft"><Trash2 size={14} />حذف</button></div></div><p className="mt-3 line-clamp-2 text-sm leading-7 text-ink-soft">{page.intro}</p></div>)}</div>
           </div>
         </div>
       ) : null}
 
       {tab === "uploads" ? (
         <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
-          <div className="panel p-6 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
-            <h3 className="text-2xl font-black text-zinc-950">رفع الملفات</h3>
-            <p className="mt-2 text-sm leading-7 text-zinc-600">ارفع ملفات {describeAllowedPrivateUploads()} حتى {formatBytes(MAX_UPLOAD_BYTES)} لكل ملف. يتم حفظ ملفات البيع داخل مساحة خاصة، وتبقى الصور فقط قابلة للعرض كأغلفة.</p>
-            <label className="mt-5 block rounded-[1.5rem] border-2 border-dashed border-qatar-200 bg-qatar-50/40 p-8 text-center transition hover:border-qatar-300 hover:bg-qatar-50">
-              <UploadCloud className="mx-auto text-qatar-700" size={28} />
-              <span className="mt-3 block text-sm font-semibold text-zinc-800">اضغط أو اسحب الملفات هنا</span>
+          <div className="card p-6 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
+            <h3 className="text-2xl font-bold text-ink">رفع الملفات</h3>
+            <p className="mt-2 text-sm leading-7 text-ink-soft">ارفع ملفات {describeAllowedPrivateUploads()} حتى {formatBytes(MAX_UPLOAD_BYTES)} لكل ملف. يتم حفظ ملفات البيع داخل مساحة خاصة، وتبقى الصور فقط قابلة للعرض كأغلفة.</p>
+            <label className="mt-5 block rounded-md border-2 border-dashed border-brand/20 bg-brand-soft/40 p-8 text-center transition hover:border-brand/30 hover:bg-brand-soft">
+              <UploadCloud className="mx-auto text-brand-deep" size={28} />
+              <span className="mt-3 block text-sm font-semibold text-ink">اضغط أو اسحب الملفات هنا</span>
               <input ref={fileInputRef} type="file" multiple accept={PRIVATE_UPLOAD_ACCEPT} onChange={(e) => uploadFiles(e.target.files)} className="hidden" />
             </label>
           </div>
-          <div className="panel p-6 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
-            <h3 className="text-2xl font-black text-zinc-950">الملفات الجاهزة</h3>
-            <div className="mt-4 space-y-2">{uploadedFiles.map((file) => <div key={file.url} className="flex items-center justify-between rounded-2xl bg-zinc-50 px-4 py-3"><div><p className="font-semibold text-zinc-950">{file.title}</p><p className="text-xs text-zinc-500">{file.url}</p></div><span className="text-xs text-zinc-500">{formatBytes(file.size)}</span></div>)}</div>
+          <div className="card p-6 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
+            <h3 className="text-2xl font-bold text-ink">الملفات الجاهزة</h3>
+            <div className="mt-4 space-y-2">{uploadedFiles.map((file) => <div key={file.url} className="flex items-center justify-between rounded-md bg-paper-deep/60 px-4 py-3"><div><p className="font-semibold text-ink">{file.title}</p><p className="text-xs text-ink-faint">{file.url}</p></div><span className="text-xs text-ink-faint">{formatBytes(file.size)}</span></div>)}</div>
           </div>
         </div>
       ) : null}
@@ -1587,9 +1587,9 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
       ) : null}
 
       {tab === "pricing" ? (
-        <div className="panel p-6 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
-          <div className="flex flex-wrap items-center justify-between gap-4"><div><h3 className="text-2xl font-black text-zinc-950">التسعير السريع</h3><p className="mt-2 text-sm leading-7 text-zinc-600">عدل الأسعار واحفظ المنتجات المميزة ورتب ظهورها دون الدخول في كل منتج على حدة.</p></div><div className="rounded-full bg-qatar-50 px-4 py-2 text-xs font-bold text-qatar-800">إجمالي المنتجات: {localProducts.length}</div></div>
-          <div className="mt-5 space-y-4">{localProducts.map((product) => { const draft = priceDrafts[product.id] ?? { price: String(product.price), compareAt: product.compareAt ? String(product.compareAt) : "", featured: product.featured, status: product.status, sortOrder: String(product.sortOrder ?? 0) }; return <div key={product.id} className="grid gap-3 rounded-[1.5rem] border border-qatar-100 p-4 lg:grid-cols-[1fr_120px_120px_120px_120px_auto] lg:items-center"><div><p className="font-bold text-zinc-950">{product.title}</p><p className="text-sm text-zinc-500">{product.grade} · {product.subject}</p></div><input className="input" type="number" value={draft.price} onChange={(e) => setPriceDrafts((c) => ({ ...c, [product.id]: { ...draft, price: e.target.value } }))} /><input className="input" type="number" value={draft.compareAt} onChange={(e) => setPriceDrafts((c) => ({ ...c, [product.id]: { ...draft, compareAt: e.target.value } }))} placeholder="السعر السابق" /><input className="input" value={draft.sortOrder} onChange={(e) => setPriceDrafts((c) => ({ ...c, [product.id]: { ...draft, sortOrder: e.target.value } }))} placeholder="الترتيب" /><button type="button" onClick={() => setPriceDrafts((c) => ({ ...c, [product.id]: { ...draft, featured: !draft.featured } }))} className={`chip justify-center ${draft.featured ? "border-qatar-300 bg-qatar-50 text-qatar-800" : ""}`}>{draft.featured ? "مميز" : "عادي"}</button><button type="button" disabled={busy} onClick={() => savePrice(product.id)} className="btn-primary h-11 justify-center disabled:opacity-60">حفظ</button></div>; })}</div>
+        <div className="card p-6 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
+          <div className="flex flex-wrap items-center justify-between gap-4"><div><h3 className="text-2xl font-bold text-ink">التسعير السريع</h3><p className="mt-2 text-sm leading-7 text-ink-soft">عدل الأسعار واحفظ المنتجات المميزة ورتب ظهورها دون الدخول في كل منتج على حدة.</p></div><div className="rounded-full bg-brand-soft px-4 py-2 text-xs font-bold text-brand-deep">إجمالي المنتجات: {localProducts.length}</div></div>
+          <div className="mt-5 space-y-4">{localProducts.map((product) => { const draft = priceDrafts[product.id] ?? { price: String(product.price), compareAt: product.compareAt ? String(product.compareAt) : "", featured: product.featured, status: product.status, sortOrder: String(product.sortOrder ?? 0) }; return <div key={product.id} className="grid gap-3 rounded-md border border-brand/15 p-4 lg:grid-cols-[1fr_120px_120px_120px_120px_auto] lg:items-center"><div><p className="font-bold text-ink">{product.title}</p><p className="text-sm text-ink-faint">{product.grade} · {product.subject}</p></div><input className="input" type="number" value={draft.price} onChange={(e) => setPriceDrafts((c) => ({ ...c, [product.id]: { ...draft, price: e.target.value } }))} /><input className="input" type="number" value={draft.compareAt} onChange={(e) => setPriceDrafts((c) => ({ ...c, [product.id]: { ...draft, compareAt: e.target.value } }))} placeholder="السعر السابق" /><input className="input" value={draft.sortOrder} onChange={(e) => setPriceDrafts((c) => ({ ...c, [product.id]: { ...draft, sortOrder: e.target.value } }))} placeholder="الترتيب" /><button type="button" onClick={() => setPriceDrafts((c) => ({ ...c, [product.id]: { ...draft, featured: !draft.featured } }))} className={`chip justify-center ${draft.featured ? "border-brand/30 bg-brand-soft text-brand-deep" : ""}`}>{draft.featured ? "مميز" : "عادي"}</button><button type="button" disabled={busy} onClick={() => savePrice(product.id)} className="btn-primary h-11 justify-center disabled:opacity-60">حفظ</button></div>; })}</div>
         </div>
       ) : null}
 
@@ -1613,33 +1613,33 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
               { label: "إيميلات وافقت", value: adminStats.totals.consentedEmails },
               { label: "روابط Drive", value: adminStats.totals.driveConnections }
             ].map((item) => (
-              <div key={item.label} className="rounded-lg border border-qatar-100 bg-white p-4 shadow-[0_12px_30px_rgba(15,23,42,0.04)]">
-                <p className="text-xs font-bold text-zinc-500">{item.label}</p>
-                <p className="mt-2 text-2xl font-black text-qatar-800">{item.value}</p>
+              <div key={item.label} className="rounded-sm border border-brand/15 bg-white p-4 shadow-[0_12px_30px_rgba(15,23,42,0.04)]">
+                <p className="text-xs font-bold text-ink-faint">{item.label}</p>
+                <p className="mt-2 text-2xl font-bold text-brand-deep">{item.value}</p>
               </div>
             ))}
           </div>
 
           <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
-            <div className="panel p-6 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
+            <div className="card p-6 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
-                  <h3 className="text-2xl font-black text-zinc-950">تحليلات المبيعات</h3>
-                  <p className="mt-1 text-sm text-zinc-500">رسم بياني مبسط لآخر 30 يومًا وآخر 12 شهرًا.</p>
+                  <h3 className="text-2xl font-bold text-ink">تحليلات المبيعات</h3>
+                  <p className="mt-1 text-sm text-ink-faint">رسم بياني مبسط لآخر 30 يومًا وآخر 12 شهرًا.</p>
                 </div>
                 <a href="/api/admin/orders/export" className="btn-secondary">تصدير CSV</a>
               </div>
               <div className="mt-6 space-y-6">
                 <div>
-                  <div className="mb-2 flex items-center justify-between text-sm font-bold text-zinc-700">
+                  <div className="mb-2 flex items-center justify-between text-sm font-bold text-ink-soft">
                     <span>آخر 30 يومًا</span>
                     <span>{currencyLabel(adminStats.salesSeries.daily.reduce((sum, item) => sum + item.revenue, 0))}</span>
                   </div>
-                  <div className="flex h-40 items-end gap-1 rounded-lg border border-qatar-100 bg-qatar-50 p-3">
+                  <div className="flex h-40 items-end gap-1 rounded-sm border border-brand/15 bg-brand-soft p-3">
                     {adminStats.salesSeries.daily.map((item) => (
                       <div key={item.label} className="group relative flex flex-1 items-end justify-center">
-                        <div className="w-full rounded-t bg-qatar-700/80 transition group-hover:bg-qatar-900" style={{ height: `${Math.max(3, (item.revenue / dailySalesMax) * 100)}%` }} />
-                        <span className="pointer-events-none absolute bottom-full mb-2 hidden rounded-md bg-zinc-950 px-2 py-1 text-[10px] font-bold text-white group-hover:block">
+                        <div className="w-full rounded-t bg-brand/80 transition group-hover:bg-brand-deep" style={{ height: `${Math.max(3, (item.revenue / dailySalesMax) * 100)}%` }} />
+                        <span className="pointer-events-none absolute bottom-full mb-2 hidden rounded-md bg-ink-deep px-2 py-1 text-[10px] font-bold text-white group-hover:block">
                           {item.label}: {currencyLabel(item.revenue)}
                         </span>
                       </div>
@@ -1647,15 +1647,15 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
                   </div>
                 </div>
                 <div>
-                  <div className="mb-2 flex items-center justify-between text-sm font-bold text-zinc-700">
+                  <div className="mb-2 flex items-center justify-between text-sm font-bold text-ink-soft">
                     <span>آخر 12 شهرًا</span>
                     <span>{currencyLabel(adminStats.salesSeries.monthly.reduce((sum, item) => sum + item.revenue, 0))}</span>
                   </div>
-                  <div className="flex h-36 items-end gap-2 rounded-lg border border-emerald-100 bg-emerald-50 p-3">
+                  <div className="flex h-36 items-end gap-2 rounded-sm border border-accent-teal/20 bg-accent-teal-soft p-3">
                     {adminStats.salesSeries.monthly.map((item) => (
                       <div key={item.label} className="group relative flex flex-1 flex-col items-center justify-end gap-1">
-                        <div className="w-full rounded-t bg-emerald-700/80 transition group-hover:bg-emerald-900" style={{ height: `${Math.max(3, (item.revenue / monthlySalesMax) * 100)}%` }} />
-                        <span className="text-[10px] font-bold text-emerald-900">{item.label.slice(5)}</span>
+                        <div className="w-full rounded-t bg-accent-teal/80 transition group-hover:bg-accent-teal" style={{ height: `${Math.max(3, (item.revenue / monthlySalesMax) * 100)}%` }} />
+                        <span className="text-[10px] font-bold text-ink">{item.label.slice(5)}</span>
                       </div>
                     ))}
                   </div>
@@ -1663,38 +1663,38 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
               </div>
             </div>
 
-            <div className="panel p-6 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
-              <h3 className="text-2xl font-black text-zinc-950">أكثر المنتجات مبيعًا</h3>
+            <div className="card p-6 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
+              <h3 className="text-2xl font-bold text-ink">أكثر المنتجات مبيعًا</h3>
               <div className="mt-5 space-y-3">
                 {adminStats.topProducts.map((product, index) => (
-                  <div key={product.title} className="rounded-lg border border-qatar-100 bg-white p-4">
+                  <div key={product.title} className="rounded-sm border border-brand/15 bg-white p-4">
                     <div className="flex items-center justify-between gap-3">
                       <div>
-                        <p className="text-xs font-black text-qatar-700">#{index + 1}</p>
-                        <p className="mt-1 font-bold text-zinc-950">{product.title}</p>
-                        <p className="text-xs text-zinc-500">{product.quantity} مبيعات</p>
+                        <p className="text-xs font-bold text-brand-deep">#{index + 1}</p>
+                        <p className="mt-1 font-bold text-ink">{product.title}</p>
+                        <p className="text-xs text-ink-faint">{product.quantity} مبيعات</p>
                       </div>
-                      <p className="font-black text-qatar-800">{currencyLabel(product.revenue)}</p>
+                      <p className="font-bold text-brand-deep">{currencyLabel(product.revenue)}</p>
                     </div>
                   </div>
                 ))}
-                {!adminStats.topProducts.length ? <p className="rounded-lg border border-dashed border-zinc-300 p-6 text-center text-sm text-zinc-500">لا توجد مبيعات مدفوعة بعد.</p> : null}
+                {!adminStats.topProducts.length ? <p className="rounded-sm border border-dashed border-line p-6 text-center text-sm text-ink-faint">لا توجد مبيعات مدفوعة بعد.</p> : null}
               </div>
             </div>
           </div>
 
           <div className="grid gap-6 xl:grid-cols-[0.85fr_1.15fr]">
-            <div className="panel p-6 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
-              <h3 className="text-2xl font-black text-zinc-950">الإيميلات والعملاء</h3>
+            <div className="card p-6 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
+              <h3 className="text-2xl font-bold text-ink">الإيميلات والعملاء</h3>
               <div className="mt-5 space-y-3">
                 {adminStats.customers.map((customer) => (
-                  <div key={customer.email} className="rounded-lg border border-qatar-100 bg-white px-4 py-3">
+                  <div key={customer.email} className="rounded-sm border border-brand/15 bg-white px-4 py-3">
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div>
-                        <p className="font-bold text-zinc-950">{customer.email}</p>
-                        <p className="text-xs text-zinc-500">{customer.orders} طلب · {currencyLabel(customer.total)}</p>
+                        <p className="font-bold text-ink">{customer.email}</p>
+                        <p className="text-xs text-ink-faint">{customer.orders} طلب · {currencyLabel(customer.total)}</p>
                       </div>
-                      <span className={`rounded-full px-3 py-1 text-xs font-black ${customer.consented ? "bg-emerald-50 text-emerald-700" : "bg-zinc-100 text-zinc-500"}`}>
+                      <span className={`rounded-full px-3 py-1 text-xs font-bold ${customer.consented ? "bg-accent-teal-soft text-accent-teal" : "bg-paper-deep/60 text-ink-faint"}`}>
                         {customer.consented ? "وافق على الحفظ" : "بدون موافقة"}
                       </span>
                     </div>
@@ -1703,32 +1703,32 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
               </div>
             </div>
 
-            <div className="panel p-6 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
-              <h3 className="text-2xl font-black text-zinc-950">آخر عمليات الشراء</h3>
+            <div className="card p-6 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
+              <h3 className="text-2xl font-bold text-ink">آخر عمليات الشراء</h3>
               <div className="mt-5 space-y-3">
                 {adminStats.recentOrders.map((order) => (
-                  <div key={order.id} className="rounded-lg border border-qatar-100 bg-white p-4">
+                  <div key={order.id} className="rounded-sm border border-brand/15 bg-white p-4">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
-                        <p className="text-xs font-bold uppercase tracking-[0.16em] text-qatar-700">{dateLabel(order.createdAt)}</p>
-                        <h4 className="mt-1 font-black text-zinc-950">{order.customerName}</h4>
-                        <p className="text-sm text-zinc-500">{order.email}</p>
+                        <p className="text-xs font-bold uppercase tracking-[0.16em] text-brand-deep">{dateLabel(order.createdAt)}</p>
+                        <h4 className="mt-1 font-bold text-ink">{order.customerName}</h4>
+                        <p className="text-sm text-ink-faint">{order.email}</p>
                       </div>
                       <div className="text-left">
-                        <p className="font-black text-qatar-800">{currencyLabel(order.total)}</p>
-                        <p className="text-xs text-zinc-500">{order.paymentMethod} · {order.status}</p>
+                        <p className="font-bold text-brand-deep">{currencyLabel(order.total)}</p>
+                        <p className="text-xs text-ink-faint">{order.paymentMethod} · {order.status}</p>
                       </div>
                     </div>
                     <div className="mt-3 flex flex-wrap gap-2">
                       {order.items.map((item) => (
-                        <span key={`${order.id}-${item.productTitle}`} className="rounded-full bg-zinc-50 px-3 py-1 text-xs font-semibold text-zinc-600">
+                        <span key={`${order.id}-${item.productTitle}`} className="rounded-full bg-paper-deep/60 px-3 py-1 text-xs font-semibold text-ink-soft">
                           {item.productTitle} × {item.quantity}
                         </span>
                       ))}
                     </div>
                     <div className="mt-3 flex flex-wrap gap-2 text-xs">
-                      <span className={`rounded-full px-3 py-1 font-bold ${order.purchaseTrackingConsent ? "bg-emerald-50 text-emerald-700" : "bg-zinc-100 text-zinc-500"}`}>{order.purchaseTrackingConsent ? "حفظ مشتريات" : "لم يوافق على الحفظ"}</span>
-                      <span className={`rounded-full px-3 py-1 font-bold ${order.driveSyncConsent ? "bg-sky-50 text-sky-700" : "bg-zinc-100 text-zinc-500"}`}>{order.driveSyncConsent ? "Drive مفعل" : "Drive غير مفعل"}</span>
+                      <span className={`rounded-full px-3 py-1 font-bold ${order.purchaseTrackingConsent ? "bg-accent-teal-soft text-accent-teal" : "bg-paper-deep/60 text-ink-faint"}`}>{order.purchaseTrackingConsent ? "حفظ مشتريات" : "لم يوافق على الحفظ"}</span>
+                      <span className={`rounded-full px-3 py-1 font-bold ${order.driveSyncConsent ? "bg-paper-deep/60 text-ink-soft" : "bg-paper-deep/60 text-ink-faint"}`}>{order.driveSyncConsent ? "Drive مفعل" : "Drive غير مفعل"}</span>
                     </div>
                   </div>
                 ))}
@@ -1740,24 +1740,24 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
 
       {tab === "settings" ? (
         <div className="grid gap-6 xl:grid-cols-[1fr_0.9fr]">
-          <div className="panel p-6 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
-            <h3 className="text-2xl font-black text-zinc-950">إعدادات الموقع</h3>
-            <p className="mt-2 text-sm leading-7 text-zinc-600">هذه الإعدادات تُخزن في قاعدة البيانات وتُستخدم لاحقًا في الهوية العامة والاتصال والدفع.</p>
+          <div className="card p-6 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
+            <h3 className="text-2xl font-bold text-ink">إعدادات الموقع</h3>
+            <p className="mt-2 text-sm leading-7 text-ink-soft">هذه الإعدادات تُخزن في قاعدة البيانات وتُستخدم لاحقًا في الهوية العامة والاتصال والدفع.</p>
             <div className="mt-5 grid gap-4 sm:grid-cols-2">
-              <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">اسم الموقع</span><input className="input" value={settingsForm.brandName} onChange={(e) => setSettingsForm((c) => ({ ...c, brandName: e.target.value }))} /></label>
-              <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">البريد الداعم</span><input className="input" value={settingsForm.supportEmail} onChange={(e) => setSettingsForm((c) => ({ ...c, supportEmail: e.target.value }))} /></label>
-              <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">الهاتف</span><input className="input" value={settingsForm.supportPhone} onChange={(e) => setSettingsForm((c) => ({ ...c, supportPhone: e.target.value }))} /></label>
-              <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">واتساب</span><input className="input" value={settingsForm.whatsapp} onChange={(e) => setSettingsForm((c) => ({ ...c, whatsapp: e.target.value }))} /></label>
-              <label className="space-y-2 sm:col-span-2"><span className="text-sm font-semibold text-zinc-700">سطر التمهيد</span><input className="input" value={settingsForm.heroEyebrow} onChange={(e) => setSettingsForm((c) => ({ ...c, heroEyebrow: e.target.value }))} /></label>
-              <label className="space-y-2 sm:col-span-2"><span className="text-sm font-semibold text-zinc-700">عنوان البطل</span><input className="input" value={settingsForm.heroTitle} onChange={(e) => setSettingsForm((c) => ({ ...c, heroTitle: e.target.value }))} /></label>
-              <label className="space-y-2 sm:col-span-2"><span className="text-sm font-semibold text-zinc-700">وصف البطل</span><textarea className="textarea" value={settingsForm.heroDescription} onChange={(e) => setSettingsForm((c) => ({ ...c, heroDescription: e.target.value }))} /></label>
-              <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">زر رئيسي</span><input className="input" value={settingsForm.heroPrimaryCtaLabel} onChange={(e) => setSettingsForm((c) => ({ ...c, heroPrimaryCtaLabel: e.target.value }))} /></label>
-              <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">رابط الزر الرئيسي</span><input className="input" value={settingsForm.heroPrimaryCtaHref} onChange={(e) => setSettingsForm((c) => ({ ...c, heroPrimaryCtaHref: e.target.value }))} /></label>
-              <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">زر ثانوي</span><input className="input" value={settingsForm.heroSecondaryCtaLabel} onChange={(e) => setSettingsForm((c) => ({ ...c, heroSecondaryCtaLabel: e.target.value }))} /></label>
-              <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">رابط الزر الثانوي</span><input className="input" value={settingsForm.heroSecondaryCtaHref} onChange={(e) => setSettingsForm((c) => ({ ...c, heroSecondaryCtaHref: e.target.value }))} /></label>
-              <label className="space-y-2 sm:col-span-2"><span className="text-sm font-semibold text-zinc-700">ملاحظة الدفع</span><input className="input" value={settingsForm.checkoutNote} onChange={(e) => setSettingsForm((c) => ({ ...c, checkoutNote: e.target.value }))} /></label>
+              <label className="space-y-2"><span className="text-sm font-semibold text-ink-soft">اسم الموقع</span><input className="input" value={settingsForm.brandName} onChange={(e) => setSettingsForm((c) => ({ ...c, brandName: e.target.value }))} /></label>
+              <label className="space-y-2"><span className="text-sm font-semibold text-ink-soft">البريد الداعم</span><input className="input" value={settingsForm.supportEmail} onChange={(e) => setSettingsForm((c) => ({ ...c, supportEmail: e.target.value }))} /></label>
+              <label className="space-y-2"><span className="text-sm font-semibold text-ink-soft">الهاتف</span><input className="input" value={settingsForm.supportPhone} onChange={(e) => setSettingsForm((c) => ({ ...c, supportPhone: e.target.value }))} /></label>
+              <label className="space-y-2"><span className="text-sm font-semibold text-ink-soft">واتساب</span><input className="input" value={settingsForm.whatsapp} onChange={(e) => setSettingsForm((c) => ({ ...c, whatsapp: e.target.value }))} /></label>
+              <label className="space-y-2 sm:col-span-2"><span className="text-sm font-semibold text-ink-soft">سطر التمهيد</span><input className="input" value={settingsForm.heroEyebrow} onChange={(e) => setSettingsForm((c) => ({ ...c, heroEyebrow: e.target.value }))} /></label>
+              <label className="space-y-2 sm:col-span-2"><span className="text-sm font-semibold text-ink-soft">عنوان البطل</span><input className="input" value={settingsForm.heroTitle} onChange={(e) => setSettingsForm((c) => ({ ...c, heroTitle: e.target.value }))} /></label>
+              <label className="space-y-2 sm:col-span-2"><span className="text-sm font-semibold text-ink-soft">وصف البطل</span><textarea className="textarea" value={settingsForm.heroDescription} onChange={(e) => setSettingsForm((c) => ({ ...c, heroDescription: e.target.value }))} /></label>
+              <label className="space-y-2"><span className="text-sm font-semibold text-ink-soft">زر رئيسي</span><input className="input" value={settingsForm.heroPrimaryCtaLabel} onChange={(e) => setSettingsForm((c) => ({ ...c, heroPrimaryCtaLabel: e.target.value }))} /></label>
+              <label className="space-y-2"><span className="text-sm font-semibold text-ink-soft">رابط الزر الرئيسي</span><input className="input" value={settingsForm.heroPrimaryCtaHref} onChange={(e) => setSettingsForm((c) => ({ ...c, heroPrimaryCtaHref: e.target.value }))} /></label>
+              <label className="space-y-2"><span className="text-sm font-semibold text-ink-soft">زر ثانوي</span><input className="input" value={settingsForm.heroSecondaryCtaLabel} onChange={(e) => setSettingsForm((c) => ({ ...c, heroSecondaryCtaLabel: e.target.value }))} /></label>
+              <label className="space-y-2"><span className="text-sm font-semibold text-ink-soft">رابط الزر الثانوي</span><input className="input" value={settingsForm.heroSecondaryCtaHref} onChange={(e) => setSettingsForm((c) => ({ ...c, heroSecondaryCtaHref: e.target.value }))} /></label>
+              <label className="space-y-2 sm:col-span-2"><span className="text-sm font-semibold text-ink-soft">ملاحظة الدفع</span><input className="input" value={settingsForm.checkoutNote} onChange={(e) => setSettingsForm((c) => ({ ...c, checkoutNote: e.target.value }))} /></label>
                <label className="space-y-2 sm:col-span-2">
-                 <span className="text-sm font-semibold text-zinc-700">شعار الموقع (صور أو فيديو)</span>
+                 <span className="text-sm font-semibold text-ink-soft">شعار الموقع (صور أو فيديو)</span>
                  <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-center">
                    <input
                      className="input"
@@ -1765,47 +1765,47 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
                      onChange={(e) => setSettingsForm((c) => ({ ...c, logoUrl: e.target.value }))}
                      placeholder="/uploads/logo.png أو رابط Cloudinary"
                    />
-                   <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-2xl border border-qatar-200 bg-white px-4 py-3 text-sm font-semibold text-qatar-800 transition hover:bg-qatar-50">
+                   <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-md border border-brand/20 bg-white px-4 py-3 text-sm font-semibold text-brand-deep transition hover:bg-brand-soft">
                      <Sparkles size={16} /> رفع شعار
                      <input type="file" accept={PUBLIC_IMAGE_ACCEPT} className="hidden" onChange={(e) => uploadLogo(e.target.files?.[0] ?? null)} />
                    </label>
                  </div>
                  {settingsForm.logoUrl ? (
-                   <div className="mt-3 inline-flex items-center gap-3 rounded-2xl border border-qatar-100 bg-qatar-50/60 p-3">
+                   <div className="mt-3 inline-flex items-center gap-3 rounded-md border border-brand/15 bg-brand-soft/60 p-3">
                      {settingsForm.logoUrl.match(/\.(mp4|webm|mov)(\?|$)/i) ? (
-                       <video src={settingsForm.logoUrl} className="h-14 w-14 rounded-xl object-cover shadow-sm" muted loop playsInline />
+                       <video src={settingsForm.logoUrl} className="h-14 w-14 rounded-md object-cover shadow-soft" muted loop playsInline />
                      ) : (
-                       <img src={settingsForm.logoUrl} alt="معاينة شعار الموقع" className="h-14 w-14 rounded-xl object-cover shadow-sm" />
+                       <img src={settingsForm.logoUrl} alt="معاينة شعار الموقع" className="h-14 w-14 rounded-md object-cover shadow-soft" />
                      )}
-                     <span className="text-xs font-bold leading-6 text-qatar-800">سيظهر هذا الشعار في الهيدر.</span>
+                     <span className="text-xs font-bold leading-6 text-brand-deep">سيظهر هذا الشعار في الهيدر.</span>
                    </div>
                  ) : null}
                </label>
-               <div className="sm:col-span-2 rounded-2xl border border-qatar-100 bg-qatar-50/50 p-4">
-                 <h4 className="text-base font-black text-zinc-950">الواجهة، الإعلانات، وترتيب العروض</h4>
-                 <p className="mt-1 text-xs leading-6 text-zinc-500">تحكم بما يظهر أعلى الموقع، حملة العرض، وعدد المنتجات في الصفحة الرئيسية.</p>
+               <div className="sm:col-span-2 rounded-md border border-brand/15 bg-brand-soft/50 p-4">
+                 <h4 className="text-base font-bold text-ink">الواجهة، الإعلانات، وترتيب العروض</h4>
+                 <p className="mt-1 text-xs leading-6 text-ink-faint">تحكم بما يظهر أعلى الموقع، حملة العرض، وعدد المنتجات في الصفحة الرئيسية.</p>
                </div>
-               <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">إظهار الإعلان العلوي</span><select className="input" value={settingsForm.announcementEnabled} onChange={(e) => setSettingsForm((c) => ({ ...c, announcementEnabled: e.target.value }))}><option value="true">مفعل</option><option value="false">مخفي</option></select></label>
-               <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">رابط الإعلان</span><input className="input" value={settingsForm.announcementHref} onChange={(e) => setSettingsForm((c) => ({ ...c, announcementHref: e.target.value }))} /></label>
-               <label className="space-y-2 sm:col-span-2"><span className="text-sm font-semibold text-zinc-700">نص الإعلان العلوي</span><input className="input" value={settingsForm.announcementText} onChange={(e) => setSettingsForm((c) => ({ ...c, announcementText: e.target.value }))} /></label>
-               <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">تفعيل حملة العرض</span><select className="input" value={settingsForm.promoEnabled} onChange={(e) => setSettingsForm((c) => ({ ...c, promoEnabled: e.target.value }))}><option value="true">مفعلة</option><option value="false">مخفية</option></select></label>
-               <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">عنوان حملة العرض</span><input className="input" value={settingsForm.promoTitle} onChange={(e) => setSettingsForm((c) => ({ ...c, promoTitle: e.target.value }))} /></label>
-               <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">رابط صورة الحملة</span><input className="input" value={settingsForm.promoImageUrl} onChange={(e) => setSettingsForm((c) => ({ ...c, promoImageUrl: e.target.value }))} /></label>
-               <label className="space-y-2 sm:col-span-2"><span className="text-sm font-semibold text-zinc-700">وصف حملة العرض</span><textarea className="textarea" value={settingsForm.promoDescription} onChange={(e) => setSettingsForm((c) => ({ ...c, promoDescription: e.target.value }))} /></label>
+               <label className="space-y-2"><span className="text-sm font-semibold text-ink-soft">إظهار الإعلان العلوي</span><select className="input" value={settingsForm.announcementEnabled} onChange={(e) => setSettingsForm((c) => ({ ...c, announcementEnabled: e.target.value }))}><option value="true">مفعل</option><option value="false">مخفي</option></select></label>
+               <label className="space-y-2"><span className="text-sm font-semibold text-ink-soft">رابط الإعلان</span><input className="input" value={settingsForm.announcementHref} onChange={(e) => setSettingsForm((c) => ({ ...c, announcementHref: e.target.value }))} /></label>
+               <label className="space-y-2 sm:col-span-2"><span className="text-sm font-semibold text-ink-soft">نص الإعلان العلوي</span><input className="input" value={settingsForm.announcementText} onChange={(e) => setSettingsForm((c) => ({ ...c, announcementText: e.target.value }))} /></label>
+               <label className="space-y-2"><span className="text-sm font-semibold text-ink-soft">تفعيل حملة العرض</span><select className="input" value={settingsForm.promoEnabled} onChange={(e) => setSettingsForm((c) => ({ ...c, promoEnabled: e.target.value }))}><option value="true">مفعلة</option><option value="false">مخفية</option></select></label>
+               <label className="space-y-2"><span className="text-sm font-semibold text-ink-soft">عنوان حملة العرض</span><input className="input" value={settingsForm.promoTitle} onChange={(e) => setSettingsForm((c) => ({ ...c, promoTitle: e.target.value }))} /></label>
+               <label className="space-y-2"><span className="text-sm font-semibold text-ink-soft">رابط صورة الحملة</span><input className="input" value={settingsForm.promoImageUrl} onChange={(e) => setSettingsForm((c) => ({ ...c, promoImageUrl: e.target.value }))} /></label>
+               <label className="space-y-2 sm:col-span-2"><span className="text-sm font-semibold text-ink-soft">وصف حملة العرض</span><textarea className="textarea" value={settingsForm.promoDescription} onChange={(e) => setSettingsForm((c) => ({ ...c, promoDescription: e.target.value }))} /></label>
                
-               <div className="sm:col-span-2 grid gap-4 sm:grid-cols-4 rounded-xl border border-qatar-100 bg-white p-4">
-                 <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">تفعيل الحركة (Motion)</span><select className="input" value={settingsForm.promoMotionEnabled} onChange={(e) => setSettingsForm((c) => ({ ...c, promoMotionEnabled: e.target.value }))}><option value="false">معطل</option><option value="true">مفعل</option></select></label>
-                 <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">حجم الصورة (Scale)</span><input className="input" type="number" step="0.01" value={settingsForm.promoImageScale} onChange={(e) => setSettingsForm((c) => ({ ...c, promoImageScale: e.target.value }))} /></label>
-                 <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">موضع الصورة (Position)</span><input className="input" placeholder="مثال: center 20px" value={settingsForm.promoImagePosition} onChange={(e) => setSettingsForm((c) => ({ ...c, promoImagePosition: e.target.value }))} /></label>
-                 <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">التدوير (Rotation)</span><input className="input" type="number" step="0.1" value={settingsForm.promoImageRotation} onChange={(e) => setSettingsForm((c) => ({ ...c, promoImageRotation: e.target.value }))} /></label>
+               <div className="sm:col-span-2 grid gap-4 sm:grid-cols-4 rounded-md border border-brand/15 bg-white p-4">
+                 <label className="space-y-2"><span className="text-sm font-semibold text-ink-soft">تفعيل الحركة (Motion)</span><select className="input" value={settingsForm.promoMotionEnabled} onChange={(e) => setSettingsForm((c) => ({ ...c, promoMotionEnabled: e.target.value }))}><option value="false">معطل</option><option value="true">مفعل</option></select></label>
+                 <label className="space-y-2"><span className="text-sm font-semibold text-ink-soft">حجم الصورة (Scale)</span><input className="input" type="number" step="0.01" value={settingsForm.promoImageScale} onChange={(e) => setSettingsForm((c) => ({ ...c, promoImageScale: e.target.value }))} /></label>
+                 <label className="space-y-2"><span className="text-sm font-semibold text-ink-soft">موضع الصورة (Position)</span><input className="input" placeholder="مثال: center 20px" value={settingsForm.promoImagePosition} onChange={(e) => setSettingsForm((c) => ({ ...c, promoImagePosition: e.target.value }))} /></label>
+                 <label className="space-y-2"><span className="text-sm font-semibold text-ink-soft">التدوير (Rotation)</span><input className="input" type="number" step="0.1" value={settingsForm.promoImageRotation} onChange={(e) => setSettingsForm((c) => ({ ...c, promoImageRotation: e.target.value }))} /></label>
                </div>
 
-               <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">زر الحملة</span><input className="input" value={settingsForm.promoCtaLabel} onChange={(e) => setSettingsForm((c) => ({ ...c, promoCtaLabel: e.target.value }))} /></label>
-               <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">رابط زر الحملة</span><input className="input" value={settingsForm.promoCtaHref} onChange={(e) => setSettingsForm((c) => ({ ...c, promoCtaHref: e.target.value }))} /></label>
-               <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">عدد المنتجات بالصفحة الرئيسية</span><input type="number" min="1" max="12" className="input" value={settingsForm.homepageProductLimit} onChange={(e) => setSettingsForm((c) => ({ ...c, homepageProductLimit: e.target.value }))} /></label>
-               <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">ترتيب العروض</span><select className="input" value={settingsForm.homepageProductOrder} onChange={(e) => setSettingsForm((c) => ({ ...c, homepageProductOrder: e.target.value }))}><option value="featured">المميزة أولًا</option><option value="newest">الأحدث أولًا</option><option value="manual">حسب ترتيب المنتج</option></select></label>
-               <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">لون أساسي</span><input className="input" value={settingsForm.primaryColor} onChange={(e) => setSettingsForm((c) => ({ ...c, primaryColor: e.target.value }))} /></label>
-              <label className="space-y-2"><span className="text-sm font-semibold text-zinc-700">لون ثانوي</span><input className="input" value={settingsForm.secondaryColor} onChange={(e) => setSettingsForm((c) => ({ ...c, secondaryColor: e.target.value }))} /></label>
+               <label className="space-y-2"><span className="text-sm font-semibold text-ink-soft">زر الحملة</span><input className="input" value={settingsForm.promoCtaLabel} onChange={(e) => setSettingsForm((c) => ({ ...c, promoCtaLabel: e.target.value }))} /></label>
+               <label className="space-y-2"><span className="text-sm font-semibold text-ink-soft">رابط زر الحملة</span><input className="input" value={settingsForm.promoCtaHref} onChange={(e) => setSettingsForm((c) => ({ ...c, promoCtaHref: e.target.value }))} /></label>
+               <label className="space-y-2"><span className="text-sm font-semibold text-ink-soft">عدد المنتجات بالصفحة الرئيسية</span><input type="number" min="1" max="12" className="input" value={settingsForm.homepageProductLimit} onChange={(e) => setSettingsForm((c) => ({ ...c, homepageProductLimit: e.target.value }))} /></label>
+               <label className="space-y-2"><span className="text-sm font-semibold text-ink-soft">ترتيب العروض</span><select className="input" value={settingsForm.homepageProductOrder} onChange={(e) => setSettingsForm((c) => ({ ...c, homepageProductOrder: e.target.value }))}><option value="featured">المميزة أولًا</option><option value="newest">الأحدث أولًا</option><option value="manual">حسب ترتيب المنتج</option></select></label>
+               <label className="space-y-2"><span className="text-sm font-semibold text-ink-soft">لون أساسي</span><input className="input" value={settingsForm.primaryColor} onChange={(e) => setSettingsForm((c) => ({ ...c, primaryColor: e.target.value }))} /></label>
+              <label className="space-y-2"><span className="text-sm font-semibold text-ink-soft">لون ثانوي</span><input className="input" value={settingsForm.secondaryColor} onChange={(e) => setSettingsForm((c) => ({ ...c, secondaryColor: e.target.value }))} /></label>
             </div>
             <div className="mt-5 flex flex-wrap gap-3">
               <button type="button" disabled={busy} onClick={saveSettings} className="btn-primary disabled:opacity-60">حفظ الإعدادات</button>
@@ -1813,11 +1813,11 @@ function AdminDashboard({ products, pages, catalog, settings, adminStats }: Prop
             </div>
           </div>
           <div className="space-y-6">
-            <div className="panel p-6 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
-              <h3 className="text-2xl font-black text-zinc-950">آخر الصفحات</h3>
-              <div className="mt-4 space-y-2">{pages.slice(0, 5).map((page) => <div key={page.id} className="rounded-[1.25rem] bg-zinc-50 px-4 py-3 text-sm text-zinc-700">{page.grade} · {page.subject} — {page.title}</div>)}</div>
+            <div className="card p-6 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
+              <h3 className="text-2xl font-bold text-ink">آخر الصفحات</h3>
+              <div className="mt-4 space-y-2">{pages.slice(0, 5).map((page) => <div key={page.id} className="rounded-md bg-paper-deep/60 px-4 py-3 text-sm text-ink-soft">{page.grade} · {page.subject} — {page.title}</div>)}</div>
             </div>
-            <div className="panel p-6 shadow-[0_18px_50px_rgba(15,23,42,0.05)] text-sm leading-7 text-zinc-600">
+            <div className="card p-6 shadow-[0_18px_50px_rgba(15,23,42,0.05)] text-sm leading-7 text-ink-soft">
               <p>• يمكنك ربط هذه القيم لاحقًا بالواجهة العامة بدون تغيير قاعدة البيانات.</p>
               <p>• لن تظهر لوحة الإدارة للمستخدم العادي إلا عبر المسار المباشر وحماية الدخول.</p>
               <p>• الرفع والتسعير والحذف والتعديل أصبحت عمليات حقيقية وليست شكلية.</p>

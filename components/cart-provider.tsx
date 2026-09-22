@@ -12,6 +12,10 @@ type CartContextValue = {
   hasItem: (slug: string) => boolean;
   clearCart: () => void;
   hydrated: boolean;
+  /** Drawer state — shared so any "add to cart" can open it. */
+  isDrawerOpen: boolean;
+  openDrawer: () => void;
+  closeDrawer: () => void;
 };
 
 const CartContext = createContext<CartContextValue | null>(null);
@@ -20,6 +24,7 @@ const STORAGE_KEY = "kutubi-cart-v2";
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [hydrated, setHydrated] = useState(false);
+  const [isDrawerOpen, setDrawerOpen] = useState(false);
 
   useEffect(() => {
     try {
@@ -53,33 +58,53 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
   }, [items, hydrated]);
 
-  const value = useMemo<CartContextValue>(() => ({
-    items,
-    hydrated,
-    addItem(item) {
-      setItems((current) => {
-        const existing = current.find((currentItem) => currentItem.slug === item.slug);
-        if (existing) return current;
-        return [...current, { ...item, quantity: 1 }];
-      });
-    },
-    removeItem(slug) {
-      setItems((current) => current.filter((item) => item.slug !== slug));
-    },
-    increase(slug) {
-      setItems((current) => current.map((item) => (item.slug === slug ? { ...item, quantity: 1 } : item)));
-    },
-    decrease(slug) {
-      setItems((current) => current.map((item) => (item.slug === slug ? { ...item, quantity: 1 } : item)));
-    },
-    hasItem(slug) {
-      return items.some((item) => item.slug === slug);
-    },
-    clearCart() {
-      setItems([]);
-      localStorage.removeItem(STORAGE_KEY);
-    }
-  }), [items, hydrated]);
+  // lock scroll while the drawer is open
+  useEffect(() => {
+    if (!isDrawerOpen) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [isDrawerOpen]);
+
+  const value = useMemo<CartContextValue>(
+    () => ({
+      items,
+      hydrated,
+      addItem(item) {
+        setItems((current) => {
+          const existing = current.find((currentItem) => currentItem.slug === item.slug);
+          if (existing) return current;
+          return [...current, { ...item, quantity: 1 }];
+        });
+      },
+      removeItem(slug) {
+        setItems((current) => current.filter((item) => item.slug !== slug));
+      },
+      increase(slug) {
+        setItems((current) => current.map((item) => (item.slug === slug ? { ...item, quantity: 1 } : item)));
+      },
+      decrease(slug) {
+        setItems((current) => current.map((item) => (item.slug === slug ? { ...item, quantity: 1 } : item)));
+      },
+      hasItem(slug) {
+        return items.some((item) => item.slug === slug);
+      },
+      clearCart() {
+        setItems([]);
+        localStorage.removeItem(STORAGE_KEY);
+      },
+      isDrawerOpen,
+      openDrawer() {
+        setDrawerOpen(true);
+      },
+      closeDrawer() {
+        setDrawerOpen(false);
+      }
+    }),
+    [items, hydrated, isDrawerOpen]
+  );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }

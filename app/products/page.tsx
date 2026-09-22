@@ -1,5 +1,5 @@
-import { PageHero } from "@/components/page-hero";
 import { ProductExplorer } from "@/components/product-explorer";
+import { PageHeader } from "@/components/ui/page-header";
 import { getAllProducts, getGrades, getSubjects } from "@/lib/catalog";
 
 type ProductsSearchParams = { search?: string; grade?: string; subject?: string };
@@ -19,17 +19,20 @@ export default async function ProductsPage({
   ]);
 
   return (
-    <section className="mx-auto max-w-7xl px-4 py-12 lg:px-8">
-      <PageHero
+    <>
+      <PageHeader
         eyebrow={{ ar: "المتجر", en: "Store" }}
-        title={{ ar: "تصفح كل المنتجات حسب الصف والمادة", en: "Browse every product by grade and subject" }}
+        title={{ ar: "تصفح كل المنتجات", en: "Browse every product" }}
         description={{
-          ar: "بحث مباشر وفلاتر منظمة لعرض عروض البوربوينت، أوراق العمل، وملفات PDF وDOCX ضمن تجربة متجر واضحة.",
-          en: "Live search and organized filters for PowerPoint decks, worksheets, PDF, and DOCX files in a clear store experience."
+          ar: "بحث مباشر وفلاتر منظمة حسب الصف والمادة ونوع الملف لعروض البوربوينت وأوراق العمل وملفات PDF وDOCX.",
+          en: "Live search and organized filters by grade, subject, and file type for PowerPoint decks, worksheets, PDF, and DOCX files."
         }}
-        motion="store"
+        crumbs={[
+          { label: { ar: "الرئيسية", en: "Home" }, href: "/" },
+          { label: { ar: "المنتجات", en: "Products" } }
+        ]}
       />
-      <div className="mt-10">
+      <div className="container-content py-10 md:py-12">
         <ProductExplorer
           products={products}
           grades={grades}
@@ -39,6 +42,6 @@ export default async function ProductsPage({
           initialSubject={params.subject ?? "الكل"}
         />
       </div>
-    </section>
+    </>
   );
 }

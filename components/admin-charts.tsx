@@ -23,10 +23,10 @@ export function SalesBarChart({ data, title = "المبيعات اليومية" 
   const width = 100 / Math.max(data.length, 1);
 
   return (
-    <div className="rounded-2xl border border-pearl-200 bg-white p-5">
+    <div className="rounded-md border border-line bg-white p-5">
       <header className="mb-3 flex items-baseline justify-between">
-        <h3 className="text-sm font-black text-zinc-950">{title}</h3>
-        <span className="text-xs text-zinc-500">آخر {data.length} يوم</span>
+        <h3 className="text-sm font-bold text-ink">{title}</h3>
+        <span className="text-xs text-ink-faint">آخر {data.length} يوم</span>
       </header>
       <div className="relative h-48">
         <svg viewBox="0 0 100 50" preserveAspectRatio="none" className="h-full w-full overflow-visible">
@@ -58,7 +58,7 @@ export function SalesBarChart({ data, title = "المبيعات اليومية" 
           })}
         </svg>
       </div>
-      <div className="mt-2 flex justify-between text-[10px] font-bold text-zinc-500">
+      <div className="mt-2 flex justify-between text-[10px] font-bold text-ink-faint">
         {data.length > 0 && (
           <>
             <span>{data[0]?.label}</span>
@@ -81,10 +81,10 @@ export function SalesLineChart({ data, title = "المبيعات الشهرية"
   const path = `M ${points.join(" L ")}`;
 
   return (
-    <div className="rounded-2xl border border-pearl-200 bg-white p-5">
+    <div className="rounded-md border border-line bg-white p-5">
       <header className="mb-3 flex items-baseline justify-between">
-        <h3 className="text-sm font-black text-zinc-950">{title}</h3>
-        <span className="text-xs text-zinc-500">آخر {data.length} شهر</span>
+        <h3 className="text-sm font-bold text-ink">{title}</h3>
+        <span className="text-xs text-ink-faint">آخر {data.length} شهر</span>
       </header>
       <div className="relative h-48">
         <svg viewBox="0 0 100 50" preserveAspectRatio="none" className="h-full w-full overflow-visible">
@@ -110,41 +110,41 @@ export function SalesLineChart({ data, title = "المبيعات الشهرية"
 export function ConversionRateCard({ paid, total }: { paid: number; total: number }) {
   const rate = total > 0 ? (paid / total) * 100 : 0;
   return (
-    <div className="rounded-2xl border border-pearl-200 bg-white p-5">
-      <p className="text-xs font-bold text-zinc-600">معدل التحويل</p>
+    <div className="rounded-md border border-line bg-white p-5">
+      <p className="text-xs font-bold text-ink-soft">معدل التحويل</p>
       <div className="mt-1 flex items-baseline gap-1">
-        <span className="text-3xl font-black text-qatar-800">{rate.toFixed(1)}</span>
-        <span className="text-sm font-bold text-zinc-600">%</span>
+        <span className="text-3xl font-bold text-brand-deep">{rate.toFixed(1)}</span>
+        <span className="text-sm font-bold text-ink-soft">%</span>
       </div>
-      <div className="mt-2 h-2 overflow-hidden rounded-full bg-pearl-100">
+      <div className="mt-2 h-2 overflow-hidden rounded-full bg-paper-deep/50">
         <div
-          className="h-full rounded-full bg-gradient-to-r from-qatar-600 to-qatar-800"
+          className="h-full rounded-full bg-brand"
           style={{ width: `${Math.min(rate, 100)}%` }}
         />
       </div>
-      <p className="mt-1 text-xs text-zinc-500">{paid} من {total} طلب</p>
+      <p className="mt-1 text-xs text-ink-faint">{paid} من {total} طلب</p>
     </div>
   );
 }
 
 export function TopProductsList({ items }: { items: Array<{ title: string; quantity: number; revenue: number }> }) {
   return (
-    <div className="rounded-2xl border border-pearl-200 bg-white p-5">
-      <h3 className="mb-3 text-sm font-black text-zinc-950">أكثر المنتجات مبيعاً</h3>
+    <div className="rounded-md border border-line bg-white p-5">
+      <h3 className="mb-3 text-sm font-bold text-ink">أكثر المنتجات مبيعاً</h3>
       <ol className="space-y-3">
         {items.slice(0, 6).map((item, i) => (
           <li key={item.title} className="flex items-center gap-3">
-            <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-black ${
-              i === 0 ? "bg-amber-100 text-amber-800" :
-              i === 1 ? "bg-zinc-200 text-zinc-700" :
+            <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+              i === 0 ? "bg-accent-gold-soft text-accent-gold" :
+              i === 1 ? "bg-line text-ink-soft" :
               i === 2 ? "bg-orange-100 text-orange-700" :
-              "bg-pearl-100 text-zinc-600"
+              "bg-paper-deep/50 text-ink-soft"
             }`}>{i + 1}</span>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-bold text-zinc-800">{item.title}</p>
-              <p className="text-xs text-zinc-500">{item.quantity} نسخة</p>
+              <p className="truncate text-sm font-bold text-ink">{item.title}</p>
+              <p className="text-xs text-ink-faint">{item.quantity} نسخة</p>
             </div>
-            <span className="text-sm font-black text-qatar-800">{(item.revenue / 100).toFixed(2)}</span>
+            <span className="text-sm font-bold text-brand-deep">{(item.revenue / 100).toFixed(2)}</span>
           </li>
         ))}
       </ol>

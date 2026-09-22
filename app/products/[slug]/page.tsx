@@ -1,24 +1,22 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { getLocale } from "next-intl/server";
 import { buildProductSchema, buildBreadcrumbSchema, buildReviewsSchema } from "@/lib/schema-markup";
 import { JsonLd } from "@/components/seo/json-ld";
 import { ProductBadges } from "@/components/product-badges";
 import { StickyAddToCart } from "@/components/sticky-add-to-cart";
-import { Breadcrumbs } from "@/components/breadcrumbs";
-import { notFound } from "next/navigation";
-import Link from "next/link";
-import { ArrowLeft, CheckCircle2, FileText } from "lucide-react";
-import { AddToCartButton } from "@/components/add-to-cart-button";
-import { ProductVisual } from "@/components/product-visual";
-import { ProductGallery } from "@/components/product-gallery";
-import { LocalizedText } from "@/components/site-preferences";
-import { MotionShowcase } from "@/components/motion-showcase";
+import { Breadcrumbs } from "@/components/ui/breadcrumb";
+import { Price } from "@/components/ui/price";
+import { Badge } from "@/components/ui/badge";
+import { ProductPageGallery } from "@/components/store/product-page-gallery";
 import { ProductPreviewGallery } from "@/components/product-preview-gallery";
+import { AddToCartButton } from "@/components/add-to-cart-button";
+import { Button } from "@/components/ui/button";
 import { ProductReviews } from "@/components/product-reviews";
 import { auth } from "@/auth";
 import { getProductBySlug } from "@/lib/catalog";
-import { currencyLabel } from "@/lib/utils";
 import { getProductReviews, userCanReviewProduct } from "@/lib/reviews";
-import { resolveSiteUrl } from "@/lib/site-url";
+import { FileText, ShieldCheck, Zap } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -49,9 +47,8 @@ export default async function ProductDetailsPage({ params }: { params: Promise<{
     getProductReviews(product.id),
     userCanReviewProduct(product.id, session?.user?.email)
   ]);
-  const siteUrl = resolveSiteUrl() || process.env.NEXT_PUBLIC_SITE_URL || "";
-  const productUrl = siteUrl ? `${siteUrl}/products/${product.slug}` : `/products/${product.slug}`;
-  // Build comprehensive Schema.org JSON-LD using shared generators
+  const locale = (await getLocale()) as "ar" | "en";
+  const local = (value: { ar: string; en: string }) => (locale === "en" ? value.en : value.ar);
   const productSchema = buildProductSchema({
     id: product.id,
     slug: product.slug,
@@ -63,12 +60,12 @@ export default async function ProductDetailsPage({ params }: { params: Promise<{
     coverImage: product.coverImage,
     images: product.additionalImages ?? [],
     averageRating: product.averageRating,
-    reviewCount: product.reviewCount,
+    reviewCount: product.reviewCount
   });
   const breadcrumbSchema = buildBreadcrumbSchema([
     { label: "الرئيسية", href: "/" },
     { label: "المتجر", href: "/products" },
-    { label: product.title },
+    { label: product.title }
   ]);
   const reviewSchema = reviews.length
     ? buildReviewsSchema({
@@ -78,8 +75,8 @@ export default async function ProductDetailsPage({ params }: { params: Promise<{
           rating: r.rating,
           comment: r.comment,
           author: r.customerName ?? undefined,
-          createdAt: r.createdAt,
-        })),
+          createdAt: r.createdAt
+        }))
       })
     : null;
 
@@ -93,122 +90,116 @@ export default async function ProductDetailsPage({ params }: { params: Promise<{
     badge: product.badge,
     format: product.format,
     accentA: product.accentA,
-    accentB: product.accentB
+    accentB: product.accentB,
+    coverImage: product.coverImage ?? null
   } as const;
 
+  const sharedElementName = `product-cover-${product.slug}`;
 
   return (
-    <section className="mx-auto max-w-6xl px-4 py-12 lg:px-8">
+    <div className="container-content py-8 md:py-12">
       <JsonLd id="product" data={[productSchema, breadcrumbSchema, ...(reviewSchema ? [reviewSchema] : [])]} />
+
       <Breadcrumbs
         items={[
-          { href: "/", label: "الرئيسية" },
-          { href: "/products", label: "المتجر" },
+          { label: local({ ar: "الرئيسية", en: "Home" }), href: "/" },
+          { label: local({ ar: "المنتجات", en: "Products" }), href: "/products" },
           { label: product.title }
         ]}
+        className="mb-7"
       />
-      <Link href="/products" className="inline-flex items-center gap-2 text-sm font-bold text-qatar-700">
-        <ArrowLeft size={16} /> <LocalizedText value={{ ar: "العودة إلى المتجر", en: "Back to store" }} />
-      </Link>
 
-      <div className="mt-6 overflow-hidden rounded-lg border border-pearl-200 bg-white shadow-[0_18px_50px_rgba(60,32,18,0.06)]">
-        <div className="grid gap-0 lg:grid-cols-[0.98fr_1.02fr]">
-          <div className="relative min-h-[26rem] bg-pearl-100">
-            <ProductVisual
-              title={product.title}
-              subject={product.subject}
-              category={product.category}
-              format={product.format}
-              badge={product.badge}
-              accentA={product.accentA}
-              accentB={product.accentB}
-              coverImage={product.coverImage}
-              additionalImages={product.additionalImages}
-              subjectMotionLogo={product.subjectMotionLogo}
-              motionEnabled={product.motionEnabled}
-              motionPosition={product.motionPosition}
-              motionScale={product.motionScale}
-              motionRotation={product.motionRotation}
-              motionSrc={product.motionSrc}
-            />
-          </div>
+      <div className="card overflow-hidden">
+        <div className="grid gap-8 p-6 md:p-8 lg:grid-cols-[0.98fr_1.02fr] lg:gap-10 lg:p-10">
+          {/* gallery */}
+          <ProductPageGallery
+            title={product.title}
+            subject={product.subject}
+            category={product.category}
+            format={product.format}
+            images={previewImages}
+            sharedElementName={sharedElementName}
+          />
 
-          <div className="p-6 md:p-10">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <span className="rounded-md bg-pearl-100 px-3 py-1 text-xs font-bold text-zinc-700">{product.category}</span>
-              <span className="rounded-md bg-qatar-50 px-3 py-1 text-xs font-bold text-qatar-800">{product.badge}</span>
-              <ProductBadges product={{
-                compareAt: product.compareAt,
-                price: product.price,
-                createdAt: product.createdAt,
-              }} />
+          {/* buy panel */}
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge tone="neutral">{product.category}</Badge>
+              <Badge tone="brand">{product.badge}</Badge>
+              <ProductBadges
+                product={{ compareAt: product.compareAt, price: product.price, createdAt: product.createdAt }}
+              />
             </div>
-            <h1 className="mt-6 text-3xl font-black leading-tight text-zinc-950 md:text-5xl">{product.title}</h1>
-            <p className="mt-4 max-w-3xl leading-8 text-zinc-600">{product.description}</p>
 
-            <div className="mt-8 flex flex-wrap gap-2 text-sm">
-              {[product.grade, product.subject, product.format, product.pages].map((tag) => (
-                <span key={tag} className="rounded-md bg-pearl-100 px-3 py-1 font-bold text-zinc-700">{tag}</span>
+            <h1 className="mt-5 text-h1 font-bold leading-snug tracking-[-0.005em] text-ink">{product.title}</h1>
+
+            <div className="mt-4 flex flex-wrap gap-2">
+              {[product.grade, product.subject, product.format, product.pages].filter(Boolean).map((tag) => (
+                <span key={tag} className="rounded-pill border border-line bg-surface px-3 py-1 text-caption font-medium text-ink-soft">
+                  {tag}
+                </span>
               ))}
             </div>
 
-            <div className="mt-8 flex items-end gap-3">
-              <span className="text-4xl font-black text-qatar-800">{currencyLabel(product.price)}</span>
-              {product.compareAt ? <span className="text-lg text-zinc-400 line-through">{currencyLabel(product.compareAt)}</span> : null}
-            </div>
+            <p className="mt-6 text-body leading-9 text-ink-soft">{product.description}</p>
 
-            <div className="mt-6 flex flex-wrap gap-3">
-              <AddToCartButton item={item} />
-              <Link href="/checkout" className="btn-secondary">
-                <LocalizedText value={{ ar: "الانتقال إلى الدفع", en: "Go to checkout" }} />
-              </Link>
-            </div>
+            <div className="mt-8 border-t border-line pt-6">
+              <div className="flex flex-wrap items-end gap-x-4 gap-y-2">
+                <Price value={product.price} compareAt={product.compareAt} size="xl" />
+                <span className="pb-1.5 text-caption font-medium text-ink-faint">USD</span>
+              </div>
 
-            <ProductGallery title={product.title} images={product.additionalImages ?? []} />
+              <div className="mt-6 flex flex-wrap gap-3">
+                <AddToCartButton item={item} size="lg" />
+                <Button href="/checkout" variant="secondary" size="lg">
+                  {local({ ar: "الانتقال إلى الدفع", en: "Go to checkout" })}
+                </Button>
+              </div>
+
+              <ul className="mt-8 space-y-3">
+                {[
+                  { icon: FileText, value: { ar: `يتضمن ${productFiles.length} ${productFiles.length === 1 ? "ملفًا" : "ملفات"} قابلة للتحميل فورًا بعد إتمام الشراء.`, en: `Includes ${productFiles.length} ${productFiles.length === 1 ? "file" : "files"} ready to download right after purchase.` } },
+                  { icon: Zap, value: { ar: "روابط تحميل خاصة بصاحب الطلب تنتهي صلاحيتها بعد انتهاء مدة التحميل.", en: "Private download links for the buyer, expiring after the download window." } },
+                  { icon: ShieldCheck, value: { ar: "دفع آمن عبر Stripe أو PayPal دون مشاركة بياناتك مع طرف ثالث.", en: "Secure payment via Stripe or PayPal, with no third-party sharing." } }
+                ].map(({ icon: IconComponent, value }, index) => (
+                  <li key={index} className="flex items-start gap-3 text-body-sm leading-7 text-ink-soft">
+                    <span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-sm border border-line bg-surface text-brand">
+                      <IconComponent size={15} strokeWidth={1.75} aria-hidden="true" />
+                    </span>
+                    {local(value)}
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
         </div>
 
+        {/* watermarked previews */}
         <ProductPreviewGallery title={product.title} images={previewImages} />
 
-        <div className="grid gap-8 border-t border-pearl-200 p-6 md:p-10 lg:grid-cols-[1.1fr_0.9fr]">
-          <div>
-            <LocalizedText as="h2" className="text-xl font-black text-zinc-950" value={{ ar: "ماذا ستحصل عليه؟", en: "What you get" }} />
-            <ul className="mt-4 space-y-3">
-              {[
-                { ar: product.excerpt, en: product.excerpt },
-                { ar: "تنظيم واضح حسب الصف والمادة", en: "Clear organization by grade and subject" },
-                { ar: "الملفات تظهر بعد إتمام الشراء", en: "Files are available after purchase" },
-                { ar: "مناسب للعرض والطباعة والتعديل", en: "Useful for presenting, printing, and editing" }
-              ].map((feature) => (
-                <li key={feature.ar} className="flex items-center gap-2 text-zinc-700">
-                  <CheckCircle2 size={18} className="text-emerald-700" /> <LocalizedText value={feature} />
-                </li>
+        {/* attached files */}
+        <section className="border-t border-line p-6 md:p-10">
+          <h2 className="text-h2 font-bold text-ink">{local({ ar: "الملفات المرتبطة", en: "Attached files" })}</h2>
+          {productFiles.length ? (
+            <div className="mt-5 space-y-2.5">
+              {productFiles.map((file: { id: string; title: string; mimeType?: string; size?: number }) => (
+                <div key={file.id} className="flex items-center justify-between gap-4 rounded-sm border border-line bg-surface px-4 py-3.5">
+                  <span className="flex min-w-0 items-center gap-3 text-body-sm font-semibold text-ink">
+                    <FileText size={17} className="shrink-0 text-brand" strokeWidth={1.75} aria-hidden="true" />
+                    <span className="truncate">{file.title}</span>
+                  </span>
+                  <span className="shrink-0 text-caption text-ink-faint">{local({ ar: "بعد الشراء", en: "After purchase" })}</span>
+                </div>
               ))}
-            </ul>
-          </div>
+            </div>
+          ) : (
+            <p className="mt-4 rounded-sm border border-dashed border-line-strong p-5 text-body-sm text-ink-faint">
+              {local({ ar: "لا توجد ملفات إضافية لهذا المنتج بعد.", en: "No additional files have been attached to this product yet." })}
+            </p>
+          )}
+        </section>
 
-          <div>
-            <LocalizedText as="h2" className="text-xl font-black text-zinc-950" value={{ ar: "الملفات المرتبطة", en: "Attached files" }} />
-            <MotionShowcase variant="product" compact className="mb-4 mt-4" />
-            {productFiles.length ? (
-              <div className="space-y-3">
-                {productFiles.map((file: { id: string; title: string }) => (
-                  <div key={file.id} className="flex items-center justify-between rounded-lg border border-pearl-200 bg-pearl-50 px-4 py-3">
-                    <span className="inline-flex items-center gap-2 text-sm font-bold text-zinc-800">
-                      <FileText size={16} className="text-qatar-700" /> {file.title}
-                    </span>
-                    <span className="text-xs text-zinc-500"><LocalizedText value={{ ar: "بعد الشراء", en: "After purchase" }} /></span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="mt-4 rounded-lg border border-dashed border-pearl-300 p-5 text-sm text-zinc-600">
-                <LocalizedText value={{ ar: "لا توجد ملفات إضافية لهذا المنتج بعد.", en: "No additional files have been attached to this product yet." }} />
-              </div>
-            )}
-          </div>
-        </div>
-
+        {/* reviews */}
         <ProductReviews
           productId={product.id}
           initialReviews={reviews}
@@ -217,19 +208,23 @@ export default async function ProductDetailsPage({ params }: { params: Promise<{
           reviewCount={product.reviewCount ?? 0}
         />
       </div>
-    
-      <StickyAddToCart product={{
-        id: product.id,
-        slug: product.slug,
-        title: product.title,
-        price: product.price,
-        grade: product.grade,
-        subject: product.subject,
-        badge: product.badge,
-        format: product.format,
-        accentA: product.accentA,
-        accentB: product.accentB,
-      }} />
-    </section>
+
+      <StickyAddToCart
+        product={{
+          id: product.id,
+          slug: product.slug,
+          title: product.title,
+          price: product.price,
+          compareAt: product.compareAt,
+          grade: product.grade,
+          subject: product.subject,
+          badge: product.badge,
+          format: product.format,
+          accentA: product.accentA,
+          accentB: product.accentB,
+          coverImage: product.coverImage ?? null
+        }}
+      />
+    </div>
   );
 }

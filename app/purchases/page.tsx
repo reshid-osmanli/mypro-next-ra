@@ -1,20 +1,47 @@
 import { Suspense } from "react";
-import { EmptyOrders } from "@/components/empty-states";
+import { getLocale } from "next-intl/server";
+import { Database, LogIn } from "lucide-react";
 import { auth } from "@/auth";
 import { PurchasesClient } from "@/components/purchases-client";
+import { PageHeader } from "@/components/ui/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Button } from "@/components/ui/button";
 import { getPurchaseLibrary } from "@/lib/purchases";
 
 export const dynamic = "force-dynamic";
 
 export default async function PurchasesPage() {
-  const session = await auth();
+  const [session, locale] = await Promise.all([auth(), getLocale()]);
+  const local = (value: { ar: string; en: string }) => (locale === "en" ? value.en : value.ar);
   const email = session?.user?.email?.trim().toLowerCase();
 
   if (!email) {
     return (
-      <section className="py-12">
-        <EmptyOrders />
-      </section>
+      <>
+        <PageHeader
+          eyebrow={local({ ar: "حسابي", en: "My account" })}
+          title={local({ ar: "مشترياتي", en: "My purchases" })}
+          crumbs={[
+            { label: local({ ar: "الرئيسية", en: "Home" }), href: "/" },
+            { label: local({ ar: "مشترياتي", en: "Purchases" }) }
+          ]}
+        />
+        <div className="container-content py-12">
+          <EmptyState
+            icon={LogIn}
+            title={local({ ar: "سجل الدخول لعرض مشترياتك", en: "Sign in to view your purchases" })}
+            description={local({
+              ar: "مشترياتك مرتبطة ببريد حساب Google الذي سجلت الدخول به.",
+              en: "Your purchases are tied to the Google email you sign in with."
+            })}
+            action={
+              <Button href="/login?callbackUrl=/purchases" variant="primary" size="md">
+                {local({ ar: "تسجيل الدخول", en: "Sign in" })}
+              </Button>
+            }
+          />
+        </div>
+      </>
     );
   }
 
@@ -22,27 +49,49 @@ export default async function PurchasesPage() {
 
   if (!library) {
     return (
-      <section className="py-12">
-        <div className="mx-auto max-w-xl">
-          <div className="panel space-y-5 p-6 text-right">
-            <div className="inline-flex items-center gap-2 rounded-full bg-qatar-50 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-qatar-800">
-              تعذر تحميل المشتريات
-            </div>
-            <h1 className="text-3xl font-black text-zinc-950">لا يمكن عرض مشترياتك حالياً</h1>
-            <p className="leading-8 text-zinc-600">
-              حدث خطأ أثناء الاتصال بقاعدة البيانات. تأكد من عمل الاتصال ثم أعد تحميل الصفحة.
-            </p>
-          </div>
+      <>
+        <PageHeader
+          eyebrow={local({ ar: "حسابي", en: "My account" })}
+          title={local({ ar: "مشترياتي", en: "My purchases" })}
+          crumbs={[
+            { label: local({ ar: "الرئيسية", en: "Home" }), href: "/" },
+            { label: local({ ar: "مشترياتي", en: "Purchases" }) }
+          ]}
+        />
+        <div className="container-content py-12">
+          <EmptyState
+            icon={Database}
+            title={local({ ar: "لا يمكن عرض مشترياتك حالياً", en: "Purchases can't be loaded right now" })}
+            description={local({
+              ar: "حدث خطأ أثناء الاتصال بقاعدة البيانات. أعد تحميل الصفحة بعد قليل.",
+              en: "A database connection error occurred. Reload the page in a moment."
+            })}
+            action={
+              <Button href="/purchases" variant="secondary" size="md">
+                {local({ ar: "إعادة المحاولة", en: "Try again" })}
+              </Button>
+            }
+          />
         </div>
-      </section>
+      </>
     );
   }
 
   return (
-    <section className="py-12">
-      <Suspense fallback={null}>
-        <PurchasesClient initialLibrary={library} />
-      </Suspense>
-    </section>
+    <>
+      <PageHeader
+        eyebrow={local({ ar: "حسابي", en: "My account" })}
+        title={local({ ar: "مشترياتي", en: "My purchases" })}
+        crumbs={[
+          { label: local({ ar: "الرئيسية", en: "Home" }), href: "/" },
+          { label: local({ ar: "مشترياتي", en: "Purchases" }) }
+        ]}
+      />
+      <div className="container-content py-10 md:py-12">
+        <Suspense fallback={null}>
+          <PurchasesClient initialLibrary={library} />
+        </Suspense>
+      </div>
+    </>
   );
 }

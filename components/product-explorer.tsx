@@ -1,15 +1,17 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import Link from "next/link";
-import { ArrowLeft, CheckCircle2, LayoutGrid, ListFilter, Search, SlidersHorizontal, X } from "lucide-react";
-import { ProductCard, type ProductCardModel } from "./product-card";
-import { AddToCartButton } from "./add-to-cart-button";
-import { ProductVisual } from "./product-visual";
-import { currencyLabel } from "@/lib/utils";
-import { useSitePreferences } from "./site-preferences";
-import { EmptyProducts } from "./empty-states";
+import { LayoutGrid, List, Search, SlidersHorizontal, X } from "lucide-react";
+import { ProductCard, type ProductCardModel } from "@/components/product-card";
+import { ProductCover } from "@/components/store/product-cover";
+import { AddToCartButton } from "@/components/add-to-cart-button";
+import { Price } from "@/components/ui/price";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ArrowForward } from "@/components/ui/icon";
+import { useSitePreferences } from "@/components/site-preferences";
+import { cn } from "@/lib/utils";
 
 type Props = {
   products: ProductCardModel[];
@@ -22,8 +24,11 @@ type Props = {
 
 const ALL = "الكل";
 
+const selectClass =
+  "h-11 w-full appearance-none rounded-sm border border-line bg-surface px-3.5 pe-9 text-body text-ink outline-none transition-colors duration-instant focus:border-brand focus:ring-2 focus:ring-brand/25";
+
+/** Horizontal card for the list view — cover + real metadata only. */
 function ListProductCard({ product }: { product: ProductCardModel }) {
-  const { text } = useSitePreferences();
   const cartItem = {
     id: product.id,
     slug: product.slug,
@@ -34,57 +39,59 @@ function ListProductCard({ product }: { product: ProductCardModel }) {
     badge: product.badge,
     format: product.format,
     accentA: product.accentA,
-    accentB: product.accentB
+    accentB: product.accentB,
+    coverImage: product.coverImage ?? null
   } as const;
 
+  const discountPercent =
+    product.compareAt && product.compareAt > product.price
+      ? Math.round(((product.compareAt - product.price) / product.compareAt) * 100)
+      : null;
+
   return (
-    <article className="overflow-hidden rounded-lg border border-pearl-200 bg-white shadow-[0_18px_50px_rgba(60,32,18,0.05)] lg:grid lg:grid-cols-[0.88fr_1.12fr]">
-      <div className="relative min-h-[18rem] bg-pearl-100">
-        <ProductVisual
+    <article className="card group grid overflow-hidden transition-[border-color,box-shadow] duration-fast ease-standard hover:border-line-strong hover:shadow-soft sm:grid-cols-[220px_1fr]">
+      <Link href={`/products/${product.slug}`} className="block outline-none">
+        <ProductCover
           title={product.title}
           subject={product.subject}
           category={product.category}
           format={product.format}
-          badge={product.badge}
-          accentA={product.accentA}
-          accentB={product.accentB}
           coverImage={product.coverImage}
-          subjectMotionLogo={product.subjectMotionLogo}
+          additionalImages={product.additionalImages}
+          discountPercent={discountPercent}
+          className="min-h-[170px]"
         />
-      </div>
-      <div className="space-y-4 p-5 lg:p-6">
-        <div className="flex flex-wrap gap-2 text-xs">
-          {[product.grade, product.subject, product.format].map((tag) => (
-            <span key={tag} className="rounded-md bg-pearl-100 px-3 py-1.5 font-bold text-zinc-700">{tag}</span>
-          ))}
-        </div>
-        <h3 className="text-2xl font-black leading-tight text-zinc-950">{product.title}</h3>
-        <p className="line-clamp-3 text-sm leading-7 text-zinc-600">{product.excerpt}</p>
-        <div className="grid gap-2 text-sm text-zinc-600">
-          {[
-            { ar: "مرتب حسب الصف والمادة", en: "Sorted by grade and subject" },
-            { ar: "معاينة بصرية واضحة", en: "Clear visual preview" },
-            { ar: "مناسب لعروض البوربوينت والملفات التعليمية", en: "Built for PowerPoint and teaching files" }
-          ].map((feature) => (
-            <div key={text(feature)} className="flex items-center gap-2">
-              <CheckCircle2 size={16} className="text-emerald-700" />
-              <span>{text(feature)}</span>
-            </div>
-          ))}
-        </div>
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-pearl-200 pt-4">
-          <div>
-            <p className="text-xs text-zinc-500">{text({ ar: "السعر", en: "Price" })}</p>
-            <div className="mt-1 flex items-center gap-2">
-              <span className="text-2xl font-black text-qatar-800">{currencyLabel(product.price)}</span>
-              {product.compareAt ? <span className="text-sm text-zinc-400 line-through">{currencyLabel(product.compareAt)}</span> : null}
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <AddToCartButton item={cartItem} compact />
-            <Link href={`/products/${product.slug}`} className="btn-secondary h-11 w-11 px-0 py-0 text-qatar-700">
-              <ArrowLeft size={18} />
+      </Link>
+
+      <div className="flex flex-col justify-between gap-5 p-5 md:p-6">
+        <div>
+          <p className="text-caption text-ink-faint">
+            {product.grade} · {product.subject}
+          </p>
+          <h3 className="mt-1.5 text-h3 font-bold leading-snug text-ink transition-colors duration-instant group-hover:text-brand-deep">
+            <Link href={`/products/${product.slug}`} className="outline-none">
+              {product.title}
             </Link>
+          </h3>
+          <p className="mt-2 line-clamp-2 text-body-sm leading-8 text-ink-soft">{product.excerpt}</p>
+          <p className="mt-3 text-caption font-medium text-ink-faint">
+            {product.format}
+            {product.pages ? ` · ${product.pages}` : ""}
+            {product.level ? ` · ${product.level}` : ""}
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
+          <Price value={product.price} compareAt={product.compareAt} size="lg" />
+          <div className="flex items-center gap-2.5">
+            <Link
+              href={`/products/${product.slug}`}
+              className="inline-flex h-10 items-center gap-1.5 rounded-sm px-3 text-body-sm font-semibold text-ink-soft transition-colors duration-instant hover:bg-paper-deep hover:text-ink"
+            >
+              <ArrowForward size={14} aria-hidden="true" />
+              التفاصيل
+            </Link>
+            <AddToCartButton item={cartItem} size="sm" className="h-10" />
           </div>
         </div>
       </div>
@@ -92,8 +99,13 @@ function ListProductCard({ product }: { product: ProductCardModel }) {
   );
 }
 
+/**
+ * KUTUBI product explorer — search + grade/subject/format filters + sort + grid/list.
+ * Business logic (client-side filtering) unchanged from the original.
+ */
 export function ProductExplorer({ products, grades, subjects, initialSearch = "", initialGrade = ALL, initialSubject = ALL }: Props) {
   const { text } = useSitePreferences();
+  const reduced = useReducedMotion() ?? false;
   const [search, setSearch] = useState(initialSearch);
   const [grade, setGrade] = useState(initialGrade);
   const [subject, setSubject] = useState(initialSubject);
@@ -107,8 +119,15 @@ export function ProductExplorer({ products, grades, subjects, initialSearch = ""
     return Array.from(new Set(products.filter((product) => product.grade === grade).map((product) => product.subject)));
   }, [grade, products, subjects]);
 
-  const formats = useMemo(() => Array.from(new Set(products.flatMap((product) => product.format.split(/[+،,\/]/).map((item) => item.trim()).filter(Boolean)))).sort(), [products]);
-  const highestPrice = useMemo(() => Math.max(0, ...products.map((product) => product.price)), [products]);
+  const formats = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          products.flatMap((product) => product.format.split(/[+،,\/]/).map((item) => item.trim()).filter(Boolean))
+        )
+      ).sort(),
+    [products]
+  );
 
   const filtered = useMemo(() => {
     const matches = products.filter((product) => {
@@ -128,113 +147,212 @@ export function ProductExplorer({ products, grades, subjects, initialSearch = ""
     });
   }, [products, search, grade, subject, format, sort]);
 
-  const activeFiltersCount = (grade !== ALL ? 1 : 0) + (subject !== ALL ? 1 : 0) + (format !== ALL ? 1 : 0) + (sort !== "recommended" ? 1 : 0);
+  const activeChips: { label: string; clear: () => void }[] = [];
+  if (grade !== ALL) activeChips.push({ label: grade, clear: () => { setGrade(ALL); setSubject(ALL); } });
+  if (subject !== ALL) activeChips.push({ label: subject, clear: () => setSubject(ALL) });
+  if (format !== ALL) activeChips.push({ label: format, clear: () => setFormat(ALL) });
+  if (sort !== "recommended") activeChips.push({ label: text({ ar: "ترتيب مخصص", en: "Custom sort" }), clear: () => setSort("recommended") });
+
+  function clearAll() {
+    setSearch("");
+    setGrade(ALL);
+    setSubject(ALL);
+    setFormat(ALL);
+    setSort("recommended");
+  }
 
   return (
     <div className="space-y-6">
-      <div className="rounded-lg border border-pearl-200 bg-white p-5 shadow-sm">
-        <div className="grid gap-4 lg:grid-cols-[1fr_auto]">
-          <label className="relative block">
-            <Search size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400" />
+      {/* toolbar */}
+      <div className="card space-y-4 p-5">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center">
+          <label className="relative block flex-1">
+            <Search size={16} className="pointer-events-none absolute start-4 top-1/2 -translate-y-1/2 text-ink-faint" aria-hidden="true" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="input pr-12"
+              className="h-11 w-full rounded-sm border border-line bg-surface ps-11 pe-4 text-body text-ink outline-none transition-colors duration-instant placeholder:text-ink-faint focus:border-brand focus:ring-2 focus:ring-brand/25"
               placeholder={text({ ar: "ابحث عن بوربوينت، صف، مادة أو صيغة...", en: "Search PowerPoint, grade, subject, or format..." })}
+              aria-label={text({ ar: "بحث في المنتجات", en: "Search products" })}
             />
           </label>
-          <div className="flex flex-wrap gap-2">
-            <button type="button" onClick={() => setShowFilters(!showFilters)} className={`chip ${showFilters || activeFiltersCount > 0 ? "border-qatar-300 bg-qatar-50 text-qatar-800" : ""}`}>
-              <SlidersHorizontal size={16} />
+
+          <div className="flex items-center justify-between gap-3 md:justify-end">
+            {/* mobile filter toggle */}
+            <button
+              type="button"
+              onClick={() => setShowFilters((value) => !value)}
+              className={cn(
+                "inline-flex h-11 items-center gap-2 rounded-sm border px-4 text-body-sm font-semibold transition-colors duration-instant lg:hidden",
+                showFilters || activeChips.length > 0
+                  ? "border-brand/40 bg-brand-soft text-brand-deep"
+                  : "border-line bg-surface text-ink-soft hover:border-line-strong"
+              )}
+              aria-expanded={showFilters}
+            >
+              <SlidersHorizontal size={15} aria-hidden="true" />
               {text({ ar: "فلاتر", en: "Filters" })}
-              {activeFiltersCount > 0 ? <span className="ml-1 rounded-full bg-qatar-700 px-1.5 py-0.5 text-[10px] font-black text-white">{activeFiltersCount}</span> : null}
+              {activeChips.length > 0 ? (
+                <span className="tnum grid size-5 place-items-center rounded-pill bg-brand text-[11px] font-bold text-white">
+                  {activeChips.length}
+                </span>
+              ) : null}
             </button>
-            <button type="button" onClick={() => setView("grid")} className={`chip ${view === "grid" ? "border-qatar-300 bg-qatar-50 text-qatar-800" : ""}`}>
-              <LayoutGrid size={16} /> {text({ ar: "شبكة", en: "Grid" })}
-            </button>
-            <button type="button" onClick={() => setView("list")} className={`chip ${view === "list" ? "border-qatar-300 bg-qatar-50 text-qatar-800" : ""}`}>
-              <ListFilter size={16} /> {text({ ar: "قائمة", en: "List" })}
-            </button>
+
+            {/* view toggle */}
+            <div className="flex rounded-sm border border-line bg-surface p-0.5">
+              {(["grid", "list"] as const).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => setView(mode)}
+                  aria-pressed={view === mode}
+                  className={cn(
+                    "grid size-10 place-items-center rounded-sm transition-colors duration-instant",
+                    view === mode ? "bg-ink text-paper" : "text-ink-faint hover:text-ink"
+                  )}
+                  aria-label={mode === "grid" ? text({ ar: "عرض شبكة", en: "Grid view" }) : text({ ar: "عرض قائمة", en: "List view" })}
+                >
+                  {mode === "grid" ? <LayoutGrid size={16} aria-hidden="true" /> : <List size={16} aria-hidden="true" />}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
-        {showFilters || activeFiltersCount > 0 ? (
-          <div className="mt-4 grid gap-3 border-t border-pearl-100 pt-4 sm:grid-cols-2 lg:grid-cols-4">
-            <label className="block space-y-1">
-              <span className="text-xs font-bold text-zinc-500">{text({ ar: "الصف", en: "Grade" })}</span>
-              <select className="input" value={grade} onChange={(e) => { setGrade(e.target.value); setSubject(ALL); }}>
-                <option value={ALL}>{text({ ar: "كل الصفوف", en: "All grades" })}</option>
-                {grades.map((item) => <option key={item} value={item}>{item}</option>)}
-              </select>
+        {/* filters — always visible on lg, toggled on mobile */}
+        <div className={cn("grid gap-3 border-t border-line pt-4 sm:grid-cols-2 lg:grid-cols-4", !showFilters && "hidden lg:grid")}>
+          {(
+            [
+              {
+                label: text({ ar: "الصف", en: "Grade" }),
+                value: grade,
+                onChange: (value: string) => { setGrade(value); setSubject(ALL); },
+                all: text({ ar: "كل الصفوف", en: "All grades" }),
+                options: grades
+              },
+              {
+                label: text({ ar: "المادة", en: "Subject" }),
+                value: subject,
+                onChange: (value: string) => setSubject(value),
+                all: text({ ar: "كل المواد", en: "All subjects" }),
+                options: subjectsForGrade
+              },
+              {
+                label: text({ ar: "نوع الملف", en: "File type" }),
+                value: format,
+                onChange: (value: string) => setFormat(value),
+                all: text({ ar: "كل الصيغ", en: "All formats" }),
+                options: formats
+              },
+              {
+                label: text({ ar: "الترتيب", en: "Sort" }),
+                value: sort,
+                onChange: (value: string) => setSort(value as typeof sort),
+                all: "",
+                options: [] as string[]
+              }
+            ]
+          ).map((field) => (
+            <label key={field.label} className="block space-y-1.5">
+              <span className="block text-caption font-semibold text-ink-faint">{field.label}</span>
+              {field.label === text({ ar: "الترتيب", en: "Sort" }) ? (
+                <select className={selectClass} value={sort} onChange={(e) => setSort(e.target.value as typeof sort)}>
+                  <option value="recommended">{text({ ar: "الموصى به", en: "Recommended" })}</option>
+                  <option value="rating-desc">{text({ ar: "الأعلى تقييمًا", en: "Top rated" })}</option>
+                  <option value="price-asc">{text({ ar: "السعر الأقل", en: "Lowest price" })}</option>
+                  <option value="price-desc">{text({ ar: "السعر الأعلى", en: "Highest price" })}</option>
+                </select>
+              ) : (
+                <select
+                  className={selectClass}
+                  value={field.value}
+                  onChange={(e) => field.onChange(e.target.value)}
+                >
+                  <option value={ALL}>{field.all}</option>
+                  {field.options.map((item) => (
+                    <option key={item} value={item}>{item}</option>
+                  ))}
+                </select>
+              )}
             </label>
-            <label className="block space-y-1">
-              <span className="text-xs font-bold text-zinc-500">{text({ ar: "المادة", en: "Subject" })}</span>
-              <select className="input" value={subject} onChange={(e) => setSubject(e.target.value)}>
-                <option value={ALL}>{text({ ar: "كل المواد", en: "All subjects" })}</option>
-                {subjectsForGrade.map((item) => <option key={item} value={item}>{item}</option>)}
-              </select>
-            </label>
-            <label className="block space-y-1">
-              <span className="text-xs font-bold text-zinc-500">{text({ ar: "نوع الملف", en: "File type" })}</span>
-              <select className="input" value={format} onChange={(e) => setFormat(e.target.value)}>
-                <option value={ALL}>{text({ ar: "كل الصيغ", en: "All formats" })}</option>
-                {formats.map((item) => <option key={item} value={item}>{item}</option>)}
-              </select>
-            </label>
-            <label className="block space-y-1">
-              <span className="text-xs font-bold text-zinc-500">{text({ ar: "الترتيب", en: "Sort" })}</span>
-              <select className="input" value={sort} onChange={(e) => setSort(e.target.value as typeof sort)}>
-                <option value="recommended">{text({ ar: "الموصى به", en: "Recommended" })}</option>
-                <option value="rating-desc">{text({ ar: "الأعلى تقييمًا", en: "Top rated" })}</option>
-                <option value="price-asc">{text({ ar: "السعر الأقل", en: "Lowest price" })}</option>
-                <option value="price-desc">{text({ ar: "السعر الأعلى", en: "Highest price" })}</option>
-              </select>
-            </label>
-          </div>
-        ) : null}
+          ))}
+        </div>
 
-        {activeFiltersCount > 0 ? (
-          <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-zinc-600">
-            <span>
-              {text({ ar: "النتائج", en: "Results" })}: <strong className="text-zinc-950">{filtered.length}</strong>
-            </span>
-            <span className="text-zinc-300">·</span>
+        {/* results count + active chips */}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-line pt-4 text-body-sm">
+          <span className="text-ink-soft">
+            {text({ ar: "النتائج", en: "Results" })}: <strong className="tnum font-bold text-ink">{filtered.length}</strong>
+          </span>
+          {activeChips.length > 0 ? (
+            <>
+              <span className="hidden text-line-strong sm:inline" aria-hidden="true">|</span>
+              <div className="flex flex-wrap items-center gap-2">
+                {activeChips.map((chip) => (
+                  <button
+                    key={chip.label}
+                    type="button"
+                    onClick={chip.clear}
+                    className="inline-flex h-7 items-center gap-1.5 rounded-pill border border-line bg-surface px-3 text-caption font-semibold text-ink-soft transition-colors duration-instant hover:border-accent-danger/50 hover:text-accent-danger"
+                    aria-label={text({ ar: "إزالة فلتر", en: "Remove filter" }) + " " + chip.label}
+                  >
+                    {chip.label}
+                    <X size={12} aria-hidden="true" />
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={clearAll}
+                  className="text-caption font-semibold text-brand-deep transition-colors duration-instant hover:text-brand"
+                >
+                  {text({ ar: "مسح الكل", en: "Clear all" })}
+                </button>
+              </div>
+            </>
+          ) : null}
+        </div>
+      </div>
+
+      {/* results */}
+      {filtered.length === 0 ? (
+        <EmptyState
+          icon={Search}
+          title={text({ ar: "لا توجد نتائج مطابقة", en: "No matching results" })}
+          description={text({
+            ar: "جرّب تعديل البحث أو إزالة بعض الفلاتر لعرض المزيد من المنتجات.",
+            en: "Try adjusting the search or removing some filters to see more products."
+          })}
+          action={
             <button
               type="button"
-              onClick={() => {
-                setSearch("");
-                setGrade(ALL);
-                setSubject(ALL);
-                setFormat(ALL);
-                setSort("recommended");
-              }}
-              className="chip border-qatar-100 bg-qatar-50 px-3 py-1.5 text-qatar-800 hover:bg-qatar-100"
+              onClick={clearAll}
+              className="inline-flex h-10 items-center gap-2 rounded-sm border border-line-strong px-4 text-body-sm font-semibold text-ink transition-colors duration-instant hover:bg-paper-deep"
             >
-              <X size={14} /> {text({ ar: "مسح الفلاتر", en: "Clear filters" })}
+              <X size={14} aria-hidden="true" />
+              {text({ ar: "مسح الفلاتر", en: "Clear filters" })}
             </button>
-          </div>
-        ) : (
-          <div className="mt-3 text-sm text-zinc-500">
-            {text({ ar: "النتائج", en: "Results" })}: <strong className="text-zinc-950">{filtered.length}</strong>
-          </div>
-        )}
-      </div>
-
-      <div className="grid gap-6">
-        <AnimatePresence mode="popLayout">
-          {view === "grid" ? (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="grid gap-6 xl:grid-cols-2">
-              {filtered.map((product) => <ProductCard key={product.id} product={product} />)}
-            </motion.div>
-          ) : (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-5">
-              {filtered.map((product) => <ListProductCard key={product.id} product={product} />)}
-            </motion.div>
-          )}
+          }
+        />
+      ) : (
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={view}
+            initial={reduced ? false : { opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={reduced ? undefined : { opacity: 0 }}
+            transition={{ duration: reduced ? 0 : 0.18 }}
+            className={view === "grid" ? "grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3" : "space-y-5"}
+          >
+            {filtered.map((product) =>
+              view === "grid" ? (
+                <ProductCard key={product.id} product={product} />
+              ) : (
+                <ListProductCard key={product.id} product={product} />
+              )
+            )}
+          </motion.div>
         </AnimatePresence>
-      </div>
-
-      {!filtered.length ? <EmptyProducts /> : null}
+      )}
     </div>
   );
 }

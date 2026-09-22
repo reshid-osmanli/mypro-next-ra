@@ -4,7 +4,9 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { getProviders, signIn, useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, Loader2, ShieldCheck } from "lucide-react";
+import { Loader2, ShieldCheck } from "lucide-react";
+import { useSitePreferences } from "@/components/site-preferences";
+import { ArrowForward } from "@/components/ui/icon";
 
 type AuthCardProps = {
   mode: "login" | "signup";
@@ -25,6 +27,7 @@ export function AuthCard({ mode }: AuthCardProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { status } = useSession();
+  const { text } = useSitePreferences();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [googleReady, setGoogleReady] = useState<boolean | null>(null);
@@ -46,13 +49,20 @@ export function AuthCard({ mode }: AuthCardProps) {
         const hasGoogle = Boolean(providers?.google);
         setGoogleReady(hasGoogle);
         if (!hasGoogle) {
-          setError("تسجيل الدخول عبر Google غير مهيأ بعد. أضف AUTH_GOOGLE_ID و AUTH_GOOGLE_SECRET ثم أعد تشغيل الخادم.");
+          setError(
+            text({
+              ar: "تسجيل الدخول عبر Google غير مهيأ بعد. أضف AUTH_GOOGLE_ID و AUTH_GOOGLE_SECRET ثم أعد تشغيل الخادم.",
+              en: "Google sign-in is not configured yet. Add AUTH_GOOGLE_ID and AUTH_GOOGLE_SECRET, then restart the server."
+            })
+          );
         }
       })
       .catch(() => {
         if (!active) return;
         setGoogleReady(false);
-        setError("تعذر قراءة إعدادات تسجيل الدخول. حاول مرة أخرى بعد إعادة تشغيل الخادم.");
+        setError(
+          text({ ar: "تعذر قراءة إعدادات تسجيل الدخول. حاول مرة أخرى بعد إعادة تشغيل الخادم.", en: "Unable to read sign-in settings. Try again after restarting the server." })
+        );
       });
 
     return () => {
@@ -62,12 +72,17 @@ export function AuthCard({ mode }: AuthCardProps) {
 
   useEffect(() => {
     const errorCode = searchParams.get("error");
-    if (errorCode) setError("تعذر إكمال تسجيل الدخول. حاول مرة أخرى.");
-  }, [searchParams]);
+    if (errorCode) setError(text({ ar: "تعذر إكمال تسجيل الدخول. حاول مرة أخرى.", en: "Unable to complete sign-in. Try again." }));
+  }, [searchParams, text]);
 
   async function continueWithGoogle() {
     if (!googleReady) {
-      setError("تسجيل الدخول عبر Google غير مهيأ بعد. أضف AUTH_GOOGLE_ID و AUTH_GOOGLE_SECRET ثم أعد تشغيل الخادم.");
+      setError(
+        text({
+          ar: "تسجيل الدخول عبر Google غير مهيأ بعد. أضف AUTH_GOOGLE_ID و AUTH_GOOGLE_SECRET ثم أعد تشغيل الخادم.",
+          en: "Google sign-in is not configured yet. Add AUTH_GOOGLE_ID and AUTH_GOOGLE_SECRET, then restart the server."
+        })
+      );
       return;
     }
 
@@ -76,44 +91,64 @@ export function AuthCard({ mode }: AuthCardProps) {
     try {
       await signIn("google", { callbackUrl });
     } catch {
-      setError("تعذر بدء تسجيل الدخول عبر Google.");
+      setError(text({ ar: "تعذر بدء تسجيل الدخول عبر Google.", en: "Unable to start Google sign-in." }));
       setLoading(false);
     }
   }
 
   return (
     <div className="mx-auto flex min-h-[calc(100vh-12rem)] max-w-7xl items-center justify-center px-4 py-12 lg:px-8">
-      <div className="panel w-full max-w-xl overflow-hidden p-0 shadow-[0_30px_80px_rgba(15,23,42,0.08)]">
-        <div className="bg-zinc-950 px-8 py-8 text-white">
-          <div className="inline-flex items-center gap-2 rounded-md border border-white/20 bg-white/10 px-4 py-2 text-xs font-black uppercase tracking-[0.16em]">
-            <ShieldCheck size={14} />
-            حساب كُتبي
-          </div>
-          <h1 className="mt-5 text-3xl font-black">{isSignup ? "إنشاء حساب" : "تسجيل الدخول"}</h1>
-          <p className="mt-3 max-w-lg text-sm leading-7 text-white/75">
+      <div className="card w-full max-w-xl overflow-hidden">
+        {/* header band */}
+        <div className="border-b border-line bg-ink-deep px-7 py-7 text-paper md:px-8">
+          <span className="inline-flex h-8 items-center gap-2 rounded-pill border border-white/15 bg-white/10 px-3 text-caption font-semibold text-paper/90">
+            <ShieldCheck size={13} aria-hidden="true" />
+            {text({ ar: "حساب كُتبي", en: "Kutubi account" })}
+          </span>
+          <h1 className="mt-4 text-h1 font-bold text-paper">{isSignup ? text({ ar: "إنشاء حساب", en: "Create account" }) : text({ ar: "تسجيل الدخول", en: "Sign in" })}</h1>
+          <p className="mt-3 max-w-lg text-body-sm leading-8 text-paper/70">
             {isSignup
-              ? "أنشئ حسابك عبر Google حتى ترتبط مكتبتك ومشترياتك ببريدك نفسه."
-              : "ادخل بحساب Google لعرض المكتبة وتتبع المشتريات والملفات المرتبطة ببريدك."}
+              ? text({ ar: "أنشئ حسابك عبر Google حتى ترتبط مكتبتك ومشترياتك ببريدك نفسه.", en: "Create your account with Google so your library and purchases are tied to your email." })
+              : text({ ar: "ادخل بحساب Google لعرض المكتبة وتتبع المشتريات والملفات المرتبطة ببريدك.", en: "Sign in with Google to view your library and track purchases tied to your email." })}
           </p>
         </div>
 
-        <div className="space-y-5 p-8">
-          {error ? <div className="rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div> : null}
+        <div className="space-y-5 p-7 md:p-8">
+          {error ? (
+            <div className="rounded-sm border border-accent-danger/30 bg-accent-danger-soft px-4 py-3 text-body-sm font-semibold text-accent-danger">
+              {error}
+            </div>
+          ) : null}
 
-          <button type="button" onClick={continueWithGoogle} disabled={loading || status === "loading" || googleReady === null} className="inline-flex w-full items-center justify-center gap-3 rounded-2xl border border-zinc-200 bg-white px-5 py-4 text-sm font-black text-zinc-900 shadow-sm transition hover:-translate-y-0.5 hover:border-qatar-200 hover:shadow-lg disabled:opacity-60">
-            {loading || status === "loading" || googleReady === null ? <Loader2 size={16} className="animate-spin" /> : <GoogleIcon />}
-            {isSignup ? "إنشاء الحساب عبر Google" : "تسجيل الدخول عبر Google"}
-            <ArrowLeft size={16} />
+          <button
+            type="button"
+            onClick={continueWithGoogle}
+            disabled={loading || status === "loading" || googleReady === null}
+            className="inline-flex w-full items-center justify-center gap-3 rounded-sm border border-line bg-surface px-5 py-4 text-body font-semibold text-ink transition-colors duration-instant hover:border-line-strong hover:bg-paper-deep/50 disabled:opacity-55"
+          >
+            {loading || status === "loading" || googleReady === null ? (
+              <Loader2 size={16} className="animate-spin" aria-hidden="true" />
+            ) : (
+              <GoogleIcon />
+            )}
+            {isSignup ? text({ ar: "إنشاء الحساب عبر Google", en: "Create account with Google" }) : text({ ar: "تسجيل الدخول عبر Google", en: "Sign in with Google" })}
+            <ArrowForward size={15} aria-hidden="true" />
           </button>
 
-          <div className="rounded-lg border border-qatar-100 bg-qatar-50 px-4 py-3 text-sm leading-7 text-qatar-900">
-            سيتم استخدام بريد Google المسجل للدخول لعرض مشترياتك وربط Google Drive عند اختيارك ذلك.
+          <div className="rounded-sm border border-brand/15 bg-brand-soft/40 px-4 py-3 text-body-sm leading-8 text-ink-soft">
+            {text({
+              ar: "سيتم استخدام بريد Google المسجل للدخول لعرض مشترياتك وربط Google Drive عند اختيارك ذلك.",
+              en: "Your registered Google email is used to view your purchases and, if you choose, connect Google Drive."
+            })}
           </div>
 
-          <div className="text-center text-sm text-zinc-600">
-            {isSignup ? "لديك حساب؟ " : "ليس لديك حساب؟ "}
-            <Link href={isSignup ? `/login?callbackUrl=${encodeURIComponent(callbackUrl)}` : `/signup?callbackUrl=${encodeURIComponent(callbackUrl)}`} className="font-black text-qatar-700 underline decoration-dotted underline-offset-4">
-              {isSignup ? "تسجيل الدخول" : "إنشاء حساب"}
+          <div className="text-center text-body-sm text-ink-soft">
+            {isSignup ? text({ ar: "لديك حساب؟ ", en: "Already have an account? " }) : text({ ar: "ليس لديك حساب؟ ", en: "Don't have an account? " })}
+            <Link
+              href={isSignup ? `/login?callbackUrl=${encodeURIComponent(callbackUrl)}` : `/signup?callbackUrl=${encodeURIComponent(callbackUrl)}`}
+              className="font-semibold text-brand-deep underline decoration-dotted underline-offset-4 transition-colors duration-instant hover:text-brand"
+            >
+              {isSignup ? text({ ar: "تسجيل الدخول", en: "Sign in" }) : text({ ar: "إنشاء حساب", en: "Create account" })}
             </Link>
           </div>
         </div>
