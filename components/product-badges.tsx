@@ -1,14 +1,17 @@
+"use client";
+
 // ============================================================================
-// components/product-badges.tsx — Dynamic badges based on real data
+// components/product-badges.tsx — Dynamic badges based on real data only
 // ----------------------------------------------------------------------------
-// New file: /components/product-badges.tsx
-// - الأكثر مبيعاً (when salesCount > 10)
-// - جديد (when createdAt within 14 days)
-// - خصم X% (when compareAt > price)
-// - Trending (when recent orders count > 5)
+// - جديد (createdAt within 14 days)
+// - خصم X% (compareAt > price)
+// - الأكثر مبيعاً (salesCount > 10, when provided)
+// - رائج (recentOrdersCount >= 5, when provided)
 // ============================================================================
 
-import { Flame, Sparkles, Percent, Crown } from "lucide-react";
+import { Crown, Percent, Sparkles } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { useSitePreferences } from "@/components/site-preferences";
 
 type Props = {
   product: {
@@ -28,6 +31,7 @@ function daysSince(date: Date | string | undefined) {
 }
 
 export function ProductBadges({ product, className = "" }: Props) {
+  const { text } = useSitePreferences();
   const isNew = daysSince(product.createdAt) <= 14;
   const isBestseller = (product.salesCount ?? 0) > 10;
   const isTrending = (product.recentOrdersCount ?? 0) >= 5;
@@ -36,31 +40,30 @@ export function ProductBadges({ product, className = "" }: Props) {
       ? Math.round(((product.compareAt - product.price) / product.compareAt) * 100)
       : 0;
 
+  if (!isNew && !isBestseller && !isTrending && discountPct === 0) return null;
+
   return (
     <div className={`flex flex-wrap items-center gap-1.5 ${className}`}>
       {isBestseller && (
-        <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-black text-amber-800 shadow-sm">
-          <Crown size={12} />
-          الأكثر مبيعاً
-        </span>
+        <Badge tone="gold">
+          <Crown size={11} aria-hidden="true" />
+          {text({ ar: "الأكثر مبيعاً", en: "Best seller" })}
+        </Badge>
       )}
       {isNew && (
-        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-black text-emerald-800 shadow-sm">
-          <Sparkles size={12} />
-          جديد
-        </span>
+        <Badge tone="teal">
+          <Sparkles size={11} aria-hidden="true" />
+          {text({ ar: "جديد", en: "New" })}
+        </Badge>
       )}
       {isTrending && !isBestseller && (
-        <span className="inline-flex items-center gap-1 rounded-full bg-rose-100 px-2.5 py-1 text-xs font-black text-rose-700 shadow-sm">
-          <Flame size={12} />
-          رائج
-        </span>
+        <Badge tone="gold">{text({ ar: "رائج", en: "Trending" })}</Badge>
       )}
       {discountPct > 0 && (
-        <span className="inline-flex items-center gap-1 rounded-full bg-qatar-100 px-2.5 py-1 text-xs font-black text-qatar-800 shadow-sm">
-          <Percent size={12} />
-          خصم {discountPct}%
-        </span>
+        <Badge tone="brand">
+          <Percent size={11} aria-hidden="true" />
+          {text({ ar: "خصم", en: "Save" })} <span className="tnum" dir="ltr">{discountPct}%</span>
+        </Badge>
       )}
     </div>
   );

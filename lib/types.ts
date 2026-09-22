@@ -10,6 +10,8 @@ export type CartItem = {
   format: string;
   accentA: string;
   accentB: string;
+  /** Optional cover for drawer/search thumbnails (older carts lack it). */
+  coverImage?: string | null;
 };
 
 export type CheckoutPayload = {

@@ -1,44 +1,58 @@
 "use client";
 
+import { Check, ShoppingBag } from "lucide-react";
 import { useState } from "react";
-import { Check, ShoppingCart } from "lucide-react";
-import { motion } from "framer-motion";
-import type { CartItem } from "@/lib/types";
-import { useCart } from "./cart-provider";
-import { useSitePreferences } from "./site-preferences";
+import { useCart } from "@/components/cart-provider";
+import { useSitePreferences } from "@/components/site-preferences";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 type Props = {
-  item: Omit<CartItem, "quantity">;
+  item: Omit<import("@/lib/types").CartItem, "quantity"> & { coverImage?: string | null };
   compact?: boolean;
+  size?: "sm" | "md" | "lg";
+  /** open the drawer right after adding (default true) */
+  openDrawerOnAdd?: boolean;
   className?: string;
 };
 
-export function AddToCartButton({ item, compact, className }: Props) {
-  const { addItem, hasItem } = useCart();
+/**
+ * KUTUBI Add-to-cart — icon morphs to a check for 900ms,
+ * then the cart drawer slides in (when openDrawerOnAdd).
+ */
+export function AddToCartButton({ item, compact = false, size = "md", openDrawerOnAdd = true, className }: Props) {
+  const { addItem, hasItem, openDrawer } = useCart();
   const { text } = useSitePreferences();
-  const [done, setDone] = useState(false);
+  const [justAdded, setJustAdded] = useState(false);
   const alreadyInCart = hasItem(item.slug);
 
   return (
-    <motion.button
-      type="button"
-      whileTap={{ scale: 0.97 }}
-      whileHover={alreadyInCart ? undefined : { y: -1 }}
+    <Button
+      variant={alreadyInCart ? "secondary" : "primary"}
+      size={size}
+      loading={false}
       disabled={alreadyInCart}
       onClick={() => {
         if (alreadyInCart) return;
         addItem(item);
-        setDone(true);
-        window.setTimeout(() => setDone(false), 1200);
+        setJustAdded(true);
+        window.setTimeout(() => setJustAdded(false), 900);
+        if (openDrawerOnAdd) {
+          window.setTimeout(() => openDrawer(), 250);
+        }
       }}
-      className={`btn-primary ${compact ? "h-11 px-4 text-sm" : "h-12 px-5 text-sm"} disabled:cursor-not-allowed disabled:opacity-80 ${className ?? ""}`}
+      className={cn(compact ? "px-4" : undefined, "min-w-40", className)}
     >
-      {done || alreadyInCart ? <Check size={16} /> : <ShoppingCart size={16} />}
+      {justAdded || alreadyInCart ? (
+        <Check size={16} strokeWidth={2} className={justAdded ? "text-current" : undefined} aria-hidden="true" />
+      ) : (
+        <ShoppingBag size={16} strokeWidth={1.75} aria-hidden="true" />
+      )}
       {alreadyInCart
-        ? text({ ar: "موجود في السلة", en: "In cart" })
-        : done
-          ? text({ ar: "أضيفت", en: "Added" })
-          : text({ ar: "إضافة إلى السلة", en: "Add to cart" })}
-    </motion.button>
+        ? text({ ar: "في السلة", en: "In cart" })
+        : justAdded
+          ? text({ ar: "أُضيف", en: "Added" })
+          : text({ ar: "أضف إلى السلة", en: "Add to cart" })}
+    </Button>
   );
 }

@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { Download, Loader2, ShieldCheck, RefreshCw } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useSitePreferences } from "./site-preferences";
+import { useSitePreferences } from "@/components/site-preferences";
+import { Button } from "@/components/ui/button";
 import { useCart } from "./cart-provider";
 
 function safeDownloadName(name: string) {
@@ -74,16 +75,13 @@ export function OrderDownloadGate() {
     if (startedRef.current) return;
     startedRef.current = true;
     void runDownload();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (loading) {
     return (
-      <div className="mt-6 rounded-lg border border-qatar-100 bg-white p-5 text-sm text-zinc-500">
-        <span className="inline-flex items-center gap-2">
-          <Loader2 size={16} className="animate-spin text-qatar-700" />
-          {text({ ar: "جاري تجهيز التنزيل الآمن...", en: "Preparing the secure download..." })}
-        </span>
+      <div className="mt-6 flex items-center gap-2.5 rounded-sm border border-line bg-surface p-4 text-body-sm text-ink-soft">
+        <Loader2 size={16} className="animate-spin text-brand" aria-hidden="true" />
+        {text({ ar: "جاري تجهيز التنزيل الآمن...", en: "Preparing the secure download..." })}
       </div>
     );
   }
@@ -91,40 +89,40 @@ export function OrderDownloadGate() {
   if (error) {
     return (
       <div className="mt-6 space-y-3">
-        <div className="rounded-lg border border-rose-200 bg-rose-50 p-5 text-sm text-rose-700">
+        <div className="rounded-sm border border-accent-danger/30 bg-accent-danger-soft p-5 text-body-sm font-semibold text-accent-danger">
           {error}
         </div>
-        <button
-          type="button"
+        <Button
           onClick={() => {
             setLoading(true);
             setError("");
             startedRef.current = false;
             void runDownload();
           }}
-          className="btn-primary inline-flex items-center gap-2 text-sm"
+          variant="primary"
+          size="md"
         >
-          <RefreshCw size={16} />
+          <RefreshCw size={15} aria-hidden="true" />
           {text({ ar: "لم يتم تنزيل الملف اضغط هنا لعمل التنزيل مرة أخرى", en: "Download did not start. Click here to retry." })}
-        </button>
+        </Button>
       </div>
     )
   }
 
   return (
-    <div className="mt-8 rounded-lg border border-qatar-100 bg-white p-5 text-right shadow-[0_16px_40px_rgba(15,23,42,0.04)]">
+    <div className="mt-8 rounded-sm border border-line bg-surface p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-qatar-700">{text({ ar: "تنزيل آمن", en: "Secure download" })}</p>
-          <p className="mt-1 text-sm text-zinc-500">
+          <p className="text-label font-bold text-brand-deep">{text({ ar: "تنزيل آمن", en: "Secure download" })}</p>
+          <p className="mt-1 text-body-sm text-ink-soft">
             {completed
               ? text({ ar: "بدأ تنزيل الملف. سيتم الرجوع إلى الصفحة الرئيسية الآن.", en: "The download has started. Returning home now." })
               : text({ ar: "يبدأ التنزيل تلقائياً بدون إظهار رابط مباشر للملفات.", en: "The download starts automatically without exposing a direct file link." })}
           </p>
-          {downloadName ? <p className="mt-2 inline-flex items-center gap-2 text-xs font-semibold text-zinc-600"><Download size={14} />{downloadName}</p> : null}
+          {downloadName ? <p className="mt-2 inline-flex items-center gap-2 text-caption font-semibold text-ink"><Download size={14} aria-hidden="true" />{downloadName}</p> : null}
         </div>
-        <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
-          <ShieldCheck size={14} /> {text({ ar: "مرة واحدة", en: "One time" })}
+        <span className="inline-flex h-7 items-center gap-1.5 rounded-pill bg-accent-teal-soft px-3 text-caption font-semibold text-accent-teal">
+          <ShieldCheck size={13} aria-hidden="true" /> {text({ ar: "مرة واحدة", en: "One time" })}
         </span>
       </div>
     </div>

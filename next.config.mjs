@@ -40,6 +40,9 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: "100mb",
     },
+    // Native View Transitions for route continuity.
+    // Progressive: browsers without support simply navigate as before.
+    viewTransition: true,
   },
   async headers() {
     return [

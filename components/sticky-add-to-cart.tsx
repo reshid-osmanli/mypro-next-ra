@@ -1,17 +1,11 @@
 "use client";
 
-// ============================================================================
-// components/sticky-add-to-cart.tsx — Mobile sticky CTA bar
-// ----------------------------------------------------------------------------
-// New file: /components/sticky-add-to-cart.tsx
-// Appears after scrolling past the main CTA on product pages.
-// ============================================================================
-
 import { useEffect, useState } from "react";
-import { ShoppingCart, ShieldCheck } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { ShieldCheck } from "lucide-react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { AddToCartButton } from "@/components/add-to-cart-button";
-import { currencyLabel } from "@/lib/utils";
+import { Price } from "@/components/ui/price";
+import { useSitePreferences } from "@/components/site-preferences";
 
 type Props = {
   product: {
@@ -19,23 +13,37 @@ type Props = {
     slug: string;
     title: string;
     price: number;
+    compareAt?: number | null;
     grade: string;
     subject: string;
     badge: string;
     format: string;
     accentA: string;
     accentB: string;
+    coverImage?: string | null;
   };
-  /** Scroll offset (in px) where the bar should appear */
+  /** scroll offset (px) where the bar appears */
   threshold?: number;
 };
 
-export function StickyAddToCart({ product, threshold = 600 }: Props) {
+/**
+ * Mobile sticky CTA bar — appears after scrolling past the main CTA.
+ * Solid surface (no glass), price + add button.
+ */
+export function StickyAddToCart({ product, threshold = 560 }: Props) {
   const [visible, setVisible] = useState(false);
+  const { text } = useSitePreferences();
+  const reduced = useReducedMotion() ?? false;
 
   useEffect(() => {
+    let ticking = false;
     function handleScroll() {
-      setVisible(window.scrollY > threshold);
+      if (ticking) return;
+      ticking = true;
+      window.requestAnimationFrame(() => {
+        setVisible(window.scrollY > threshold);
+        ticking = false;
+      });
     }
     handleScroll();
     window.addEventListener("scroll", handleScroll, { passive: true });
@@ -46,26 +54,21 @@ export function StickyAddToCart({ product, threshold = 600 }: Props) {
     <AnimatePresence>
       {visible && (
         <motion.div
-          initial={{ y: 100, opacity: 0 }}
+          initial={reduced ? false : { y: 80, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          exit={{ y: 100, opacity: 0 }}
-          transition={{ type: "spring", stiffness: 300, damping: 30 }}
-          className="fixed inset-x-0 bottom-0 z-30 border-t border-pearl-200 bg-white/95 px-4 py-3 backdrop-blur-md shadow-[0_-12px_30px_rgba(15,23,42,0.08)] md:hidden"
-          dir="rtl"
+          exit={reduced ? undefined : { y: 80, opacity: 0 }}
+          transition={{ type: "spring", stiffness: 340, damping: 34 }}
+          className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-paper px-4 py-3 md:hidden"
         >
           <div className="mx-auto flex max-w-6xl items-center gap-3">
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-bold text-zinc-950">{product.title}</p>
-              <div className="mt-0.5 flex items-center gap-2 text-xs text-zinc-600">
-                <ShieldCheck size={12} className="text-emerald-600" />
-                <span>تحميل آمن بعد الدفع</span>
-              </div>
+              <p className="truncate text-body-sm font-bold text-ink">{product.title}</p>
+              <p className="mt-0.5 flex items-center gap-1.5 text-caption text-ink-faint">
+                <ShieldCheck size={12} aria-hidden="true" />
+                {text({ ar: "تحميل آمن بعد الدفع", en: "Secure download after payment" })}
+              </p>
             </div>
-            <div className="flex flex-col items-end">
-              <span className="text-base font-black text-qatar-800">
-                {currencyLabel(product.price)}
-              </span>
-            </div>
+            <Price value={product.price} compareAt={product.compareAt} size="sm" />
             <AddToCartButton
               item={{
                 id: product.id,
@@ -78,8 +81,10 @@ export function StickyAddToCart({ product, threshold = 600 }: Props) {
                 format: product.format,
                 accentA: product.accentA,
                 accentB: product.accentB,
+                coverImage: product.coverImage ?? null
               }}
-              className="btn-primary !px-4 !py-2 !text-sm"
+              size="sm"
+              className="h-11 shrink-0"
             />
           </div>
         </motion.div>

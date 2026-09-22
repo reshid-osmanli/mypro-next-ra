@@ -2,18 +2,21 @@
 
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { CheckCircle, CreditCard, Gift, Loader2, Mail, Phone, ShieldCheck, Ticket, User2, WalletCards } from "lucide-react";
+import { CheckCircle, CreditCard, Loader2, Mail, Phone, ShieldCheck, Ticket, User2, WalletCards } from "lucide-react";
 import { useSession } from "next-auth/react";
 import Script from "next/script";
-import { useCart } from "./cart-provider";
-import { PayPalCheckoutButton } from "./paypal-checkout-button";
+import { useCart } from "@/components/cart-provider";
+import { PayPalCheckoutButton } from "@/components/paypal-checkout-button";
+import { Button } from "@/components/ui/button";
+import { Price } from "@/components/ui/price";
 import { paypalSdkScriptUrl } from "@/lib/paypal-client";
 import { subtotal } from "@/lib/site-math";
 import { calculateBundleDiscount, bundleDiscountLabel } from "@/lib/bundle-discounts";
 import { currencyLabel } from "@/lib/utils";
-import { useSitePreferences } from "./site-preferences";
-import { HoneypotFields } from "./honeypot-fields";
-import { getCsrfToken } from "./csrf-provider";
+import { useSitePreferences } from "@/components/site-preferences";
+import { HoneypotFields } from "@/components/honeypot-fields";
+import { getCsrfToken } from "@/components/csrf-provider";
+import { cn } from "@/lib/utils";
 
 const providers = [
   {
@@ -33,6 +36,11 @@ const providers = [
 type AvailableVoucher = { code: string; amount: number };
 
 const CSRF_HEADER = "x-csrf-token";
+
+const inputClass =
+  "h-11 w-full rounded-sm border border-line bg-surface ps-11 pe-4 text-body text-ink outline-none transition-colors duration-instant placeholder:text-ink-faint focus:border-brand focus:ring-2 focus:ring-brand/25";
+const textareaClass =
+  "w-full rounded-sm border border-line bg-surface p-3.5 text-body leading-8 text-ink outline-none transition-colors duration-instant placeholder:text-ink-faint focus:border-brand focus:ring-2 focus:ring-brand/25";
 
 export function CheckoutForm() {
   const formRef = useRef<HTMLFormElement>(null);
@@ -208,7 +216,7 @@ export function CheckoutForm() {
   }
 
   return (
-    <form ref={formRef} onSubmit={handleSubmit} className="panel space-y-6 p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
+    <form ref={formRef} onSubmit={handleSubmit} className="card space-y-7 p-6 md:p-8">
       {paypalEnabled && paypalClientId ? (
         <Script
           id="paypal-js-sdk"
@@ -229,111 +237,121 @@ export function CheckoutForm() {
       <HoneypotFields renderedAt={renderedAtRef.current} />
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <label className="block space-y-2">
-          <span className="text-sm font-semibold text-zinc-700">{text({ ar: "الاسم الكامل", en: "Full name" })}</span>
+        <label className="block space-y-1.5">
+          <span className="block text-body-sm font-semibold text-ink">{text({ ar: "الاسم الكامل", en: "Full name" })}</span>
           <div className="relative">
-            <User2 size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400" />
-            <input name="customerName" className="input pr-12" placeholder={text({ ar: "اسم العميل", en: "Customer name" })} value={customerName} onChange={(event) => setCustomerName(event.target.value)} required />
+            <User2 size={16} className="pointer-events-none absolute start-4 top-1/2 -translate-y-1/2 text-ink-faint" aria-hidden="true" />
+            <input name="customerName" className={inputClass} placeholder={text({ ar: "اسم العميل", en: "Customer name" })} value={customerName} onChange={(event) => setCustomerName(event.target.value)} required />
           </div>
         </label>
 
-        <label className="block space-y-2">
-          <span className="text-sm font-semibold text-zinc-700">{text({ ar: "البريد الإلكتروني", en: "Email address" })}</span>
+        <label className="block space-y-1.5">
+          <span className="block text-body-sm font-semibold text-ink">{text({ ar: "البريد الإلكتروني", en: "Email address" })}</span>
           <div className="relative">
-            <Mail size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400" />
-            <input name="email" type="email" className="input pr-12" placeholder="name@example.com" value={customerEmail} onChange={(event) => setCustomerEmail(event.target.value)} readOnly={Boolean(signedInEmail)} required />
+            <Mail size={16} className="pointer-events-none absolute start-4 top-1/2 -translate-y-1/2 text-ink-faint" aria-hidden="true" />
+            <input name="email" type="email" className={inputClass} placeholder="name@example.com" value={customerEmail} onChange={(event) => setCustomerEmail(event.target.value)} readOnly={Boolean(signedInEmail)} required />
           </div>
         </label>
       </div>
 
-      <label className="block space-y-2">
-        <span className="text-sm font-semibold text-zinc-700">{text({ ar: "رقم الهاتف", en: "Phone number" })}</span>
+      <label className="block space-y-1.5">
+        <span className="block text-body-sm font-semibold text-ink">{text({ ar: "رقم الهاتف", en: "Phone number" })}</span>
         <div className="relative">
-          <Phone size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400" />
-          <input name="phone" className="input pr-12" placeholder="+974 ..." />
+          <Phone size={16} className="pointer-events-none absolute start-4 top-1/2 -translate-y-1/2 text-ink-faint" aria-hidden="true" />
+          <input name="phone" className={inputClass} placeholder="+974 ..." />
         </div>
       </label>
 
-      <label className="block space-y-2">
-        <span className="text-sm font-semibold text-zinc-700">{text({ ar: "ملاحظات", en: "Notes" })}</span>
-        <textarea name="notes" className="textarea" placeholder={text({ ar: "أي ملاحظات إضافية حول الطلب...", en: "Any additional notes about the order..." })} />
+      <label className="block space-y-1.5">
+        <span className="block text-body-sm font-semibold text-ink">{text({ ar: "ملاحظات", en: "Notes" })}</span>
+        <textarea name="notes" className={textareaClass} rows={3} placeholder={text({ ar: "أي ملاحظات إضافية حول الطلب...", en: "Any additional notes about the order..." })} />
       </label>
 
       {signedInEmail ? (
         <label className="flex cursor-pointer items-start gap-3">
-          <input type="checkbox" name="purchaseTrackingConsent" checked={purchaseTrackingConsent} onChange={(e) => setPurchaseTrackingConsent(e.target.checked)} className="mt-1 h-5 w-5 shrink-0 cursor-pointer rounded border-pearl-300 text-qatar-600 focus:ring-qatar-200" />
-          <span className="text-sm leading-7 text-zinc-600">
+          <input
+            type="checkbox"
+            name="purchaseTrackingConsent"
+            checked={purchaseTrackingConsent}
+            onChange={(e) => setPurchaseTrackingConsent(e.target.checked)}
+            className="mt-1 size-5 shrink-0 cursor-pointer rounded border-line accent-[#8A1538]"
+          />
+          <span className="text-body-sm leading-8 text-ink-soft">
             {text({
-              ar: "أوافق على حفظ مشترياتي ضمن بريدي الإلكتروني以便 later viewing وإرفاقها اختيارياً بحساب Google Drive.",
+              ar: "أوافق على حفظ مشترياتي ضمن بريدي الإلكتروني لراجعها لاحقًا وإرفاقها اختيارياً بحساب Google Drive.",
               en: "I agree to save my purchases under my email so I can view them later and optionally connect Google Drive."
             })}
           </span>
         </label>
       ) : null}
 
+      {/* voucher */}
       <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <p className="text-sm font-semibold text-zinc-700">{text({ ar: "قسيمة الخصم", en: "Voucher code" })}</p>
-        </div>
+        <p className="text-body-sm font-semibold text-ink">{text({ ar: "قسيمة الخصم", en: "Voucher code" })}</p>
 
         {!voucherDiscount && signedInEmail ? (
           <div className="flex flex-wrap gap-2">
             <input
-              className="input min-w-[220px] flex-1"
+              className={cn(inputClass, "min-w-[220px] flex-1 ps-4")}
               value={voucherCode}
               onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
               placeholder={text({ ar: "أدخل كود القسيمة", en: "Enter voucher code" })}
             />
-            <button type="button" disabled={validatingVoucher || !voucherCode.trim()} onClick={() => validateVoucher()} className="btn-secondary disabled:opacity-60">
-              {validatingVoucher ? <Loader2 size={16} className="animate-spin" /> : <Ticket size={16} />}
+            <Button type="button" variant="secondary" size="md" disabled={validatingVoucher || !voucherCode.trim()} onClick={() => validateVoucher()} loading={validatingVoucher}>
+              {!validatingVoucher && <Ticket size={15} aria-hidden="true" />}
               {text({ ar: "تطبيق", en: "Apply" })}
-            </button>
+            </Button>
           </div>
         ) : null}
 
+        {voucherError ? <p className="text-body-sm font-semibold text-accent-danger">{voucherError}</p> : null}
+
         {availableVouchers.length > 0 && !voucherDiscount && signedInEmail ? (
-          <div className="max-h-40 overflow-y-auto rounded-lg border border-qatar-100 bg-white p-2">
+          <div className="max-h-40 overflow-y-auto rounded-sm border border-line bg-surface p-2">
             {availableVouchers.map((voucher) => (
               <button
                 key={voucher.code}
                 type="button"
                 onClick={() => validateVoucher(voucher.code)}
                 disabled={validatingVoucher}
-                className="flex w-full items-center justify-between rounded-md px-3 py-2 text-sm hover:bg-qatar-50 disabled:opacity-60"
+                className="flex w-full items-center justify-between gap-3 rounded-sm px-3 py-2 text-body-sm transition-colors duration-instant hover:bg-paper-deep disabled:opacity-60"
               >
-                <span className="font-mono text-zinc-900">{text({ ar: "قسيمة خصم بقيمة", en: "Voucher for" })} {currencyLabel(voucher.amount)}</span>
-                <span className="font-bold text-qatar-800">{text({ ar: "تطبيق", en: "Apply" })}</span>
+                <span className="text-ink-soft">
+                  {text({ ar: "قسيمة خصم بقيمة", en: "Voucher for" })} <span className="tnum" dir="ltr">{currencyLabel(voucher.amount)}</span>
+                </span>
+                <span className="font-semibold text-brand-deep">{text({ ar: "تطبيق", en: "Apply" })}</span>
               </button>
             ))}
           </div>
         ) : !voucherDiscount && signedInEmail ? (
-          <p className="text-sm text-zinc-500">{text({ ar: "لا يوجد قسائم متاحة لك حالياً", en: "No available vouchers right now" })}</p>
+          <p className="text-body-sm text-ink-faint">{text({ ar: "لا يوجد قسائم متاحة لك حالياً", en: "No available vouchers right now" })}</p>
         ) : voucherDiscount ? (
-          <p className="text-sm text-emerald-700">
-            <CheckCircle size={14} className="inline-block mr-1" />
+          <p className="flex items-center gap-1.5 text-body-sm font-semibold text-teal-700">
+            <CheckCircle size={15} aria-hidden="true" />
             {text({ ar: "تم تطبيق خصم ", en: "Applied discount " })}
-            {currencyLabel(voucherDiscount)}
+            <span className="tnum" dir="ltr">{currencyLabel(voucherDiscount)}</span>
           </p>
         ) : signedInEmail ? null : (
-          <p className="text-sm text-zinc-500">{text({ ar: "سجّل الدخول لاستخدام القسائم", en: "Sign in to use vouchers" })}</p>
+          <p className="text-body-sm text-ink-faint">{text({ ar: "سجّل الدخول لاستخدام القسائم", en: "Sign in to use vouchers" })}</p>
         )}
       </div>
 
+      {/* wallet */}
       {signedInEmail && walletBalance > 0 ? (
-        <div className="rounded-lg border border-emerald-100 bg-emerald-50 p-4 text-sm text-emerald-900">
-          <div className="flex items-center justify-between gap-4">
-            <span className="inline-flex items-center gap-2 font-black">
-              <WalletCards size={16} />
+        <div className="rounded-sm border border-accent-teal/20 bg-accent-teal-soft p-4">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <span className="inline-flex items-center gap-2 text-body-sm font-bold text-ink">
+              <WalletCards size={16} className="text-accent-teal" aria-hidden="true" />
               {text({ ar: "رصيد المحفظة المتاح", en: "Available wallet balance" })}
             </span>
-            <span className="font-black">{currencyLabel(walletBalance)}</span>
+            <span className="tnum text-body-sm font-bold text-ink" dir="ltr">{currencyLabel(walletBalance)}</span>
           </div>
-          <div className="mt-3 flex items-center gap-2">
-            <span className="text-sm font-semibold">{text({ ar: "الخصم من المحفظة:", en: "Use from wallet:" })}</span>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <span className="text-body-sm font-semibold text-ink-soft">{text({ ar: "الخصم من المحفظة:", en: "Use from wallet:" })}</span>
             <input
               type="number"
               name="walletAmountToUse"
-              className="input max-w-[120px] text-sm bg-white"
+              className="h-10 w-[120px] rounded-sm border border-line bg-surface px-3 text-body-sm text-ink outline-none transition-colors duration-instant focus:border-brand focus:ring-2 focus:ring-brand/25"
               placeholder="0"
               value={walletAmountToUse}
               onChange={(e) => setWalletAmountToUse(e.target.value === "" ? "" : Number(e.target.value))}
@@ -343,21 +361,23 @@ export function CheckoutForm() {
             <button
               type="button"
               onClick={() => setWalletAmountToUse(Math.min(walletBalance, Math.max(0, total - bundleDiscount.discount - (voucherDiscount ?? 0))))}
-              className="text-xs font-bold text-emerald-700 hover:underline"
+              className="text-caption font-semibold text-accent-teal transition-colors duration-instant hover:underline"
             >
               {text({ ar: "تطبيق الأقصى", en: "Apply max" })}
             </button>
           </div>
           {walletDiscount > 0 ? (
-            <p className="mt-2 leading-7">
-              {text({ ar: "سيُحجز هذا الرصيد مؤقتًا أثناء الدفع ويُخصم فقط بعد نجاح العملية:", en: "This balance is reserved during checkout and captured only after payment succeeds:" })} {currencyLabel(walletDiscount)}
+            <p className="mt-2 text-body-sm leading-7 text-ink-soft">
+              {text({ ar: "سيُحجز هذا الرصيد مؤقتًا أثناء الدفع ويُخصم فقط بعد نجاح العملية:", en: "This balance is reserved during checkout and captured only after payment succeeds:" })}{" "}
+              <span className="tnum font-semibold" dir="ltr">{currencyLabel(walletDiscount)}</span>
             </p>
           ) : null}
         </div>
       ) : null}
 
+      {/* payment method */}
       <div className="space-y-3">
-        <p className="text-sm font-semibold text-zinc-700">{text({ ar: "طريقة الدفع", en: "Payment method" })}</p>
+        <p className="text-body-sm font-semibold text-ink">{text({ ar: "طريقة الدفع", en: "Payment method" })}</p>
         <div className="grid gap-3 sm:grid-cols-2">
           {providers.map((provider) => (
             <button
@@ -367,18 +387,25 @@ export function CheckoutForm() {
                 if (provider.enabled) setPaymentMethod(provider.id);
               }}
               disabled={!provider.enabled}
-              className={`rounded-lg border p-4 text-right transition ${
+              className={cn(
+                "rounded-sm border p-4 text-start transition-colors duration-instant disabled:cursor-not-allowed disabled:opacity-60",
                 paymentMethod === provider.id
-                  ? "border-qatar-400 bg-qatar-50 shadow-[0_18px_40px_rgba(138,21,56,0.08)]"
-                  : "border-pearl-200 bg-white hover:border-qatar-200"
-              }`}
+                  ? "border-brand/50 bg-brand-soft/50"
+                  : "border-line bg-surface hover:border-line-strong"
+              )}
+              aria-pressed={paymentMethod === provider.id}
             >
               <div className="flex items-center justify-between gap-4">
                 <span>
-                  <span className="block font-semibold text-zinc-950">{text(provider.name)}</span>
-                  <span className="mt-1 block text-xs text-zinc-500">{text(provider.hint)}</span>
+                  <span className="block text-body font-bold text-ink">{text(provider.name)}</span>
+                  <span className="mt-1 block text-caption text-ink-faint">{text(provider.hint)}</span>
                 </span>
-                <span className={`rounded-full px-3 py-1 text-xs font-bold ${provider.enabled ? "bg-emerald-50 text-emerald-700" : "bg-zinc-100 text-zinc-500"}`}>
+                <span
+                  className={cn(
+                    "rounded-pill px-3 py-1 text-caption font-semibold",
+                    provider.enabled ? "bg-accent-teal-soft text-accent-teal" : "bg-paper-deep text-ink-faint"
+                  )}
+                >
                   {provider.enabled ? text({ ar: "مفعّل", en: "Enabled" }) : text({ ar: "غير متصل", en: "Not connected" })}
                 </span>
               </div>
@@ -387,30 +414,33 @@ export function CheckoutForm() {
         </div>
       </div>
 
-      <div className="rounded-lg border border-qatar-100 bg-qatar-50 p-5">
-        <div className="flex items-center justify-between gap-4">
+      {/* total */}
+      <div className="rounded-sm border border-line bg-paper-deep/40 p-5">
+        <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <span className="text-sm text-zinc-600">{voucherDiscount || walletDiscount || bundleDiscount.discount ? text({ ar: "الإجمالي بعد الخصم", en: "Total after discount" }) : text({ ar: "الإجمالي التقريبي", en: "Estimated total" })}</span>
+            <span className="text-body-sm text-ink-soft">
+              {voucherDiscount || walletDiscount || bundleDiscount.discount ? text({ ar: "الإجمالي بعد الخصم", en: "Total after discount" }) : text({ ar: "الإجمالي التقريبي", en: "Estimated total" })}
+            </span>
             {voucherDiscount || walletDiscount || bundleDiscount.discount ? (
-              <div className="mt-1 flex flex-wrap gap-2 text-xs">
-                <span className="text-zinc-400 line-through">{currencyLabel(total)}</span>
-                {bundleDiscount.discount ? <span className="text-amber-700">{bundleDiscountLabel()}: -{currencyLabel(bundleDiscount.discount)}</span> : null}
-                {voucherDiscount ? <span className="text-emerald-600">{text({ ar: "قسيمة", en: "Voucher" })}: -{currencyLabel(voucherDiscount)}</span> : null}
-                {walletDiscount ? <span className="text-sky-700">{text({ ar: "محفظة", en: "Wallet" })}: -{currencyLabel(walletDiscount)}</span> : null}
+              <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-caption">
+                <span className="text-ink-faint line-through" dir="ltr">{currencyLabel(total)}</span>
+                {bundleDiscount.discount ? <span className="text-accent-gold">{bundleDiscountLabel()}: <span className="tnum" dir="ltr">-{currencyLabel(bundleDiscount.discount)}</span></span> : null}
+                {voucherDiscount ? <span className="text-accent-teal">{text({ ar: "قسيمة", en: "Voucher" })}: <span className="tnum" dir="ltr">-{currencyLabel(voucherDiscount)}</span></span> : null}
+                {walletDiscount ? <span className="text-accent-teal">{text({ ar: "محفظة", en: "Wallet" })}: <span className="tnum" dir="ltr">-{currencyLabel(walletDiscount)}</span></span> : null}
               </div>
             ) : null}
           </div>
-          <span className="text-2xl font-black text-qatar-800">{currencyLabel(finalTotal)}</span>
+          <Price value={finalTotal} size="xl" />
         </div>
-        <p className="mt-2 text-sm leading-7 text-zinc-600">
+        <p className="mt-3 text-body-sm leading-8 text-ink-soft">
           {text({
-            ar: "يتم إنشاء الطلب محلياً ثم إتمام الدفع عبر PayPal أو Stripe. لن يتم فتح روابط التحميل إلا بعد تحقق الخادم من الدفع.",
+            ar: "يتم إنشاء الطلب محليًا ثم إتمام الدفع عبر PayPal أو Stripe. لن يتم فتح روابط التحميل إلا بعد تحقق الخادم من الدفع.",
             en: "The order is created locally, then completed through PayPal or Stripe. Download links open only after server-side payment verification."
           })}
         </p>
       </div>
 
-      {message ? <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{message}</div> : null}
+      {message ? <div className="rounded-sm border border-accent-danger/30 bg-accent-danger-soft px-4 py-3 text-body-sm font-semibold text-accent-danger">{message}</div> : null}
 
       {paymentMethod === "paypal" ? (
         <div className="space-y-3">
@@ -431,7 +461,7 @@ export function CheckoutForm() {
               }}
             />
           ) : (
-            <div className="rounded-lg border border-dashed border-qatar-200 bg-white p-5 text-sm text-zinc-500">
+            <div className="rounded-sm border border-dashed border-line-strong bg-surface p-5 text-body-sm text-ink-faint">
               {text({ ar: "أضف بيانات PayPal في ملف البيئة لتفعيل الدفع الحقيقي.", en: "Add PayPal environment values to enable live payment." })}
             </div>
           )}
@@ -441,15 +471,22 @@ export function CheckoutForm() {
           whileTap={{ scale: 0.98 }}
           type="submit"
           disabled={loading || !items.length}
-          className="btn-primary w-full disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex h-12 w-full select-none items-center justify-center gap-2 rounded-sm bg-brand px-6 text-body font-semibold text-white shadow-soft transition-[background-color,transform] duration-instant ease-standard hover:bg-brand-deep hover:-translate-y-px disabled:pointer-events-none disabled:opacity-55"
         >
-          <CreditCard size={16} />
-          {loading ? text({ ar: "جارٍ فتح Stripe...", en: "Opening Stripe..." }) : text({ ar: "الدفع عبر Stripe", en: "Pay with Stripe" })}
+          <CreditCard size={16} aria-hidden="true" />
+          {loading ? (
+            <>
+              <Loader2 size={16} className="animate-spin" aria-hidden="true" />
+              {text({ ar: "جارٍ فتح Stripe...", en: "Opening Stripe..." })}
+            </>
+          ) : (
+            text({ ar: "الدفع عبر Stripe", en: "Pay with Stripe" })
+          )}
         </motion.button>
       )}
 
-      <p className="flex items-center justify-center gap-2 text-center text-xs text-zinc-500">
-        <ShieldCheck size={14} className="text-emerald-700" />
+      <p className="flex items-center justify-center gap-2 text-center text-caption text-ink-faint">
+        <ShieldCheck size={14} className="text-teal-700" aria-hidden="true" />
         {text({ ar: "لا يوجد دفع يدوي أو رفع إثبات دفع. PayPal وStripe فقط.", en: "No manual payment or proof upload. PayPal and Stripe only." })}
       </p>
     </form>

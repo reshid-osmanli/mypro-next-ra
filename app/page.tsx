@@ -1,47 +1,63 @@
 import Link from "next/link";
-import { ArrowLeft, FileText, LibraryBig, Presentation, ShieldCheck } from "lucide-react";
-import { Hero } from "@/components/hero";
+import { Download, FileSearch, ShieldCheck } from "lucide-react";
+import { getLocale } from "next-intl/server";
+import { Hero } from "@/components/marketing/hero";
+import { FeaturedSection } from "@/components/marketing/featured-feature";
 import { ProductCard } from "@/components/product-card";
-import { SectionHeading } from "@/components/section-heading";
-import { LocalizedText } from "@/components/site-preferences";
-import { PromoImage } from "@/components/promo-image";
-import { getGrades, getProducts } from "@/lib/catalog";
+import { Reveal } from "@/components/motion/reveal";
+import { SectionHeading } from "@/components/ui/section-heading";
+import { ArrowForward } from "@/components/ui/icon";
+import { getBlogPosts } from "@/lib/blog";
+import { getGradeSubjectMap, getAllProducts } from "@/lib/catalog";
 import { getSiteSettings } from "@/lib/site-settings";
 
 export const dynamic = "force-dynamic";
 
-export default async function HomePage() {
-  const [featured, grades, settings] = await Promise.all([
-    getProducts({ featured: true }),
-    getGrades(),
-    getSiteSettings()
-  ]);
+type L = { ar: string; en: string };
 
-  const productLimit = Math.min(12, Math.max(1, Number(settings.homepageProductLimit || 4)));
-  const productDateMs = (value?: Date | string) => (value ? new Date(value).getTime() : 0);
-  const orderedFeatured = [...featured].sort((a, b) => {
-    if (settings.homepageProductOrder === "newest") return productDateMs(b.createdAt) - productDateMs(a.createdAt);
-    if (settings.homepageProductOrder === "manual") return (b.sortOrder ?? 0) - (a.sortOrder ?? 0);
-    return Number(b.featured) - Number(a.featured) || (b.sortOrder ?? 0) - (a.sortOrder ?? 0);
+const steps: { icon: typeof FileSearch; title: L; text: L }[] = [
+  {
+    icon: FileSearch,
+    title: { ar: "اختر ما يناسب صفك", en: "Pick what fits your class" },
+    text: { ar: "تصفح حسب الصف والمادة، واعرض الغلاف والتفاصيل قبل الشراء.", en: "Browse by grade and subject, and inspect the cover and details before you buy." }
+  },
+  {
+    icon: ShieldCheck,
+    title: { ar: "ادفع بأمان", en: "Pay securely" },
+    text: { ar: "Stripe أو PayPal — دفع آمن وموثق دون مشاركة بياناتك مع طرف ثالث.", en: "Stripe or PayPal — secure, documented checkout with no third-party sharing." }
+  },
+  {
+    icon: Download,
+    title: { ar: "حمّل فورًا", en: "Download instantly" },
+    text: { ar: "بعد الدفع تجد ملفاتك في “مشترياتي” بروابط تحميل خاصة.", en: "After payment your files appear in “My purchases” with private download links." }
+  }
+];
+
+export default async function HomePage() {
+  const [allProducts, gradeMap, settings, posts, locale] = await Promise.all([
+    getAllProducts(),
+    getGradeSubjectMap(),
+    getSiteSettings(),
+    getBlogPosts(),
+    getLocale()
+  ]);
+  const local = (value: L) => (locale === "en" ? value.en : value.ar);
+  const dateFmt = new Intl.DateTimeFormat(locale === "en" ? "en-GB" : "ar", {
+    day: "numeric",
+    month: "long",
+    year: "numeric"
   });
 
-  const formats = [
-    {
-      icon: Presentation,
-      title: { ar: "عروض بوربوينت", en: "PowerPoint decks" },
-      text: { ar: "شرائح تعليمية قابلة للتعديل مع نسخ جاهزة للعرض داخل الفصل.", en: "Editable teaching slides with classroom-ready presentation copies." }
-    },
-    {
-      icon: FileText,
-      title: { ar: "PDF وDOCX", en: "PDF and DOCX" },
-      text: { ar: "أوراق عمل وملفات قابلة للطباعة أو التعديل حسب المادة والصف.", en: "Worksheets and files that can be printed or edited by subject and grade." }
-    },
-    {
-      icon: ShieldCheck,
-      title: { ar: "تسليم آمن", en: "Secure delivery" },
-      text: { ar: "ملفات خاصة وروابط تحميل مؤقتة بعد إتمام عملية الدفع.", en: "Private files and temporary download links after payment is completed." }
-    }
-  ];
+  const featured = allProducts.filter((product) => product.featured).slice(0, 3);
+  const heroProducts = featured.length >= 3 ? featured : allProducts.slice(0, 3);
+  const featuredIds = new Set(featured.slice(0, 3).map((item) => item.id));
+  const restForGrid = allProducts.filter((product) => !featuredIds.has(product.id));
+  const shownLatest = (restForGrid.length >= 4 ? restForGrid : allProducts).slice(0, 8);
+
+  const productCountByGrade = new Map<string, number>();
+  for (const product of allProducts) {
+    productCountByGrade.set(product.grade, (productCountByGrade.get(product.grade) ?? 0) + 1);
+  }
 
   return (
     <>
@@ -52,155 +68,164 @@ export default async function HomePage() {
           ar: settings.heroDescription,
           en: "Kutubi brings a polished storefront, grade-and-subject browsing, and secure checkout for ready digital teaching files."
         }}
-        primaryColor={settings.primaryColor}
-        secondaryColor={settings.secondaryColor}
         primaryCtaLabel={{ ar: settings.heroPrimaryCtaLabel, en: "Browse products" }}
         primaryCtaHref={settings.heroPrimaryCtaHref}
         secondaryCtaLabel={{ ar: settings.heroSecondaryCtaLabel, en: "View library" }}
         secondaryCtaHref={settings.heroSecondaryCtaHref}
+        products={heroProducts}
       />
 
+      {/* announcement — quiet strip */}
       {settings.announcementEnabled === "true" && settings.announcementText ? (
-        <section className="mx-auto max-w-7xl px-4 pt-6 lg:px-8">
-          <Link href={settings.announcementHref} className="block rounded-2xl border border-qatar-100 bg-qatar-50 px-5 py-4 text-center text-sm font-black text-qatar-900 shadow-sm transition hover:-translate-y-0.5 hover:bg-qatar-100">
+        <Link
+          href={settings.announcementHref}
+          className="block border-b border-line bg-brand-soft/50 transition-colors duration-instant hover:bg-brand-soft"
+        >
+          <span className="container-wide flex items-center justify-center gap-2 py-2.5 text-center text-body-sm font-semibold text-brand-deep">
             {settings.announcementText}
-          </Link>
-        </section>
+            <ArrowForward size={14} aria-hidden="true" />
+          </span>
+        </Link>
       ) : null}
 
-      <section className="mx-auto max-w-7xl px-4 py-12 lg:px-8">
-        <div className="grid gap-4 md:grid-cols-3">
-          {[
-            { value: `${featured.length || 3}+`, label: { ar: "منتجات مميزة", en: "Featured products" } },
-            { value: `${grades.length || 6}+`, label: { ar: "صفوف ومقررات", en: "Grades and courses" } },
-            { value: "5GB+", label: { ar: "حد رفع لكل ملف", en: "Upload limit per file" } }
-          ].map((item) => (
-            <div key={item.value} className="rounded-lg border border-pearl-200 bg-white p-6 text-center shadow-sm">
-              <div className="mx-auto mb-4 h-1 w-14 rounded-md bg-qatar-700" />
-              <p className="text-3xl font-black text-zinc-950">{item.value}</p>
-              <LocalizedText as="p" className="mt-2 text-sm font-bold text-zinc-500" value={item.label} />
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-7xl px-4 py-8 lg:px-8">
-        <SectionHeading
-          eyebrow={{ ar: "تجربة بيع مكتملة", en: "Complete store flow" }}
-          title={{ ar: "متجر ملفات تعليمية يبدو جاهزاً للبيع", en: "A teaching-file store that feels ready to sell" }}
-          description={{
-            ar: "الواجهة تعرض المنتجات بوضوح، ولوحة الإدارة تربط الصفوف والمواد والملفات والأسعار في مسار واحد قابل للنشر.",
-            en: "Products, grades, subjects, files, and prices are presented in a focused flow built for real digital sales."
-          }}
-          center
-        />
-        <div className="mt-8 grid gap-4 md:grid-cols-3">
-          {formats.map(({ icon: Icon, title, text }) => (
-            <div key={title.ar} className="rounded-lg border border-pearl-200 bg-white p-6 shadow-sm">
-              <div className="flex h-11 w-11 items-center justify-center rounded-md bg-[#2d1820] text-white">
-                <Icon size={19} />
-              </div>
-              <LocalizedText as="h3" className="mt-5 text-xl font-black text-zinc-950" value={title} />
-              <LocalizedText as="p" className="mt-3 text-sm leading-7 text-zinc-600" value={text} />
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {settings.promoEnabled === "true" && (settings.promoTitle || settings.promoDescription) ? (
-        <section className="mx-auto max-w-7xl px-4 py-8 lg:px-8">
-          <div className="grid overflow-hidden rounded-3xl border border-pearl-200 bg-white shadow-[0_24px_80px_rgba(60,32,18,0.08)] lg:grid-cols-[1fr_0.8fr]">
-            <div className="p-6 md:p-10">
-              <div className="inline-flex rounded-full bg-qatar-50 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-qatar-800">عرض مميز</div>
-              <h2 className="mt-5 text-3xl font-black text-zinc-950 md:text-4xl">{settings.promoTitle}</h2>
-              <p className="mt-4 max-w-2xl leading-8 text-zinc-600">{settings.promoDescription}</p>
-              {settings.promoCtaLabel ? (
-                <Link href={settings.promoCtaHref} className="btn-primary mt-6 inline-flex">
-                  {settings.promoCtaLabel}
-                  <ArrowLeft size={16} />
-                </Link>
-              ) : null}
-            </div>
-            <div className="relative min-h-[14rem] sm:min-h-[18rem] bg-qatar-50 overflow-hidden">
-              {settings.promoImageUrl ? (
-                settings.promoImageUrl.match(/\.(mp4|webm|mov)(\?|$)/i) ? (
-                  <video
-                    src={settings.promoImageUrl}
-                    className="h-full w-full object-cover"
-                    muted
-                    loop
-                    playsInline
-                    autoPlay
-                    style={{
-                      transform: `scale(${Number(settings.promoImageScale || 1)}) rotate(${Number(settings.promoImageRotation || 0)}deg)`,
-                      transformOrigin: settings.promoImagePosition || "center"
-                    }}
-                  />
-                ) : (
-                  <PromoImage
-                    imageUrl={settings.promoImageUrl}
-                    motionEnabled={settings.promoMotionEnabled}
-                    scale={settings.promoImageScale}
-                    position={settings.promoImagePosition}
-                    rotation={settings.promoImageRotation}
-                  />
-                )
-              ) : (
-                <div className="grid h-full place-items-center p-8 text-center text-qatar-800">
-                  <div>
-                    <Presentation className="mx-auto" size={42} />
-                    <p className="mt-4 text-sm font-black">أضف صورة أو فيديو جذاب من لوحة التحكم</p>
-                  </div>
-                </div>
-              )}
-            </div>
+      {/* featured — editorial spread */}
+      {featured.length > 0 ? (
+        <section className="section">
+          <div className="container-content">
+            <SectionHeading
+              eyebrow={{ ar: "من المختارات", en: "Featured" }}
+              title={{ ar: "حزم جاهزة تبدأ منها صفك", en: "Ready packs to start your class" }}
+              description={{
+                ar: "نخبة من العروض وأوراق العمل المنظمة حسب الصف والمادة، بأسعار واضحة وملفات موثقة.",
+                en: "A selection of organized decks and worksheets, with clear pricing and documented files."
+              }}
+              action={{ href: "/products", label: { ar: "كل المنتجات", en: "All products" } }}
+            />
+            <FeaturedSection products={featured} />
           </div>
         </section>
       ) : null}
 
-      <section className="mx-auto max-w-7xl px-4 py-14 lg:px-8">
-        <div className="flex flex-wrap items-end justify-between gap-4">
+      {/* browse by grade */}
+      <section className="border-y border-line bg-paper-deep/40">
+        <div className="container-content py-14 md:py-16">
           <SectionHeading
-            eyebrow={{ ar: "المحتوى المميز", en: "Featured content" }}
-            title={{ ar: "منتجات تظهر كملفات رقمية حقيقية", en: "Products presented like real digital packs" }}
+            eyebrow={{ ar: "المكتبة", en: "Library" }}
+            title={{ ar: "تصفح حسب الصف الدراسي", en: "Browse by grade" }}
             description={{
-              ar: "بطاقات واضحة مع أغلفة مرئية، تصنيف حسب الصف والمادة، وسعر ظاهر من أول نظرة.",
-              en: "Clear cards, visual covers, grade and subject tags, and prices visible at a glance."
+              ar: "كل صف يحمل موادّه المستقلة، دون اختلاط بين المستويات.",
+              en: "Each grade keeps its own subjects, no mixing between levels."
             }}
           />
-          <Link href="/products" className="btn-secondary">
-            <LocalizedText value={{ ar: "عرض كل المنتجات", en: "View all products" }} />
-            <ArrowLeft size={16} />
-          </Link>
-        </div>
-        <div className="mt-8 grid gap-6 xl:grid-cols-2">
-          {orderedFeatured.slice(0, productLimit).map((product) => <ProductCard key={product.id} product={product} />)}
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
+            {gradeMap.map(({ grade, subjects }, index) => (
+              <Reveal key={grade} index={index} className="h-full">
+                <Link
+                  href={`/library/${encodeURIComponent(grade)}`}
+                  className="card group flex h-full flex-col justify-between gap-6 p-5 transition-[border-color,box-shadow,transform] duration-fast ease-standard hover:-translate-y-[2px] hover:border-line-strong hover:shadow-soft"
+                >
+                  <div>
+                    <span className="tnum text-label font-bold text-brand-deep">
+                      {String(index + 1).padStart(2, "0")}
+                    </span>
+                    <h3 className="mt-2 text-h4 font-bold text-ink transition-colors duration-instant group-hover:text-brand-deep">
+                      {grade}
+                    </h3>
+                  </div>
+                  <p className="text-caption text-ink-faint">
+                    {subjects.length}{" "}
+                    {local({ ar: subjects.length === 1 ? "مادة" : "مواد", en: subjects.length === 1 ? "subject" : "subjects" })}
+                    {productCountByGrade.get(grade)
+                      ? ` · ${productCountByGrade.get(grade)}+ ${local({ ar: "منتج", en: "products" })}`
+                      : ""}
+                  </p>
+                </Link>
+              </Reveal>
+            ))}
+          </div>
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-4 py-6 lg:px-8">
-        <div className="grid gap-6 rounded-lg border border-white/10 bg-[#2d1820] p-6 text-white shadow-[0_24px_80px_rgba(60,32,18,0.2)] lg:grid-cols-[1fr_auto] lg:items-center">
-          <div>
-            <div className="inline-flex items-center gap-2 rounded-md bg-white/10 px-3 py-2 text-xs font-black text-white/80">
-              <LibraryBig size={14} />
-              <LocalizedText value={{ ar: "مكتبة منظمة", en: "Organized library" }} />
-            </div>
-            <LocalizedText as="h3" className="mt-4 text-2xl font-black" value={{ ar: "صفوف، مواد، وصفحات تعريفية قابلة للتحرير", en: "Editable grades, subjects, and content pages" }} />
-            <LocalizedText
-              as="p"
-              className="mt-3 max-w-2xl text-sm leading-7 text-white/70"
-              value={{
-                ar: "يمكن إدارة المنتجات، الصفوف، المواد، الصفحات، الأسعار، وصور الأغلفة من لوحة الإدارة دون تعديل الكود.",
-                en: "Products, grades, subjects, pages, pricing, and cover images can be managed from the admin panel without code changes."
-              }}
+      {/* latest products grid */}
+      {shownLatest.length > 0 ? (
+        <section className="section">
+          <div className="container-content">
+            <SectionHeading
+              eyebrow={{ ar: "وصل حديثًا", en: "Latest" }}
+              title={{ ar: "أحدث الموارد التعليمية", en: "Latest teaching resources" }}
+              action={{ href: "/products", label: { ar: "عرض الكل", en: "View all" } }}
             />
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {shownLatest.map((product, index) => (
+                <Reveal key={product.id} index={index % 4} className="h-full">
+                  <ProductCard product={product} className="h-full" />
+                </Reveal>
+              ))}
+            </div>
           </div>
-          <Link href="/library" className="inline-flex items-center justify-center gap-2 rounded-md bg-white px-5 py-3 text-sm font-black text-zinc-950 transition hover:-translate-y-0.5">
-            <LocalizedText value={{ ar: "تصفح المكتبة", en: "Browse library" }} />
-            <ArrowLeft size={16} />
-          </Link>
+        </section>
+      ) : null}
+
+      {/* how it works — quiet text strip */}
+      <section className="border-t border-line bg-paper">
+        <div className="container-content py-14 md:py-16">
+          <SectionHeading
+            eyebrow={{ ar: "كيف تعمل؟", en: "How it works" }}
+            title={{ ar: "من الاختيار إلى التحميل في ثلاث خطوات", en: "From picking to downloading in three steps" }}
+          />
+          <ol className="grid gap-8 md:grid-cols-3 md:gap-6">
+            {steps.map(({ icon: IconComponent, title, text: stepText }, index) => (
+              <Reveal key={title.ar} index={index} as="li">
+                <div className="flex gap-4">
+                  <span className="grid size-11 shrink-0 place-items-center rounded-sm border border-line bg-surface text-brand">
+                    <IconComponent size={19} strokeWidth={1.75} aria-hidden="true" />
+                  </span>
+                  <div>
+                    <h3 className="text-h4 font-bold text-ink">
+                      <span className="tnum me-2 text-ink-faint">{String(index + 1).padStart(2, "0")}</span>
+                      {local(title)}
+                    </h3>
+                    <p className="mt-1.5 text-body-sm leading-8 text-ink-soft">{local(stepText)}</p>
+                  </div>
+                </div>
+              </Reveal>
+            ))}
+          </ol>
         </div>
       </section>
+
+      {/* blog preview */}
+      {posts.length > 0 ? (
+        <section className="border-t border-line">
+          <div className="container-content py-14 md:py-16">
+            <SectionHeading
+              eyebrow={{ ar: "المدونة", en: "Blog" }}
+              title={{ ar: "أفكار تدريس مرتبطة بملفات جاهزة", en: "Teaching ideas linked to ready files" }}
+              action={{ href: "/blog", label: { ar: "كل المقالات", en: "All articles" } }}
+            />
+            <div className="grid gap-6 md:grid-cols-2">
+              {posts.slice(0, 2).map((post, index) => (
+                <Reveal key={post.id} index={index} className="h-full">
+                  <Link
+                    href={`/blog/${post.slug}`}
+                    className="card group flex h-full flex-col p-6 transition-[border-color,box-shadow] duration-fast ease-standard hover:border-line-strong hover:shadow-soft md:p-7"
+                  >
+                    <p className="text-caption text-ink-faint">{dateFmt.format(new Date(post.createdAt))}</p>
+                    <h3 className="mt-3 text-h3 font-bold leading-snug text-ink transition-colors duration-instant group-hover:text-brand-deep">
+                      {post.title}
+                    </h3>
+                    <p className="mt-3 line-clamp-3 text-body-sm leading-8 text-ink-soft">{post.excerpt}</p>
+                    <span className="mt-5 inline-flex items-center gap-2 text-body-sm font-semibold text-brand-deep">
+                      {local({ ar: "قراءة المقال", en: "Read article" })}
+                      <ArrowForward size={14} className="transition-transform duration-fast ease-standard group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5" aria-hidden="true" />
+                    </span>
+                  </Link>
+                </Reveal>
+              ))}
+            </div>
+          </div>
+        </section>
+      ) : null}
     </>
   );
 }

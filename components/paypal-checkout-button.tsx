@@ -158,13 +158,13 @@ export function PayPalCheckoutButton({ items, formRef, onCompleted, onStatus, di
   }, [formRef, items, text, voucherCode]);
 
   if (disabled) {
-    return <div className="rounded-lg border border-dashed border-qatar-200 bg-white p-5 text-sm text-zinc-500">{text({ ar: "أضف عناصر إلى السلة لتفعيل الدفع.", en: "Add items to the cart to enable payment." })}</div>;
+    return <div className="rounded-sm border border-dashed border-brand/20 bg-surface p-5 text-sm text-ink-faint">{text({ ar: "أضف عناصر إلى السلة لتفعيل الدفع.", en: "Add items to the cart to enable payment." })}</div>;
   }
 
   return (
     <div className="space-y-3">
-      {loadError ? <div className="rounded-lg border border-rose-200 bg-rose-50 p-5 text-sm text-rose-700">{loadError}</div> : null}
-      {!ready && !loadError ? <div className="rounded-lg border border-qatar-100 bg-white p-5 text-sm text-zinc-500">{text({ ar: "جارٍ تحميل أزرار PayPal...", en: "Loading PayPal buttons..." })}</div> : null}
+      {loadError ? <div className="rounded-sm border border-accent-danger/30 bg-accent-danger-soft p-5 text-sm text-accent-danger">{loadError}</div> : null}
+      {!ready && !loadError ? <div className="rounded-sm border border-brand/15 bg-surface p-5 text-sm text-ink-faint">{text({ ar: "جارٍ تحميل أزرار PayPal...", en: "Loading PayPal buttons..." })}</div> : null}
       <div ref={containerRef} className="min-h-[60px]" />
     </div>
   );
